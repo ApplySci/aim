@@ -8,8 +8,6 @@ class ScoreCell extends DataCell {
   ScoreCell(this.score, this.onTap)
       : super(InkWell(
           onTap: onTap,
-          onDoubleTap: onTap,
-          onLongPress: onTap,
           child: Text(
             NumberFormat('+#0.0;-#0.0').format(score / 10),
             // Display score with 1 decimal point

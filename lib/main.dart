@@ -66,7 +66,13 @@ class _MyHomePageState extends State<MyHomePage> {
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(widget.title),
             ),
-            body: ScoreTable(),
+            body: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ScoreTable(),
+              ),
+            ),
           );
         },
       ),

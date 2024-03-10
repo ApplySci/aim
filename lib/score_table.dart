@@ -5,11 +5,15 @@ import 'package:data_table_2/data_table_2.dart';
 import 'score_cell.dart';
 import 'store.dart';
 
-
 class ScoreTable extends StatelessWidget {
   ScoreTable();
 
   void onTap() {}
+
+  Widget _verticalDivider = const VerticalDivider(
+    color: Color(0xff999999),
+    thickness: 1,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -22,63 +26,56 @@ class ScoreTable extends StatelessWidget {
       },
       builder: (BuildContext context, Map<String, dynamic> storeValues) {
         int rounds = storeValues['rounds'];
-        List<DataColumn2> columns = <DataColumn2>[
-          DataColumn2(
-            size: ColumnSize.S,
+        List<DataColumn> columns = <DataColumn>[
+          DataColumn(
             label: Text(''),
             numeric: true,
           ),
-          DataColumn2(
-            size: ColumnSize.L,
+          DataColumn(
             label: Text('Player'),
           ),
-          DataColumn2(
-            size: ColumnSize.M,
+          DataColumn(
             label: Text('Total'),
             numeric: true,
           ),
+          DataColumn(label: _verticalDivider),
         ];
         for (var i = rounds; i > 0; i--) {
           columns.add(
-            DataColumn2(
-              size: ColumnSize.M,
+            DataColumn(
               label: Text("R${i}"),
               numeric: true,
             ),
           );
         }
-        columns.add(DataColumn2(
-          size: ColumnSize.M,
+        columns.add(DataColumn(
           label: Text("Pen."),
           numeric: true,
         ));
-        List<DataRow2> rows = <DataRow2>[];
+        List<DataRow> rows = <DataRow>[];
         int pos = 1;
         for (final score in storeValues['scores']) {
           List<DataCell> row = [
             DataCell(Text(pos.toString())),
-            DataCell(Text(score['name'])),
+            DataCell(ConstrainedBox(
+              child: Text(score['name']),
+              constraints: BoxConstraints(maxWidth: 150),
+            )),
             ScoreCell(score['total'], onTap),
+            DataCell(_verticalDivider),
           ];
           for (var i = rounds; i >= 0; i--) {
-            row.add(
-              ScoreCell(score['roundScores'][i], onTap)
-            );
+            row.add(ScoreCell(score['roundScores'][i], onTap));
           }
-          rows.add(DataRow2(cells: row));
+          rows.add(DataRow(cells: row));
           pos++;
         }
-        return DataTable2(
+        return DataTable(
           columns: columns,
           rows: rows,
           columnSpacing: 10,
-          fixedLeftColumns: 2,
-          fixedTopRows: 4,
-          lmRatio: 2,
-          smRatio: 0.5,
         );
       },
     );
   }
-
 }

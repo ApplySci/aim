@@ -58,13 +58,13 @@ class AllState {
   bool loadedOK = false;
 
   List<Map<String, dynamic>> scores = [
-    {'id': 1, 'name': 'Player 1', 'total': 50, 'roundScores': [0, 91, -11, -30]},
-    {'id': 2, 'name': 'Player 2', 'total': 200, 'roundScores': [0, 35, 53, 112]},
-    {'id': 3, 'name': 'Player 3', 'total': -105, 'roundScores': [0, 0, -36, -69]},
-    {'id': 4, 'name': 'Player 4', 'total': -145, 'roundScores': [0, -126, -6, -13]},
+    {'id': 1, 'name': 'Player 1', 'total': 50, 'roundScores': [0, -24, 49, 91, -11, -30]},
+    {'id': 2, 'name': 'Player 2 has a very long name and will it overflow or what', 'total': 200, 'roundScores': [0, 15,23, 35, 53, 112]},
+    {'id': 3, 'name': 'Player 3', 'total': -105, 'roundScores': [0, 0,-40,5, -36, -69]},
+    {'id': 4, 'name': 'Player 4', 'total': -145, 'roundScores': [0,10,12, -126, -6, -13]},
   ];
 
-  int rounds = 3;
+  int rounds = 5;
 
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
