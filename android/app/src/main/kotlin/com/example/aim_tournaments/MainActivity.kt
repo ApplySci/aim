@@ -1,4 +1,4 @@
-package ie.mahjong.aim_tournaments
+package ie.mahjong.tournament
 
 import io.flutter.embedding.android.FlutterActivity
 

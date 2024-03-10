@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "aim_tournaments" "\0"
+            VALUE "CompanyName", "ie.mahjong" "\0"
+            VALUE "FileDescription", "tournament" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "aim_tournaments" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
+            VALUE "InternalName", "tournament" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 AZPS at mahjong.ie. All rights reserved." "\0"
             VALUE "OriginalFilename", "aim_tournaments.exe" "\0"
-            VALUE "ProductName", "aim_tournaments" "\0"
+            VALUE "ProductName", "tournament" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
