@@ -5,11 +5,6 @@ import 'package:data_table_2/data_table_2.dart';
 import 'score_cell.dart';
 import 'store.dart';
 
-class PlayerStatus {
-  List<int> roundScores = <int>[].toList(growable: true);
-  String name = 'unassigned';
-  int totalScore = 0;
-}
 
 class ScoreTable extends StatelessWidget {
   ScoreTable();
@@ -22,10 +17,11 @@ class ScoreTable extends StatelessWidget {
       converter: (store) {
         return {
           'scores': store.state.scores,
+          'rounds': store.state.rounds,
         };
       },
       builder: (BuildContext context, Map<String, dynamic> storeValues) {
-        int rounds = storeValues['scores'][0].roundScores.length;
+        int rounds = storeValues['rounds'];
         List<DataColumn> columns = <DataColumn>[
           DataColumn2(
             label: Text(''),
@@ -45,18 +41,23 @@ class ScoreTable extends StatelessWidget {
             ),
           );
         }
+        List<DataRow2> rows = <DataRow2>[];
+        int pos = 0;
+        for (final score in storeValues['scores']) {
+          List<DataCell> row = [
+            DataCell(Text(pos.toString())),
+            DataCell(Text(score['name'])),
+            ScoreCell(score['total'], onTap),
+          ];
+          for (var i = rounds; i > 0; i--) {
+            row.add(ScoreCell(score['roundScores'][i - 1], onTap));
+          }
+          rows.add(DataRow2(cells: row));
+          pos++;
+        }
         return DataTable2(
           columns: columns,
-          rows: storeValues['scores'].map((score) {
-            List<DataCell> row = [
-              DataCell(score.name),
-              ScoreCell(score.totalScore, onTap),
-            ];
-            for (var i = rounds; i > 0; i--) {
-              row.add(ScoreCell(score.roundScores[i - 1], onTap));
-            }
-            return DataRow2(cells: row);
-          }).toList(),
+          rows: rows,
         );
       },
     );

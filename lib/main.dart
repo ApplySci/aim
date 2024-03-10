@@ -60,21 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
       child: StoreConnector<AllState, String>(
         converter: (store) => store.state.preferences['backgroundColour'],
         builder: (BuildContext context, String color) {
-          return Scaffold( // TODO MaterialApp(
+          return Scaffold(
+            // TODO MaterialApp(
             appBar: AppBar(
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(widget.title),
             ),
             body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    'The next tournament is 10-11 August 2024, in Cork',
-                  ),
-                  ScoreTable(),
-                ],
-              ),
+              child: ScoreTable(),
             ),
           );
         },

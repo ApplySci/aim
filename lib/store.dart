@@ -12,11 +12,10 @@ late SharedPreferences _prefs;
 
 const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
-  'installationID': null,
   'japaneseWinds': true,
   'japaneseNumbers': false,
   'serverUrl': 'https://scores.mahjong.ie/',
-  'userID': 0, // id on server
+  'playerID': 0, // id on server
   // TODO VAPID stuff here probably
 };
 
@@ -59,11 +58,13 @@ class AllState {
   bool loadedOK = false;
 
   List<Map<String, dynamic>> scores = [
-    {'id': 0, 'name': 'Player 1'},
-    {'id': 0, 'name': 'Player 2'},
-    {'id': 0, 'name': 'Player 3'},
-    {'id': 0, 'name': 'Player 4'},
+    {'id': 1, 'name': 'Player 1', 'total': 50, 'roundScores': [91, -11, -30]},
+    {'id': 2, 'name': 'Player 2', 'total': 200, 'roundScores': [35, 53, 112]},
+    {'id': 3, 'name': 'Player 3', 'total': -105, 'roundScores': [0, -36, -69]},
+    {'id': 4, 'name': 'Player 4', 'total': -145, 'roundScores': [-126, -6, -13]},
   ];
+
+  int rounds = 3;
 
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
