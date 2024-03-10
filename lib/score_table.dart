@@ -22,35 +22,48 @@ class ScoreTable extends StatelessWidget {
       },
       builder: (BuildContext context, Map<String, dynamic> storeValues) {
         int rounds = storeValues['rounds'];
-        List<DataColumn> columns = <DataColumn>[
+        List<DataColumn2> columns = <DataColumn2>[
           DataColumn2(
-            label: Text(''),
             size: ColumnSize.S,
+            label: Text(''),
+            numeric: true,
           ),
           DataColumn2(
-            label: Text('Player'),
             size: ColumnSize.L,
+            label: Text('Player'),
           ),
-          DataColumn(label: Text('Total')),
+          DataColumn2(
+            size: ColumnSize.M,
+            label: Text('Total'),
+            numeric: true,
+          ),
         ];
         for (var i = rounds; i > 0; i--) {
           columns.add(
             DataColumn2(
+              size: ColumnSize.M,
               label: Text("R${i}"),
-              size: ColumnSize.S,
+              numeric: true,
             ),
           );
         }
+        columns.add(DataColumn2(
+          size: ColumnSize.M,
+          label: Text("Pen."),
+          numeric: true,
+        ));
         List<DataRow2> rows = <DataRow2>[];
-        int pos = 0;
+        int pos = 1;
         for (final score in storeValues['scores']) {
           List<DataCell> row = [
             DataCell(Text(pos.toString())),
             DataCell(Text(score['name'])),
             ScoreCell(score['total'], onTap),
           ];
-          for (var i = rounds; i > 0; i--) {
-            row.add(ScoreCell(score['roundScores'][i - 1], onTap));
+          for (var i = rounds; i >= 0; i--) {
+            row.add(
+              ScoreCell(score['roundScores'][i], onTap)
+            );
           }
           rows.add(DataRow2(cells: row));
           pos++;
@@ -58,6 +71,11 @@ class ScoreTable extends StatelessWidget {
         return DataTable2(
           columns: columns,
           rows: rows,
+          columnSpacing: 10,
+          fixedLeftColumns: 2,
+          fixedTopRows: 4,
+          lmRatio: 2,
+          smRatio: 0.5,
         );
       },
     );

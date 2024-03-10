@@ -1,30 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ScoreCell extends DataCell {
   final int score;
   final onTap;
 
   ScoreCell(this.score, this.onTap)
-      : super(
-          InkWell(
-            onTap: onTap,
-            onDoubleTap: onTap,
-            onLongPress: onTap,
-            child: Container(
-              color: Colors.black,
-              child: Center(
-                child: Text(
-                  (score / 10).toStringAsFixed(1),
-                  // Display score with 1 decimal point
-                  style: TextStyle(
-                    color: score > 0 ? Colors.green :
-                    (score < 0 ? Colors.red : Colors.white),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+      : super(InkWell(
+          onTap: onTap,
+          onDoubleTap: onTap,
+          onLongPress: onTap,
+          child: Text(
+            NumberFormat('+#0.0;-#0.0').format(score / 10),
+            // Display score with 1 decimal point
+            style: TextStyle(
+              color: Color(
+                score > 0 ? 0xff00bb00 : (score < 0 ? 0xff660000 : 0xffbbbbbb)
               ),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
-        );
+        ),
+  );
 }
