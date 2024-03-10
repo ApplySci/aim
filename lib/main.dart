@@ -4,13 +4,21 @@ import 'package:flutter/services.dart';
 
 // third-party imports
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 // app imports
+import 'firebase_options.dart';
 import 'score_table.dart';
 import 'store.dart';
 
-void main() {
+
+Future main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
