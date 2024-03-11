@@ -6,7 +6,7 @@ import 'store.dart';
 class ScoreCell extends DataCell {
   final int score;
   @override
-  final onTap;
+  final GestureTapCallback? onTap;
 
   ScoreCell(this.score, this.onTap)
       : super(InkWell(

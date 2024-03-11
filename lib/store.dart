@@ -14,7 +14,7 @@ late SharedPreferences _prefs;
 const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
   'japaneseWinds': false,
-  'japaneseNumbers': false,
+  'japaneseNumbers': true,
   'serverUrl': 'https://tournaments.mahjong.ie/',
   'playerID': 0, // id of player being focused on
   'tournament': 'cork2024',
@@ -146,13 +146,13 @@ AllState stateReducer(AllState state, dynamic action) {
         }
       });
       break;
+
+    case STORE.setScores:
+      break;
+
+    case STORE.setTournament:
+      break;
   }
-
-  case STORE.setScores:
-    break;
-
-  case STORE.setTournament:
-    break;
 
   return state;
 }

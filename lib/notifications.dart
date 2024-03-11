@@ -3,10 +3,10 @@
 // TODO when a notif is received, download the latest tournament info
 
 import 'package:flutter/material.dart';
-import 'package:tournaments/globals.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'store.dart';
 /*
 
 SharedPreference.reload(); when resuming
@@ -117,9 +117,8 @@ Future<void> setNotifierEvents() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await getFCMToken();
-  await IO.instance.signIn();
-  IO.instance.setNotifierCallback(buildAndNotify);
-  IO.instance.getTournaments();
+  //IO.instance.setNotifierCallback(buildAndNotify);
+  //IO.instance.getTournaments();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // subscribeUserToTopic();
 
@@ -165,11 +164,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
-  IO.instance.updateFCMToken(fcmToken);
+  //IO.instance.updateFCMToken(fcmToken);
 
   FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
     Log.debug('got token in onTokenRefresh!');
-    IO.instance.updateFCMToken(fcmToken);
+    //IO.instance.updateFCMToken(fcmToken);
 
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
@@ -197,6 +196,6 @@ void _handleMessage(RemoteMessage message) {
   // stick json files in google firestore - free for our scale of usage
   // https://cloud.google.com/firestore/pricing
   Log.debug('handling incoming notification');
-  DATA filetype = DATA.values.byName(message.data['type']);
-  IO.instance.getDocument(filetype, messageData: message.data);
+  //DATA filetype = DATA.values.byName(message.data['type']);
+  //IO.instance.getDocument(filetype, messageData: message.data);
 }
