@@ -1,14 +1,13 @@
 // TODO this was all copied from previous app and needs checking
 
+// TODO when a notif is received, download the latest tournament info
+
 import 'package:flutter/material.dart';
 import 'package:tournaments/globals.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 /*
-
-NB there is an error "D/skia    ( 3329): --- Failed to create image decoder with message 'unimplemented'"
-if notification has a notification image URL. seems to be a widespread problem
 
 SharedPreference.reload(); when resuming
 
