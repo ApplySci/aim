@@ -10,10 +10,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'score_table.dart';
 import 'store.dart';
-
+import 'utils.dart';
 
 Future main() async {
-
   // do this before everything
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -74,11 +73,19 @@ class _MyHomePageState extends State<MyHomePage> {
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(widget.title),
             ),
-            body: const SingleChildScrollView(
+            body: SingleChildScrollView(
               scrollDirection: Axis.vertical,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: ScoreTable(),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => store.dispatch(STORE.setScores),
+                    child: const Text('update scores'),
+                  ),
+                  const SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ScoreTable(),
+                  ),
+                ],
               ),
             ),
           );
