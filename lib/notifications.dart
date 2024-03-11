@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'store.dart';
+import 'utils.dart';
 /*
 
 SharedPreference.reload(); when resuming
@@ -46,7 +47,7 @@ void subscribeUserToTopic() async {
   await messaging.subscribeToTopic('cork2024');
 }
 
-void unsubscribeUserToTopic() async {
+void unsubscribeUserToTopic() async {  // currently not called from anywhere
   await messaging.unsubscribeFromTopic('cork2024');
 }
 
@@ -94,6 +95,8 @@ Future<void> notifyWhenFocused(message) async {
       platformChannelSpecifics,
       payload: 'boom',
     );
+
+    store.dispatch(STORE.setScores);
   }
 }
 
@@ -113,14 +116,34 @@ buildAndNotify(String updateType) {
   notifyWhenFocused(message);
 }
 
+
+
+void onIosSelectNotification(int num1, String? str1, String? str2, String? str3) async {
+  Log.debug("Ios Notification received: $num1 $str1 $str2 $str3");
+}
+
 Future<void> setNotifierEvents() async {
-  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+
+  const AndroidInitializationSettings initializationSettingsAndroid =  AndroidInitializationSettings('app_icon');
+
+  const DarwinInitializationSettings initializationSettingsIOS =  DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+      onDidReceiveLocalNotification: onIosSelectNotification);
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+  );
+
+  flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
   await getFCMToken();
-  //IO.instance.setNotifierCallback(buildAndNotify);
-  //IO.instance.getTournaments();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  // subscribeUserToTopic();
+  subscribeUserToTopic();
 
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
@@ -164,12 +187,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
-  //IO.instance.updateFCMToken(fcmToken);
+
+  Log.debug('FCM token: $fcmToken');
 
   FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
-    Log.debug('got token in onTokenRefresh!');
-    //IO.instance.updateFCMToken(fcmToken);
-
+    Log.debug('FCM token refreshed: $fcmToken');
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
   }).onError((err) {
@@ -193,9 +215,6 @@ Future<void> setupInteractedMessage() async {
 }
 
 void _handleMessage(RemoteMessage message) {
-  // stick json files in google firestore - free for our scale of usage
-  // https://cloud.google.com/firestore/pricing
   Log.debug('handling incoming notification');
-  //DATA filetype = DATA.values.byName(message.data['type']);
-  //IO.instance.getDocument(filetype, messageData: message.data);
+  // message.data['type'] message.data
 }

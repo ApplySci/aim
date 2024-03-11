@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 // app imports
 import 'firebase_options.dart';
+import 'notifications.dart';
 import 'score_table.dart';
 import 'store.dart';
 import 'utils.dart';
@@ -28,6 +29,8 @@ Future main() async {
   ));
 
   await initPrefs();
+  await setNotifierEvents();
+  setupInteractedMessage(); // Handle any messages that caused the terminated app to re-open
   runApp(const MyApp());
 }
 
