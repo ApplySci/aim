@@ -1,4 +1,5 @@
 /// Glues the whole thing together with variables shared app-wide, using redux
+library;
 
 import 'dart:convert';
 
@@ -12,8 +13,8 @@ late SharedPreferences _prefs;
 
 const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
-  'japaneseWinds': true,
-  'japaneseNumbers': true,
+  'japaneseWinds': false,
+  'japaneseNumbers': false,
   'serverUrl': 'https://tournaments.mahjong.ie/',
   'playerID': 0, // id of player being focused on
   'tournament': 'cork2024',
@@ -112,17 +113,6 @@ AllState stateReducer(AllState state, dynamic action) {
 
   switch (toDo) {
 
-    case STORE.addRow:
-      state.scores = action['score_display'];
-      break;
-
-
-    case STORE.initGame:
-      // reinitialise the entire state. But is this REALLY the best way to do this?
-
-      // variables we'll carry over to the new state:
-      Map<String, dynamic> preferences = Map.from(state.preferences);
-
     case STORE.initPreferences:
       action['preferences'].forEach((key, val) {
         state.preferences[key] = val;
@@ -139,7 +129,10 @@ AllState stateReducer(AllState state, dynamic action) {
       }
       break;
 
-    case STORE.setPreferences:
+    case STORE.setPlayerList:
+      break;
+
+  case STORE.setPreferences:
       action['preferences'].forEach((key, val) {
         state.preferences[key] = val;
         if (val is bool) {
@@ -154,6 +147,13 @@ AllState stateReducer(AllState state, dynamic action) {
       });
       break;
   }
+
+  case STORE.setScores:
+    break;
+
+  case STORE.setTournament:
+    break;
+
   return state;
 }
 

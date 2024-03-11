@@ -14,22 +14,22 @@ import 'store.dart';
 
 Future main() async {
 
+  // do this before everything
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
     statusBarIconBrightness: Brightness.light, //top bar icons
     systemNavigationBarColor: Colors.black, //bottom bar color
     systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
   ));
 
-  initPrefs().then((_) {
-    runApp(MyApp());
-  });
+  await initPrefs();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -74,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(widget.title),
             ),
-            body: SingleChildScrollView(
+            body: const SingleChildScrollView(
               scrollDirection: Axis.vertical,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,

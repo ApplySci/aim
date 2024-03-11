@@ -16,11 +16,12 @@ T enumFromString<T>(String key, List<T> values) {
 enum LOG { debug, info, score, unusual, warn, error }
 
 enum STORE {
-  addRow,
-  initGame,
   initPreferences,
   restoreFromJSON,
+  setPlayerList,
   setPreferences,
+  setScores,
+  setTournament,
 }
 
 const String DEFAULT_COLOUR_KEY = 'black knight';

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:data_table_2/data_table_2.dart';
 
 import 'score_cell.dart';
 import 'store.dart';
 
 class ScoreTable extends StatelessWidget {
-  ScoreTable();
+  const ScoreTable({super.key});
 
   void onTap() {}
 
-  Widget _verticalDivider = const VerticalDivider(
+  final Widget _verticalDivider = const VerticalDivider(
     color: Color(0xff999999),
     thickness: 1,
   );
@@ -27,14 +26,14 @@ class ScoreTable extends StatelessWidget {
       builder: (BuildContext context, Map<String, dynamic> storeValues) {
         int rounds = storeValues['rounds'];
         List<DataColumn> columns = <DataColumn>[
-          DataColumn(
+          const DataColumn(
             label: Text(''),
             numeric: true,
           ),
-          DataColumn(
+          const DataColumn(
             label: Text('Player'),
           ),
-          DataColumn(
+          const DataColumn(
             label: Text('Total'),
             numeric: true,
           ),
@@ -43,12 +42,12 @@ class ScoreTable extends StatelessWidget {
         for (var i = rounds; i > 0; i--) {
           columns.add(
             DataColumn(
-              label: Text("R${i}"),
+              label: Text("R$i"),
               numeric: true,
             ),
           );
         }
-        columns.add(DataColumn(
+        columns.add(const DataColumn(
           label: Text("Pen."),
           numeric: true,
         ));
@@ -58,8 +57,8 @@ class ScoreTable extends StatelessWidget {
           List<DataCell> row = [
             DataCell(Text(pos.toString())),
             DataCell(ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
               child: Text(score['name']),
-              constraints: BoxConstraints(maxWidth: 150),
             )),
             ScoreCell(score['total'], onTap),
             DataCell(_verticalDivider),
