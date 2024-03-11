@@ -50,7 +50,11 @@ class Log {
   }
 }
 
-List<Map<String, dynamic>> NEW_SCORES = [
+const List<String> PLAYERS = [ // NB this must be unique, and we must have checked this beforehand
+  'Al', 'Jo', 'Stu', 'Cy', 'Zoe', 'Arno Blatt-Vist', "Frank O'Frank", 'Zig-a-Zag',
+];
+
+const List<Map<String, dynamic>> NEW_SCORES = [
   {
     'id': 1,
     'name': 'Player 1',
@@ -176,7 +180,9 @@ List<Map<String, dynamic>> NEW_SCORES = [
 class AllState {
   bool loadedOK = false;
   List<Map<String, dynamic>> scores = [];
+  List<String> players = [];
   int rounds = 5;
+  Map<String, String> seating=<String, String>{};
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
   String toJSON() {
@@ -239,6 +245,7 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setScores:
       state.scores = NEW_SCORES;
+      state.players = PLAYERS;
       break;
 
     case STORE.setTournament:

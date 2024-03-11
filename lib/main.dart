@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 // app imports
 import 'firebase_options.dart';
 import 'notifications.dart';
+import 'player_list.dart';
 import 'score_table.dart';
 import 'store.dart';
 import 'utils.dart';
@@ -82,8 +83,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   ElevatedButton(
                     onPressed: () => store.dispatch(STORE.setScores),
-                    child: const Text('update scores'),
+                    child: const Text('update'),
                   ),
+                  //const Players(),
                   const SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ScoreTable(),

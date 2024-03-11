@@ -3,7 +3,6 @@
 // TODO when a notif is received, download the latest tournament info
 
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'store.dart';
@@ -28,6 +27,13 @@ Since the handler runs in its own isolate outside your applications context,
  You can, however, perform logic such as HTTP requests, perform IO operations
  (e.g. updating local storage), communicate with other plugins etc.
  */
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  Log.debug("Handling a background message: ${message.messageId}");
+  Log.debug("Message body: ${message.notification?.body}");
+  _handleMessage(message);
+}
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -123,10 +129,9 @@ void onIosSelectNotification(int num1, String? str1, String? str2, String? str3)
 }
 
 Future<void> setNotifierEvents() async {
-  await Firebase.initializeApp();
 
-
-  const AndroidInitializationSettings initializationSettingsAndroid =  AndroidInitializationSettings('app_icon');
+  // app_icon @mipmap/ic_launcher
+  const AndroidInitializationSettings initializationSettingsAndroid =  AndroidInitializationSettings('aimbird');
 
   const DarwinInitializationSettings initializationSettingsIOS =  DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -179,18 +184,12 @@ void notificationClickListener(
       });
 }
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  Log.debug("Handling a background message: ${message.messageId}");
-  Log.debug("Message body: ${message.notification?.body}");
-  _handleMessage(message);
-}
-
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
 
   Log.debug('FCM token: $fcmToken');
 
-  FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
+  messaging.onTokenRefresh.listen((fcmToken) {
     Log.debug('FCM token refreshed: $fcmToken');
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
@@ -203,7 +202,7 @@ Future<void> setupInteractedMessage() async {
   // Get any messages which caused the application to open from
   // a terminated state.
   RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
+      await messaging.getInitialMessage();
 
   if (initialMessage != null) {
     _handleMessage(initialMessage);
@@ -215,6 +214,8 @@ Future<void> setupInteractedMessage() async {
 }
 
 void _handleMessage(RemoteMessage message) {
-  Log.debug('handling incoming notification');
+  Log.debug('_handleMessage received a notification');
+  Log.debug("Message body: ${message.notification?.body}");
+  Log.debug("Message data: ${message.data}");
   // message.data['type'] message.data
 }
