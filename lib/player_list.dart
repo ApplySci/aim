@@ -53,6 +53,7 @@ class _PlayerListState extends State<PlayerList> {
   Widget build(BuildContext context) {
     List<Player> haystack = List<Player>.from(widget.players);
     haystack.sort();
+    haystack.insert(0, Player(-1, '(none)', -1));
     return TypeAheadField<Player>(
       controller: _controller,
       focusNode: _focusNode,
