@@ -18,6 +18,7 @@ enum LOG { debug, info, score, unusual, warn, error }
 enum STORE {
   initPreferences,
   restoreFromJSON,
+  setPlayerId,
   setPlayerList,
   setPreferences,
   setScores,
@@ -45,6 +46,20 @@ const Map<String, String> WINDS = {
   'western': 'ESWN',
   'japanese': '東南西北',
 };
+
+class Player implements Comparable<Player> {
+  int id = -1;
+  String name = '';
+  int seatingId = -1;
+
+  Player(this.id, this.name, this.seatingId);
+
+  @override
+  int compareTo(Player other) => name.compareTo(other.name);
+
+  @override
+  toString() => '$name ($seatingId)';
+}
 
 class GLOBAL {
   static bool nameIsNotUnique(String name) {

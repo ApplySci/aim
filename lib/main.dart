@@ -85,11 +85,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () => store.dispatch(STORE.setScores),
                     child: const Text('update'),
                   ),
-                  //const Players(),
+                  const Players(),
+                  /*
                   const SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ScoreTable(),
                   ),
+                  */
                 ],
               ),
             ),
