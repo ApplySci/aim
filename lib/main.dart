@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'notifications.dart';
 import 'player_list.dart';
 import 'score_table.dart';
+import 'seats.dart';
 import 'store.dart';
 import 'utils.dart';
 
@@ -72,7 +73,6 @@ class _MyHomePageState extends State<MyHomePage> {
         converter: (store) => store.state.preferences['backgroundColour'],
         builder: (BuildContext context, String color) {
           return Scaffold(
-            // TODO MaterialApp(
             appBar: AppBar(
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(widget.title),
@@ -85,6 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () => store.dispatch(STORE.setScores),
                     child: const Text('update'),
                   ),
+                  const Seating(),
                   const Players(),
                   /*
                   const SingleChildScrollView(
