@@ -69,31 +69,39 @@ class _SeatingState extends State<Seating> {
       builder: (BuildContext context, Map<String, dynamic> s) {
         bool haveSelection = s['selected'] >= 0;
         List seats = s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
-        if (seats.length == 1 && seats[0].length == 1
-            && seats[0][0].length == 0) {
+        if (seats.length == 1 &&
+            seats[0].length == 1 &&
+            seats[0][0].length == 0) {
           return const Center(child: Text('No seating schedule available'));
         }
 
-        return Column(children: [
-          const Text('Show all seating, or just the selected player?'),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Selected'),
-              Switch(
-                value: showAll,
-                activeColor: Colors.red,
-                onChanged: haveSelection ? toggleShowAll : null,
-              ),
-              const Text('All'),
-            ],
-          ),
-          SingleChildScrollView(
-            child: Column(
-              children: getHanchan(seats),
+        List<Widget> rows = [];
+        if (haveSelection) {
+          rows.add(
+              const Text('Show all seating, or just the selected player?'));
+
+          rows.add(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Selected'),
+                Switch(
+                  value: showAll,
+                  activeColor: Colors.red,
+                  onChanged: haveSelection ? toggleShowAll : null,
+                ),
+                const Text('All'),
+              ],
             ),
+          );
+        }
+        rows.add(SingleChildScrollView(
+          child: Column(
+            children: getHanchan(seats),
           ),
-        ]);
+        ));
+
+        return Column(children: rows);
       },
     );
   }
