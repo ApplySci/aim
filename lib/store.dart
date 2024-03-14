@@ -96,7 +96,8 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerId:
-      state.selected = action['playerId'];
+      state.selected = action['preferences']['playerId'];
+      state.theseSeats = getSeats(state.seating, state.selected);
       break;
 
     case STORE.setPlayerList:

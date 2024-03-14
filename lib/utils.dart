@@ -90,8 +90,8 @@ class GLOBAL {
 
 typedef SeatingPlan = Map<String, dynamic>;
 
-SeatingPlan getSeats(seating, selected) {
-  // deep-cloning this fairly simple object with JSON!
+SeatingPlan getSeats(SeatingPlan seating, int selected) {
+  // deep-cloning this fairly simple object with JSON
   SeatingPlan theseSeats = jsonDecode(jsonEncode(seating));
   seating.forEach((String roundName, dynamic round) {
     round['tables'].forEach((String tableName, dynamic table) {

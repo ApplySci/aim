@@ -12,24 +12,23 @@ class Players extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AllState, Map<String, dynamic>>(converter: (store) {
-      return {
-        'selected': store.state.preferences['playerId'],
-        'players': store.state.players
-      };
+      return {'selected': store.state.selected, 'players': store.state.players};
     }, builder: (BuildContext context, Map<String, dynamic> incoming) {
-      return Frame(context,
-          Center(
-        child: Column(
-          children: <Widget>[
-            const Text('Select which player you want to follow'),
-            PlayerList(
+      return Frame(
+        context,
+        Center(
+          child: Column(
+            children: <Widget>[
+              const Text('Select which player you want to follow'),
+              PlayerList(
                 players: incoming['players'],
                 selected: incoming['selected'],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
-      );});
+      );
+    });
   }
 }
 
@@ -37,10 +36,8 @@ class PlayerList extends StatefulWidget {
   final List<Player> players;
   final int selected;
 
-  const PlayerList({
-    super.key,
-    this.players = const <Player>[],
-    this.selected = -1});
+  const PlayerList(
+      {super.key, this.players = const <Player>[], this.selected = -1});
 
   @override
   State<PlayerList> createState() => _PlayerListState();
@@ -82,8 +79,8 @@ class _PlayerListState extends State<PlayerList> {
                 child: Text(
                   player.name,
                   style: TextStyle(
-                      color: player.id == widget.selected ? Colors.black
-                          : null),
+                      color:
+                          player.id == widget.selected ? Colors.black : null),
                 ),
               ),
             ],
@@ -93,7 +90,7 @@ class _PlayerListState extends State<PlayerList> {
       onSelected: (Player selection) {
         _controller.clear();
         store.dispatch({
-          'type': STORE.setPreferences,
+          'type': STORE.setPlayerId,
           'preferences': {
             'playerId': selection.id,
           }

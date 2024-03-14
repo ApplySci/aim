@@ -105,6 +105,10 @@ Future<void> notifyWhenFocused(message) async {
     // TODO this stuff is here ONLY FOR TESTING - REMOVE IN PRODUCTION CODE
     store.dispatch(STORE.setScores);
     store.dispatch(STORE.setPlayerList);
+    store.dispatch({
+      'type': STORE.setPlayerId,
+      'playerId': 1,
+    });
     store.dispatch(STORE.setSeating);
   }
 }
