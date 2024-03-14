@@ -46,8 +46,11 @@ class AllState {
   bool loadedOK = false;
   List<Map<String, dynamic>> scores = [];
   List<Player> players = [];
+  Map<int, String> playerMap = {};
   int rounds = 5;
-  Map<String, String> seating=<String, String>{};
+  int selected = -1;
+  List<List<int>> theseSeats=[[]];
+  List<List<List<int>>> seating=[[[]]];
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
   String toJSON() {
@@ -95,6 +98,8 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerList:
+      state.players = PLAYERS;
+      state.playerMap = {for (var p in state.players) p.id: p.name};
       break;
 
     case STORE.setPreferences:
@@ -114,7 +119,14 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setScores:
       state.scores = NEW_SCORES;
-      state.players = PLAYERS;
+      break;
+
+    case STORE.setSeating:
+      state.seating = SEATING;
+      if (state.preferences.containsKey('selected') &&
+          state.preferences['selected'] >= 0) {
+        state.theseSeats = getSeats(state.seating, state.preferences['selected']);
+      }
       break;
 
     case STORE.setTournament:

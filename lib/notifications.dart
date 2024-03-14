@@ -103,6 +103,7 @@ Future<void> notifyWhenFocused(message) async {
     );
 
     store.dispatch(STORE.setScores);
+    store.dispatch(STORE.setPlayerList);
   }
 }
 

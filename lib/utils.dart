@@ -22,6 +22,7 @@ enum STORE {
   setPlayerList,
   setPreferences,
   setScores,
+  setSeating,
   setTournament,
 }
 
@@ -48,17 +49,16 @@ const Map<String, String> WINDS = {
 };
 
 class Player implements Comparable<Player> {
-  int id = -1;
+  int id = -99;
   String name = '';
-  int seatingId = -1;
 
-  Player(this.id, this.name, this.seatingId);
+  Player(this.id, this.name);
 
   @override
   int compareTo(Player other) => name.compareTo(other.name);
 
   @override
-  toString() => '$name ($seatingId)';
+  toString() => '$name ($id)';
 }
 
 class GLOBAL {
@@ -87,4 +87,17 @@ class GLOBAL {
   static List<Map<String, dynamic>> allPlayers = [];
   static bool playersListUpdated = false;
   static int nextUnregisteredID = -2;
+}
+
+
+List<List<int>> getSeats(seating, selected) {
+  List<List<int>> rounds = [];
+  for (var h=0; h < seating.length; h++) {
+    for (var t=0; t < seating[h].length; t++) {
+      if (seating[h][t].contains(selected)) {
+        rounds.add(seating[h][t]);
+      }
+    }
+  }
+  return rounds;
 }

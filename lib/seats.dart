@@ -3,8 +3,17 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'store.dart';
 import 'utils.dart';
 
-class Seating extends StatelessWidget {
+class Seating extends StatefulWidget {
   const Seating({super.key});
+
+  @override
+  State<Seating> createState() => _SeatingState();
+}
+
+class _SeatingState extends State<Seating> {
+  bool showAll = false;
+
+  void toggleShowAll(yes) => setState(() => showAll = yes);
 
   @override
   Widget build(BuildContext context) {
@@ -12,12 +21,42 @@ class Seating extends StatelessWidget {
       converter: (store) {
         return {
           'seating': store.state.seating,
+          'selected': store.state.selected,
+          'thisSeating': store.state.theseSeats,
         };
       },
-      builder: (BuildContext context, Map<String, dynamic> storeValues) {
-        // List seats = storeValues['seating'];
+      builder: (BuildContext context, Map<String, dynamic> s) {
+        bool haveSelection = s['selected'] >= 0;
+        List seats = s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
         // TODO iterate over hanchan
-        return const Text('yo');
+
+/*
+const List<String> HANCHAN_NAMES = ['R1', 'R2', 'R3'];
+const List<String> TABLE_NAMES = ['alef', 'bet'];
+const List<List<List<int>>> SEATING = [
+  [ [1,2,3,4,], [5,6,7,8,], ],
+  [ [2,4,6,8,], [1,3,5,7,], ],
+  [ [3,4,1,6,], [2,7,8,5,], ],
+];
+*/
+        List<Widget> allHanchan = [
+          ListTile(title: Text('Item 1')),
+        ];
+        return Column(children: [
+          const Text('Show all seating, or just the selected player?'),
+          Row(
+            children: [
+              const Text('Selected'),
+              SwitchToggle(haveSelection, toggleShowAll),
+              const Text('All'),
+            ],
+          ),
+          SingleChildScrollView(
+            child: Column(
+              children: allHanchan,
+            ),
+          ),
+        ]);
       },
     );
   }
@@ -57,7 +96,9 @@ class _AssignedTableState extends State<AssignedTable> {
         rows.add(DataRow(cells: [
           DataCell(Text(winds[i])),
           DataCell(Container(
-            color: widget.seats[i] == s['selected'] ? Colors.greenAccent : Colors.amber[600],
+            color: widget.seats[i] == s['selected']
+                ? Colors.greenAccent
+                : Colors.amber[600],
             child: Text(s['players'][widget.seats[i]].name),
           )),
         ]));
@@ -84,5 +125,36 @@ class _AssignedTableState extends State<AssignedTable> {
         ],
       ));
     });
+  }
+}
+
+class SwitchToggle extends StatefulWidget {
+  final bool live;
+  final void Function(bool) callback;
+
+  const SwitchToggle(this.live, this.callback, {super.key});
+
+  @override
+  State<SwitchToggle> createState() => _SwitchToggleState();
+}
+
+class _SwitchToggleState extends State<SwitchToggle> {
+  bool light = true;
+
+  void switchIt(bool value) {
+    widget.callback(value);
+    setState(() {
+      light = value;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch(
+      // This bool value toggles the switch.
+      value: light,
+      activeColor: Colors.red,
+      onChanged: widget.live ? switchIt : null,
+    );
   }
 }

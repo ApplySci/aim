@@ -1,10 +1,25 @@
 import 'utils.dart';
 
 List<Player> PLAYERS = [ // NB this must be unique, and we must have checked this beforehand
-  Player(0, 'Al', 1),
-  Player(1, 'Zig', 2),
-  Player(2, 'Zag', 3),
-  Player(3, 'Frank', 4),
+  Player(4, 'Al',),
+  Player(8, 'Beauregard',),
+  Player(3, 'Frank'),
+  Player(7, 'Gogo',),
+  Player(6, 'Hubble',),
+  Player(5, 'Indigo',),
+  Player(1, 'Zag'),
+  Player(2, 'Zig'),
+];
+
+const List<String> HANCHAN_NAMES = ['R1', 'R2', 'R3'];
+
+const List<String> TABLE_NAMES = ['alef', 'bet'];
+
+// Round, Table, ESWN - player id
+const List<List<List<int>>> SEATING = [
+  [ [1,2,3,4,], [5,6,7,8,], ],
+  [ [2,4,6,8,], [1,3,5,7,], ],
+  [ [3,4,1,6,], [2,7,8,5,], ],
 ];
 
 const Map<String, dynamic> DEFAULT_PREFERENCES = {

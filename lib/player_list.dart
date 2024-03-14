@@ -51,9 +51,6 @@ class _PlayerListState extends State<PlayerList> {
 
   @override
   Widget build(BuildContext context) {
-    List<Player> haystack = List<Player>.from(widget.players);
-    haystack.sort();
-    haystack.insert(0, Player(-1, '(none)', -1));
     return TypeAheadField<Player>(
       controller: _controller,
       focusNode: _focusNode,
@@ -103,10 +100,10 @@ class _PlayerListState extends State<PlayerList> {
       suggestionsCallback: (String needle) {
         List<Player> selected;
         if (needle == '') {
-          selected = haystack;
+          selected = widget.players;
         } else {
           final lowerText = needle.toLowerCase();
-          selected = haystack.where((Player option) {
+          selected = widget.players.where((Player option) {
             return option.name.toLowerCase().contains(lowerText);
           }).toList();
         }

@@ -66,12 +66,15 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return StoreProvider<AllState>(
-      // Pass the store to the StoreProvider. Any ancestor `StoreConnector`
-      // Widgets will find and use this value as the `Store`.
       store: store,
       child: StoreConnector<AllState, String>(
         converter: (store) => store.state.preferences['backgroundColour'],
         builder: (BuildContext context, String color) {
+          void updateStore() {
+            store.dispatch(STORE.setScores);
+            store.dispatch(STORE.setPlayerList);
+          }
+
           return Scaffold(
             appBar: AppBar(
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -82,12 +85,12 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 children: [
                   ElevatedButton(
-                    onPressed: () => store.dispatch(STORE.setScores),
+                    onPressed: updateStore,
                     child: const Text('update'),
                   ),
                   const Seating(),
-                  const Players(),
                   /*
+                  const Players(),
                   const SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ScoreTable(),
