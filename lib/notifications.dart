@@ -102,8 +102,10 @@ Future<void> notifyWhenFocused(message) async {
       payload: 'boom',
     );
 
+    // TODO this stuff is here ONLY FOR TESTING - REMOVE IN PRODUCTION CODE
     store.dispatch(STORE.setScores);
     store.dispatch(STORE.setPlayerList);
+    store.dispatch(STORE.setSeating);
   }
 }
 

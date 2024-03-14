@@ -73,6 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
           void updateStore() {
             store.dispatch(STORE.setScores);
             store.dispatch(STORE.setPlayerList);
+            store.dispatch(STORE.setSeating);
           }
 
           return Scaffold(
