@@ -49,7 +49,7 @@ class AllState {
   Map<int, String> playerMap = {};
   int rounds = 5;
   int selected = -1;
-  List<List<int>> theseSeats=[[]];
+  List<List<List<int>>> theseSeats=[[[]]];
   List<List<List<int>>> seating=[[[]]];
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
@@ -94,7 +94,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerId:
-      state.preferences['playerId'] = action['playerId'];
+      state.selected = action['playerId'];
       break;
 
     case STORE.setPlayerList:
@@ -123,9 +123,8 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setSeating:
       state.seating = SEATING;
-      if (state.preferences.containsKey('selected') &&
-          state.preferences['selected'] >= 0) {
-        state.theseSeats = getSeats(state.seating, state.preferences['selected']);
+      if (state.selected >= 0) {
+        state.theseSeats = getSeats(state.seating, state.selected);
       }
       break;
 

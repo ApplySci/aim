@@ -14,7 +14,47 @@ class Seating extends StatefulWidget {
 class _SeatingState extends State<Seating> {
   bool showAll = false;
 
-  void toggleShowAll(yes) => setState(() => showAll = yes);
+  void toggleShowAll(bool yes) => setState(() => showAll = yes);
+
+  List<Widget> getHanchan(List seats) {
+    List<Widget> allHanchan = [];
+    for (int h = 0; h < seats.length; h++) {
+      allHanchan.add(Container(
+        height: 10,
+        margin: const EdgeInsets.all(15.0),
+        padding: const EdgeInsets.all(10.0),
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              width: 3,
+              color: Colors.blueAccent,
+            ),
+          ),
+        ),
+      ));
+      allHanchan.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.watch_later_outlined),
+          Text(' ${HANCHAN_NAMES[h]}'),
+          // TODO add hanchan start time here
+        ],
+      ));
+      allHanchan.add(const SizedBox(height: 5));
+      for (int t = 0; t < seats[h].length; t++) {
+        allHanchan.add(Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.table_restaurant),
+            Text(' ${TABLE_NAMES[t]}'),
+          ],
+        ));
+        allHanchan.add(AssignedTable(seats[h][t]));
+        allHanchan.add(const SizedBox(height: 10));
+      }
+    }
+    return allHanchan;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,56 +69,28 @@ class _SeatingState extends State<Seating> {
       builder: (BuildContext context, Map<String, dynamic> s) {
         bool haveSelection = s['selected'] >= 0;
         List seats = s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
-        List<Widget> allHanchan = [];
-        for (int h = 0; h < seats.length; h++) {
-          allHanchan.add(Container(
-            height: 10,
-            margin: const EdgeInsets.all(15.0),
-            padding: const EdgeInsets.all(10.0),
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  width: 3,
-                  color: Colors.blueAccent,
-                ),
-              ),
-            ),
-          ));
-          allHanchan.add(Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.watch_later_outlined),
-              Text(' ${HANCHAN_NAMES[h]}'),
-              // TODO add hanchan start time here
-            ],
-          ));
-          allHanchan.add(const SizedBox(height: 5));
-          for (int t = 0; t < seats[h].length; t++) {
-            allHanchan.add(Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.table_restaurant),
-                Text(' ${TABLE_NAMES[t]}'),
-              ],
-            ));
-            allHanchan.add(AssignedTable(seats[h][t]));
-            allHanchan.add(const SizedBox(height: 10));
-          }
-          // TODO add a divider here
+        if (seats.length == 1 && seats[0].length == 1
+            && seats[0][0].length == 0) {
+          return const Center(child: Text('No seating schedule available'));
         }
+
         return Column(children: [
           const Text('Show all seating, or just the selected player?'),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('Selected'),
-              SwitchToggle(haveSelection, toggleShowAll),
+              Switch(
+                value: showAll,
+                activeColor: Colors.red,
+                onChanged: haveSelection ? toggleShowAll : null,
+              ),
               const Text('All'),
             ],
           ),
           SingleChildScrollView(
             child: Column(
-              children: allHanchan,
+              children: getHanchan(seats),
             ),
           ),
         ]);
@@ -135,36 +147,5 @@ class _AssignedTableState extends State<AssignedTable> {
         columnSpacing: 10,
       );
     });
-  }
-}
-
-class SwitchToggle extends StatefulWidget {
-  final bool live;
-  final void Function(bool) callback;
-
-  const SwitchToggle(this.live, this.callback, {super.key});
-
-  @override
-  State<SwitchToggle> createState() => _SwitchToggleState();
-}
-
-class _SwitchToggleState extends State<SwitchToggle> {
-  bool light = true;
-
-  void switchIt(bool value) {
-    widget.callback(value);
-    setState(() {
-      light = value;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Switch(
-      // This bool value toggles the switch.
-      value: light,
-      activeColor: Colors.red,
-      onChanged: widget.live ? switchIt : null,
-    );
   }
 }

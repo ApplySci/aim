@@ -90,14 +90,19 @@ class GLOBAL {
 }
 
 
-List<List<int>> getSeats(seating, selected) {
-  List<List<int>> rounds = [];
+List<List<List<int>>> getSeats(seating, selected) {
+  print('getting seats for $selected');
+  List<List<List<int>>> rounds = [];
   for (var h=0; h < seating.length; h++) {
+    List<List<int>> thisHanchan = [];
+    List<int> thisTable = [];
     for (var t=0; t < seating[h].length; t++) {
       if (seating[h][t].contains(selected)) {
-        rounds.add(seating[h][t]);
+        thisTable = seating[h][t];
       }
     }
+    thisHanchan.add(thisTable);
+    rounds.add(thisHanchan);
   }
   return rounds;
 }
