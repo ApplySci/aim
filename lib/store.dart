@@ -49,8 +49,10 @@ class AllState {
   Map<int, String> playerMap = {};
   int rounds = 5;
   int selected = -1;
-  List<List<List<int>>> theseSeats=[[[]]];
-  List<List<List<int>>> seating=[[[]]];
+  // TODO these are going to have to be maps, and we must ...
+  //      store the hanchan & table names, & start time, in them
+  SeatingPlan theseSeats={}, seating={};
+
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
   String toJSON() {

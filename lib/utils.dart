@@ -1,6 +1,6 @@
 // utility functions, enums and constants used across the app
 import 'package:flutter/material.dart';
-
+import 'dart:convert';
 
 void unassigned() {}
 
@@ -11,7 +11,6 @@ String enumToString<T>(T o) {
 T enumFromString<T>(String key, List<T> values) {
   return values.firstWhere((v) => key == enumToString(v));
 }
-
 
 enum LOG { debug, info, score, unusual, warn, error }
 
@@ -72,7 +71,7 @@ class GLOBAL {
   }
 
   static String currentRouteName(BuildContext context) {
-    String routeName='';
+    String routeName = '';
 
     Navigator.popUntil(context, (route) {
       if (route.settings.name != null) {
@@ -89,20 +88,17 @@ class GLOBAL {
   static int nextUnregisteredID = -2;
 }
 
+typedef SeatingPlan = Map<String, dynamic>;
 
-List<List<List<int>>> getSeats(seating, selected) {
-  print('getting seats for $selected');
-  List<List<List<int>>> rounds = [];
-  for (var h=0; h < seating.length; h++) {
-    List<List<int>> thisHanchan = [];
-    List<int> thisTable = [];
-    for (var t=0; t < seating[h].length; t++) {
-      if (seating[h][t].contains(selected)) {
-        thisTable = seating[h][t];
+SeatingPlan getSeats(seating, selected) {
+  // deep-cloning this fairly simple object with JSON!
+  SeatingPlan theseSeats = jsonDecode(jsonEncode(seating));
+  seating.forEach((String roundName, dynamic round) {
+    round['tables'].forEach((String tableName, dynamic table) {
+      if (!table.contains(selected)) {
+        theseSeats[roundName]['tables'].remove(tableName);
       }
-    }
-    thisHanchan.add(thisTable);
-    rounds.add(thisHanchan);
-  }
-  return rounds;
+    });
+  });
+  return theseSeats;
 }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:aim_tournaments/defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
@@ -16,9 +18,9 @@ class _SeatingState extends State<Seating> {
 
   void toggleShowAll(bool yes) => setState(() => showAll = yes);
 
-  List<Widget> getHanchan(List seats) {
+  List<Widget> getHanchan(SeatingPlan seats) {
     List<Widget> allHanchan = [];
-    for (int h = 0; h < seats.length; h++) {
+    seats.forEach((roundName, round) {
       allHanchan.add(Container(
         height: 10,
         margin: const EdgeInsets.all(15.0),
@@ -36,23 +38,22 @@ class _SeatingState extends State<Seating> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.watch_later_outlined),
-          Text(' ${HANCHAN_NAMES[h]}'),
-          // TODO add hanchan start time here
+          Text(' $roundName begins ${round['start']}'),
         ],
       ));
       allHanchan.add(const SizedBox(height: 5));
-      for (int t = 0; t < seats[h].length; t++) {
+      (round['tables'] as Map<String, dynamic>).forEach((String tableName, dynamic plan) {
         allHanchan.add(Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.table_restaurant),
-            Text(' ${TABLE_NAMES[t]}'),
+            Text(' $tableName'),
           ],
         ));
-        allHanchan.add(AssignedTable(seats[h][t]));
+        allHanchan.add(AssignedTable(plan));
         allHanchan.add(const SizedBox(height: 10));
-      }
-    }
+      });
+    });
     return allHanchan;
   }
 
@@ -68,10 +69,9 @@ class _SeatingState extends State<Seating> {
       },
       builder: (BuildContext context, Map<String, dynamic> s) {
         bool haveSelection = s['selected'] >= 0;
-        List seats = s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
-        if (seats.length == 1 &&
-            seats[0].length == 1 &&
-            seats[0][0].length == 0) {
+        SeatingPlan seats =
+            s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
+        if (seats.isEmpty) {
           return const Center(child: Text('No seating schedule available'));
         }
 
@@ -108,7 +108,7 @@ class _SeatingState extends State<Seating> {
 }
 
 class AssignedTable extends StatefulWidget {
-  final List<int> seats; // E,S,N,W player indices
+  final List seats; // E,S,N,W player indices
   const AssignedTable(
     this.seats, {
     super.key,
@@ -130,7 +130,7 @@ class _AssignedTableState extends State<AssignedTable> {
     }, builder: (BuildContext context, Map<String, dynamic> s) {
       List<DataRow> rows = <DataRow>[];
       String winds = WINDS[s['winds'] ? 'japanese' : 'western'].toString();
-      for (var i = 0; i < widget.seats.length; i++) {
+      for (var i = 0; i < min(4, widget.seats.length); i++) {
         rows.add(DataRow(cells: [
           DataCell(Text(winds[i])),
           DataCell(Container(
