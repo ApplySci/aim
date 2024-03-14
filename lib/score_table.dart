@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
+import 'frame.dart';
 import 'score_cell.dart';
 import 'store.dart';
 
@@ -69,10 +70,16 @@ class ScoreTable extends StatelessWidget {
           rows.add(DataRow(cells: row));
           pos++;
         }
-        return DataTable(
-          columns: columns,
-          rows: rows,
-          columnSpacing: 10,
+        return Frame(
+          context,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: columns,
+              rows: rows,
+              columnSpacing: 10,
+            ),
+          ),
         );
       },
     );

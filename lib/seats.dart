@@ -1,8 +1,9 @@
 import 'dart:math';
 
-import 'package:aim_tournaments/defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+
+import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
 
@@ -42,7 +43,8 @@ class _SeatingState extends State<Seating> {
         ],
       ));
       allHanchan.add(const SizedBox(height: 5));
-      (round['tables'] as Map<String, dynamic>).forEach((String tableName, dynamic plan) {
+      (round['tables'] as Map<String, dynamic>)
+          .forEach((String tableName, dynamic plan) {
         allHanchan.add(Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -72,7 +74,8 @@ class _SeatingState extends State<Seating> {
         SeatingPlan seats =
             s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
         if (seats.isEmpty) {
-          return const Center(child: Text('No seating schedule available'));
+          return Frame(context,
+              const Center(child: Text('No seating schedule available')));
         }
 
         List<Widget> rows = [];
@@ -95,13 +98,9 @@ class _SeatingState extends State<Seating> {
             ),
           );
         }
-        rows.add(SingleChildScrollView(
-          child: Column(
-            children: getHanchan(seats),
-          ),
-        ));
-
-        return Column(children: rows);
+        rows.addAll(getHanchan(seats));
+        return Frame(
+            context, SingleChildScrollView(child: Column(children: rows)));
       },
     );
   }

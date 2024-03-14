@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 // app imports
 import 'firebase_options.dart';
+import 'home.dart';
 import 'notifications.dart';
 import 'player_list.dart';
 import 'score_table.dart';
@@ -32,7 +33,7 @@ Future main() async {
 
   await initPrefs();
   await setNotifierEvents();
-  setupInteractedMessage(); // Handle any messages that caused the terminated app to re-open
+  setupInteractedMessage(); // Handle any incoming FCM notifications that caused the terminated app to re-open
   runApp(const MyApp());
 }
 
@@ -42,68 +43,28 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'All-Ireland Mahjong Tournaments',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'All-Ireland Mahjong Tournaments'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
     return StoreProvider<AllState>(
       store: store,
       child: StoreConnector<AllState, String>(
-        converter: (store) => store.state.preferences['backgroundColour'],
-        builder: (BuildContext context, String color) {
-          void updateStore() {
-            store.dispatch(STORE.setScores);
-            store.dispatch(STORE.setPlayerList);
-            store.dispatch({'type': STORE.setPlayerId, 'playerId': 3,});
-            store.dispatch(STORE.setSeating);
-          }
-
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-              title: Text(widget.title),
-            ),
-            body: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: updateStore,
-                    child: const Text('update'),
-                  ),
-                  const Seating(),
-                  /*
-                  const Players(),
-                  const SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ScoreTable(),
-                  ),
-                  */
-                ],
+          converter: (store) => store.state.preferences['backgroundColour'],
+          builder: (BuildContext context, String color) {
+            return MaterialApp(
+              initialRoute: ROUTES.home,
+              title: 'All-Ireland Mahjong Tournaments',
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+                useMaterial3: true,
               ),
-            ),
-          );
-        },
-      ),
+              routes: {
+                ROUTES.home: (context) => const MyHomePage(),
+                ROUTES.seating: (context) => const Seating(),
+                ROUTES.players: (context) => const Players(),
+                ROUTES.scoreTable: (context) => const ScoreTable(),
+                // ROUTES.settings: (context) => const (),
+                // ROUTES.privacyPolicy: (context) => const (),
+              }
+            );
+          }),
     );
   }
 }

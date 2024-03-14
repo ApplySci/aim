@@ -34,12 +34,12 @@ const Map<String, Color> BACKGROUND_COLOURS = {
 };
 
 class ROUTES {
-  static const String help = '/help';
-  static const String liveGames = '/games/live';
+  static const String home = '/home';
+  static const String players = '/players';
   static const String privacyPolicy = '/privacyPolicy';
+  static const String seating = '/seating';
+  static const String scoreTable = '/scoreTable';
   static const String settings = '/settings';
-  static const String scoreSheet = '/scoresheet';
-  static const String welcome = '/welcome';
 }
 
 const Map<String, String> WINDS = {

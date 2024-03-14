@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
+import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
 
@@ -16,9 +17,9 @@ class Players extends StatelessWidget {
         'players': store.state.players
       };
     }, builder: (BuildContext context, Map<String, dynamic> incoming) {
-      return Center(
+      return Frame(context,
+          Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text('Select which player you want to follow'),
             PlayerList(
@@ -27,8 +28,8 @@ class Players extends StatelessWidget {
             ),
           ],
         ),
-      );
-    });
+      ),
+      );});
   }
 }
 
@@ -51,6 +52,7 @@ class _PlayerListState extends State<PlayerList> {
 
   @override
   Widget build(BuildContext context) {
+    _focusNode.requestFocus();
     return TypeAheadField<Player>(
       controller: _controller,
       focusNode: _focusNode,
