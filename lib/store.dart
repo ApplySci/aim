@@ -49,15 +49,18 @@ class AllState {
   Map<int, String> playerMap = {};
   int rounds = 5;
   int selected = -1;
-  // TODO these are going to have to be maps, and we must ...
-  //      store the hanchan & table names, & start time, in them
   SeatingPlan theseSeats={}, seating={};
 
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 
   String toJSON() {
+    // TODO save AllState data to local storage
     Map<String, dynamic> valuesToSave = {
       'scores': scores,
+      'players': players,
+      'rounds': rounds,
+      'selected': selected,
+      'seating': seating,
     };
     return jsonEncode(valuesToSave);
   }
@@ -96,7 +99,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerId:
-      state.selected = action['preferences']['playerId'];
+      state.selected = action['playerId'];
       state.theseSeats = getSeats(state.seating, state.selected);
       break;
 

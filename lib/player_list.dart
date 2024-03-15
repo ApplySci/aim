@@ -91,9 +91,7 @@ class _PlayerListState extends State<PlayerList> {
         _controller.clear();
         store.dispatch({
           'type': STORE.setPlayerId,
-          'preferences': {
-            'playerId': selection.id,
-          }
+          'playerId': selection.id,
         });
       },
       suggestionsCallback: (String needle) {
@@ -105,6 +103,9 @@ class _PlayerListState extends State<PlayerList> {
           selected = widget.players.where((Player option) {
             return option.name.toLowerCase().contains(lowerText);
           }).toList();
+        }
+        if (selected.isNotEmpty && selected[0].id != -1) {
+          selected.insert(0, Player(-1, '(none)'));
         }
         return selected;
       },

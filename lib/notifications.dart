@@ -3,8 +3,11 @@
 // TODO when a notif is received, download the latest tournament info
 
 import 'package:flutter/material.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+
+//import 'client.dart';
 import 'store.dart';
 import 'utils.dart';
 /*
@@ -103,13 +106,15 @@ Future<void> notifyWhenFocused(message) async {
     );
 
     // TODO this stuff is here ONLY FOR TESTING - REMOVE IN PRODUCTION CODE
-    store.dispatch(STORE.setScores);
-    store.dispatch(STORE.setPlayerList);
-    store.dispatch({
-      'type': STORE.setPlayerId,
-      'playerId': 1,
-    });
-    store.dispatch(STORE.setSeating);
+    if (DEBUG) {
+      store.dispatch(STORE.setScores);
+      store.dispatch(STORE.setPlayerList);
+      store.dispatch({
+        'type': STORE.setPlayerId,
+        'playerId': 1,
+      });
+      store.dispatch(STORE.setSeating);
+    }
   }
 }
 

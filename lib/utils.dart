@@ -1,4 +1,11 @@
-// utility functions, enums and constants used across the app
+/*
+
+ Utility functions, enums and constants used across the app
+
+ This should NEVER import things from elsewhere in the app.
+ This is to avoid circular dependencies.
+
+ */
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
@@ -24,6 +31,8 @@ enum STORE {
   setSeating,
   setTournament,
 }
+
+const DEBUG = true;
 
 const String DEFAULT_COLOUR_KEY = 'black knight';
 
