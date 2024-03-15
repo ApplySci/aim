@@ -104,7 +104,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerList:
-      state.players = PLAYERS;
+      state.players = action['players'];
       state.playerMap = {for (var p in state.players) p.id: p.name};
       break;
 
