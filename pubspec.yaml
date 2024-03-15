@@ -34,6 +34,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  dio: ^5.4.1
   firebase_core: any
   firebase_messaging: ^14.0.0
   fl_chart: ^0.66.0
