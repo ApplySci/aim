@@ -51,6 +51,8 @@ class ROUTES {
   static const String settings = '/settings';
 }
 
+const Color selectedHighlight = Color(0x88aaaaff);
+
 const Map<String, String> WINDS = {
   'western': 'ESWN',
   'japanese': '東南西北',

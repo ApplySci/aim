@@ -130,14 +130,14 @@ class _AssignedTableState extends State<AssignedTable> {
       List<DataRow> rows = <DataRow>[];
       String winds = WINDS[s['winds'] ? 'japanese' : 'western'].toString();
       for (int i = 0; i < min(4, widget.seats.length); i++) {
-        rows.add(DataRow(cells: [
+        rows.add(DataRow(
+            color: MaterialStateProperty.all<Color>(
+                widget.seats[i] == s['selected']
+                ? selectedHighlight
+                : Colors.transparent),
+            cells: [
           DataCell(Text(winds[i])),
-          DataCell(Container(
-            color: widget.seats[i] == s['selected']
-                ? Colors.greenAccent
-                : Colors.transparent,
-            child: Text(s['players'][widget.seats[i]]),
-          )),
+          DataCell(Text(s['players'][widget.seats[i]])),
         ]));
       }
       return DataTable(

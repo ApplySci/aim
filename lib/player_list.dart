@@ -62,7 +62,7 @@ class _PlayerListState extends State<PlayerList> {
       hideWithKeyboard: false,
       itemBuilder: (context, player) => ListTile(
         title: Container(
-          color: player.id == widget.selected ? Colors.greenAccent : null,
+          color: player.id == widget.selected ? selectedHighlight : null,
           child: Row(
             children: [
               Expanded(

@@ -4,6 +4,7 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'frame.dart';
 import 'score_cell.dart';
 import 'store.dart';
+import 'utils.dart';
 
 class ScoreTable extends StatelessWidget {
   const ScoreTable({super.key});
@@ -74,15 +75,21 @@ class ScoreTable extends StatelessWidget {
           for (int i = rounds; i >= 0; i--) {
             row.add(ScoreCell(score['roundScores'][i], onTap));
           }
+          bool highlight = s['selected'] == score['id'];
+
+          MaterialStateProperty<Color>? rowColour = highlight
+              ? MaterialStateProperty.all<Color>(selectedHighlight)
+              : (shade
+              ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
+              : null);
+
           rows.add(DataRow(
-            color: shade
-                ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
-                : null,
+            color: rowColour,
             cells: row,
-            key: ValueKey('scoreRow_${score['id']}'),
           ));
           shade = !shade;
         }
+
         return Frame(
           context,
           SingleChildScrollView(
