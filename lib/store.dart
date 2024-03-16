@@ -105,7 +105,7 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setPlayerList:
       state.players = action['players'];
-      state.playerMap = {for (var p in state.players) p.id: p.name};
+      state.playerMap = {for (Player p in state.players) p.id: p.name};
       break;
 
     case STORE.setPreferences:
@@ -124,7 +124,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setScores:
-      state.scores = NEW_SCORES;
+      state.scores = action['scores'];
       break;
 
     case STORE.setSeating:

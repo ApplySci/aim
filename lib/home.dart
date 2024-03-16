@@ -17,8 +17,21 @@ void _updateStore() {
     });
   });
 
-  store.dispatch(STORE.setScores);
-  store.dispatch(STORE.setSeating);
+  IO.getSeating((Map<String, dynamic> seating) {
+    store.dispatch({
+      'type': STORE.setSeating,
+      'seating': seating,
+    });
+  });
+
+
+  IO.getScores((List<Map<String,dynamic>> scores) {
+    store.dispatch({
+      'type': STORE.setScores,
+      'scores': scores,
+    });
+  });
+
 }
 
 class MyHomePage extends StatefulWidget {

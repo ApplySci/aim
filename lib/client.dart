@@ -24,12 +24,29 @@ class IO {
 
   static Future<void> getPlayers(callback) {
     return download('players').then((map) {
-      if (map != null) {
-        List<Player> players = [];
-        map.forEach((k,v) {
-          players.add(Player(k is int ? k : int.parse(k), v));
-        });
-        callback(players);
+      if (map == null) {
+        return;
+      }
+      List<Player> players = [];
+      map.forEach((k, v) {
+        players.add(Player(k is int ? k : int.parse(k), v));
+      });
+      callback(players);
+    });
+  }
+
+  static Future<void> getScores(callback) {
+    return download('scores').then((scores) {
+      if (scores != null) {
+        callback(List<Map<String,dynamic>>.from(scores));
+      }
+    });
+  }
+
+  static Future<void> getSeating(callback) {
+    return download('seating').then((seating) {
+      if (seating != null) {
+        callback(seating);
       }
     });
   }
@@ -38,7 +55,7 @@ class IO {
     Response<dynamic> response;
     try {
       response = await IO._io.get('$url.json');
-      Log.info(response.toString());
+      Log.info('downloaded ${response.toString()}');
       return response.data;
     } on DioException catch (e) {
       if (e.response == null) {

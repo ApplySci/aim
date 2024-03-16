@@ -21,11 +21,12 @@ class ScoreTable extends StatelessWidget {
       converter: (store) {
         return {
           'scores': store.state.scores,
+          'playerMap': store.state.playerMap,
           'rounds': store.state.rounds,
         };
       },
-      builder: (BuildContext context, Map<String, dynamic> storeValues) {
-        int rounds = storeValues['rounds'];
+      builder: (BuildContext context, Map<String, dynamic> s) {
+        int rounds = s['rounds'];
         List<DataColumn> columns = <DataColumn>[
           const DataColumn(
             label: Text(''),
@@ -40,7 +41,7 @@ class ScoreTable extends StatelessWidget {
           ),
           DataColumn(label: _verticalDivider),
         ];
-        for (var i = rounds; i > 0; i--) {
+        for (int i = rounds; i > 0; i--) {
           columns.add(
             DataColumn(
               label: Text("R$i"),
@@ -54,30 +55,40 @@ class ScoreTable extends StatelessWidget {
         ));
         List<DataRow> rows = <DataRow>[];
         int pos = 1;
-        for (final score in storeValues['scores']) {
+        bool shade = false;
+        for (final score in s['scores']) {
           List<DataCell> row = [
             DataCell(Text(pos.toString())),
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
-              child: Text(score['name']),
+              child: Text(s['playerMap'][score['id']]),
             )),
             ScoreCell(score['total'], onTap),
             DataCell(_verticalDivider),
           ];
-          for (var i = rounds; i >= 0; i--) {
+          for (int i = rounds; i >= 0; i--) {
             row.add(ScoreCell(score['roundScores'][i], onTap));
           }
-          rows.add(DataRow(cells: row));
+          rows.add(DataRow(
+            color: shade
+                ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
+                : null,
+            cells: row,
+          ));
           pos++;
+          shade = !shade;
         }
         return Frame(
           context,
           SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: columns,
-              rows: rows,
-              columnSpacing: 10,
+            scrollDirection: Axis.vertical,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: columns,
+                rows: rows,
+                columnSpacing: 10,
+              ),
             ),
           ),
         );

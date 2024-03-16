@@ -129,7 +129,7 @@ class _AssignedTableState extends State<AssignedTable> {
     }, builder: (BuildContext context, Map<String, dynamic> s) {
       List<DataRow> rows = <DataRow>[];
       String winds = WINDS[s['winds'] ? 'japanese' : 'western'].toString();
-      for (var i = 0; i < min(4, widget.seats.length); i++) {
+      for (int i = 0; i < min(4, widget.seats.length); i++) {
         rows.add(DataRow(cells: [
           DataCell(Text(winds[i])),
           DataCell(Container(
