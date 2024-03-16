@@ -22,7 +22,7 @@ class IO {
     ),
   );
 
-  static Future<void> getPlayers(callback) {
+  static Future<void> getPlayers() {
     return download('players').then((map) {
       if (map == null) {
         return;
@@ -31,22 +31,31 @@ class IO {
       map.forEach((k, v) {
         players.add(Player(k is int ? k : int.parse(k), v));
       });
-      callback(players);
+      store.dispatch({
+        'type': STORE.setPlayerList,
+        'players': players,
+      });
     });
   }
 
-  static Future<void> getScores(callback) {
+  static Future<void> getScores() {
     return download('scores').then((scores) {
       if (scores != null) {
-        callback(List<Map<String,dynamic>>.from(scores));
+        store.dispatch({
+          'type': STORE.setScores,
+          'scores': List<Map<String, dynamic>>.from(scores),
+        });
       }
     });
   }
 
-  static Future<void> getSeating(callback) {
+  static Future<void> getSeating() {
     return download('seating').then((seating) {
       if (seating != null) {
-        callback(seating);
+        store.dispatch({
+          'type': STORE.setSeating,
+          'seating': seating,
+        });
       }
     });
   }

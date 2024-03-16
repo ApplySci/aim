@@ -7,31 +7,11 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'client.dart';
 import 'frame.dart';
 import 'store.dart';
-import 'utils.dart';
 
 void _updateStore() {
-  IO.getPlayers((List<Player> players) {
-    store.dispatch({
-      'type': STORE.setPlayerList,
-      'players': players,
-    });
-  });
-
-  IO.getSeating((Map<String, dynamic> seating) {
-    store.dispatch({
-      'type': STORE.setSeating,
-      'seating': seating,
-    });
-  });
-
-
-  IO.getScores((List<Map<String,dynamic>> scores) {
-    store.dispatch({
-      'type': STORE.setScores,
-      'scores': scores,
-    });
-  });
-
+  IO.getPlayers();
+  IO.getSeating();
+  IO.getScores();
 }
 
 class MyHomePage extends StatefulWidget {
