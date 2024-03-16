@@ -8,7 +8,9 @@ import 'store.dart';
 class ScoreTable extends StatelessWidget {
   const ScoreTable({super.key});
 
-  void onTap() {}
+  void onTap() {
+    // TODO write this function to go to an individual player's summary or something
+  }
 
   final Widget _verticalDivider = const VerticalDivider(
     color: Color(0xff999999),
@@ -23,6 +25,7 @@ class ScoreTable extends StatelessWidget {
           'scores': store.state.scores,
           'playerMap': store.state.playerMap,
           'rounds': store.state.rounds,
+          'selected': store.state.selected,
         };
       },
       builder: (BuildContext context, Map<String, dynamic> s) {
@@ -54,11 +57,13 @@ class ScoreTable extends StatelessWidget {
           numeric: true,
         ));
         List<DataRow> rows = <DataRow>[];
-        int pos = 1;
         bool shade = false;
+
+        // create one table row for each player
+
         for (final score in s['scores']) {
           List<DataCell> row = [
-            DataCell(Text(pos.toString())),
+            DataCell(Text(score['rank'])),
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
@@ -74,8 +79,8 @@ class ScoreTable extends StatelessWidget {
                 ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
                 : null,
             cells: row,
+            key: ValueKey('scoreRow_${score['id']}'),
           ));
-          pos++;
           shade = !shade;
         }
         return Frame(

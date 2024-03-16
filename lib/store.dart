@@ -7,10 +7,18 @@ import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-import 'defaults.dart';
 import 'utils.dart';
 
 late SharedPreferences _prefs;
+
+const Map<String, dynamic> DEFAULT_PREFERENCES = {
+  'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
+  'japaneseWinds': false,
+  'japaneseNumbers': false,
+  'serverUrl': 'https://tournaments.mahjong.ie/',
+  'playerId': -1, // id of player being focused on
+  'tournament': 'cork2024',
+};
 
 class Log {
   static List<List<dynamic>> logs = [];
@@ -128,7 +136,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setSeating:
-      state.seating = SEATING;
+      state.seating = action['seating'];
       if (state.selected >= 0) {
         state.theseSeats = getSeats(state.seating, state.selected);
       }
