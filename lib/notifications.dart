@@ -7,9 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-//import 'client.dart';
+import 'client.dart';
 import 'store.dart';
-import 'utils.dart';
 /*
 
 SharedPreference.reload(); when resuming
@@ -53,7 +52,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 void subscribeUserToTopic() async {
   // subscribe to topic on each app start-up
-  await messaging.subscribeToTopic('cork2024');
+  // await messaging.subscribeToTopic('cork2024');
 }
 
 void unsubscribeUserToTopic() async {  // currently not called from anywhere
@@ -105,24 +104,11 @@ Future<void> notifyWhenFocused(message) async {
       payload: 'boom',
     );
 
-    // TODO this stuff is here ONLY FOR TESTING - REMOVE IN PRODUCTION CODE
-    if (DEBUG) {
-      store.dispatch(STORE.setScores);
-      store.dispatch(STORE.setPlayerList);
-      store.dispatch({
-        'type': STORE.setPlayerId,
-        'playerId': 1,
-      });
-      store.dispatch(STORE.setSeating);
-    }
+
   }
 }
 
 buildAndNotify(String updateType) {
-  // Future.delayed(const Duration(seconds: 1), () {
-  //   print('One second has passed.'); // Prints after 1 second.
-  // });
-  // static List<String> messages;
 
   RemoteMessage message = RemoteMessage(
     notification: RemoteNotification(
@@ -137,15 +123,16 @@ buildAndNotify(String updateType) {
 
 
 void onIosSelectNotification(int num1, String? str1, String? str2, String? str3) async {
-  Log.debug("Ios Notification received: $num1 $str1 $str2 $str3");
+  Log.debug("IOS Notification received: $num1 $str1 $str2 $str3");
 }
 
 Future<void> setNotifierEvents() async {
 
-  // app_icon @mipmap/ic_launcher
-  const AndroidInitializationSettings initializationSettingsAndroid =  AndroidInitializationSettings('aimbird');
+  const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('aimbird');
 
-  const DarwinInitializationSettings initializationSettingsIOS =  DarwinInitializationSettings(
+  const DarwinInitializationSettings initializationSettingsIOS =
+    DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -160,7 +147,7 @@ Future<void> setNotifierEvents() async {
 
   await getFCMToken();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  subscribeUserToTopic();
+  //subscribeUserToTopic();
 
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<

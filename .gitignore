@@ -48,3 +48,4 @@ app.*.map.json
 /ios/Runner/GoogleService-Info.plist
 /macos/Runner/GoogleService-Info.plist
 /google-services.json
+/server/fcm-admin.json

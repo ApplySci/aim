@@ -10,7 +10,7 @@ import 'utils.dart';
 class IO {
   static final Dio _io = Dio(
     BaseOptions(
-      baseUrl: 'https://tournaments.mahjong.ie/json/',
+      baseUrl: 'https://tournaments.mahjong.ie/',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
@@ -23,7 +23,7 @@ class IO {
   );
 
   static Future<void> getPlayers() {
-    return download('players').then((map) {
+    return download('json/players').then((map) {
       if (map == null) {
         return;
       }
@@ -39,7 +39,7 @@ class IO {
   }
 
   static Future<void> getScores() {
-    return download('scores').then((scores) {
+    return download('json/scores').then((scores) {
       if (scores != null) {
         store.dispatch({
           'type': STORE.setScores,
@@ -50,7 +50,7 @@ class IO {
   }
 
   static Future<void> getSeating() {
-    return download('seating').then((seating) {
+    return download('json/seating').then((seating) {
       if (seating != null) {
         store.dispatch({
           'type': STORE.setSeating,
@@ -58,6 +58,13 @@ class IO {
         });
       }
     });
+  }
+
+  void sendToken(String token) async {
+    Response<dynamic> response = await IO._io.post(
+      'client/token',
+      queryParameters: {'token': token},
+    );
   }
 
   static Future<dynamic> download(String url) async {
