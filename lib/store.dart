@@ -56,6 +56,7 @@ class AllState {
   List<Player> players = [];
   Map<int, String> playerMap = {};
   int rounds = 5;
+  int round_done = 0;
   int selected = -1;
   SeatingPlan theseSeats={}, seating={};
 
