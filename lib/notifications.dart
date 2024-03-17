@@ -11,9 +11,11 @@ import 'client.dart';
 import 'store.dart';
 /*
 
-SharedPreference.reload(); when resuming
-
+Updating widgets when app is resumed:
 https://stackoverflow.com/questions/49869873/flutter-update-widgets-on-resume
+
+
+SharedPreference.reload(); when resuming
 
 Data only messages are considered low priority by devices when your application
 is in the background or terminated, and will be ignored.
@@ -32,6 +34,7 @@ Since the handler runs in its own isolate outside your applications context,
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // TESTED AND WORKS
   Log.debug("Handling a background message: ${message.messageId}");
   Log.debug("Message body: ${message.notification?.body}");
   _handleMessage(message);
@@ -40,7 +43,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
-  'high_importance_channel', // id
+// TODO doesn't seem to do anything yet, even when a message is sent in the aim112 channel
+  'aim112', // id
   'High Importance Notifications', // title
   description: 'This channel is used for important notifications.',
   importance: Importance.high,
@@ -156,6 +160,7 @@ Future<void> setNotifierEvents() async {
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     // handle message received when app is in foreground
+    // TESTED AND WORKS
     notifyWhenFocused(message);
     _handleMessage(message);
   });
@@ -214,7 +219,9 @@ Future<void> setupInteractedMessage() async {
 
 void _handleMessage(RemoteMessage message) {
   Log.debug('_handleMessage received a notification');
-  Log.debug("Message body: ${message.notification?.body}");
-  Log.debug("Message data: ${message.data}");
+  Log.debug("Title: ${message.notification?.title}");
+  Log.debug("body: ${message.notification?.body}");
+  Log.debug("data: ${message.data}");
+  // contentAvailable collapseKey category senderId
   // message.data['type'] message.data
 }

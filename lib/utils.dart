@@ -99,17 +99,17 @@ class GLOBAL {
   static int nextUnregisteredID = -2;
 }
 
-typedef SeatingPlan = Map<String, dynamic>;
+typedef SeatingPlan = List<Map<String, dynamic>>;
 
 SeatingPlan getSeats(SeatingPlan seating, int selected) {
   // deep-cloning this fairly simple object with JSON
-  SeatingPlan theseSeats = jsonDecode(jsonEncode(seating));
-  seating.forEach((String roundName, dynamic round) {
-    round['tables'].forEach((String tableName, dynamic table) {
+  SeatingPlan theseSeats = SeatingPlan.from(jsonDecode(jsonEncode(seating)));
+  for (int i=0; i < seating.length; i++) {
+    seating[i]['tables'].forEach((String tableName, dynamic table) {
       if (!table.contains(selected)) {
-        theseSeats[roundName]['tables'].remove(tableName);
+        theseSeats[i]['tables'].remove(tableName);
       }
     });
-  });
+  }
   return theseSeats;
 }

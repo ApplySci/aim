@@ -19,9 +19,12 @@ class _SeatingState extends State<Seating> {
 
   void toggleShowAll(bool yes) => setState(() => showAll = yes);
 
-  List<Widget> getHanchan(SeatingPlan seats) {
+  List<Widget> getHanchan(SeatingPlan seats, int roundDone) {
     List<Widget> allHanchan = [];
-    seats.forEach((roundName, round) {
+    int roundCount = 0;
+    for (final Map round in seats) {
+      roundCount++;
+      if (roundCount <= roundDone) continue; // skip rounds if they're over
       allHanchan.add(Container(
         height: 10,
         margin: const EdgeInsets.all(15.0),
@@ -39,7 +42,7 @@ class _SeatingState extends State<Seating> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.watch_later_outlined),
-          Text(' $roundName begins ${round['start']}'),
+          Text(" ${round['id']} begins at ${round['start']}"),
         ],
       ));
       allHanchan.add(const SizedBox(height: 5));
@@ -55,7 +58,7 @@ class _SeatingState extends State<Seating> {
         allHanchan.add(AssignedTable(plan));
         allHanchan.add(const SizedBox(height: 10));
       });
-    });
+    }
     return allHanchan;
   }
 
@@ -64,6 +67,7 @@ class _SeatingState extends State<Seating> {
     return StoreConnector<AllState, Map<String, dynamic>>(
       converter: (store) {
         return {
+          'roundDone': store.state.roundDone,
           'seating': store.state.seating,
           'selected': store.state.selected,
           'thisSeating': store.state.theseSeats,
@@ -98,7 +102,7 @@ class _SeatingState extends State<Seating> {
             ),
           );
         }
-        rows.addAll(getHanchan(seats));
+        rows.addAll(getHanchan(seats, s['roundDone']));
         return Frame(
             context, SingleChildScrollView(child: Column(children: rows)));
       },

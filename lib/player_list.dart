@@ -93,6 +93,8 @@ class _PlayerListState extends State<PlayerList> {
           'type': STORE.setPlayerId,
           'playerId': selection.id,
         });
+        Navigator.pop(context);
+        // TODO a notif here saying "{name} will be highlighted in seating & scores, and updates to them  will be notified"
       },
       suggestionsCallback: (String needle) {
         List<Player> selected;
