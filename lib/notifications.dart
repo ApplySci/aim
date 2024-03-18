@@ -9,6 +9,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'client.dart';
 import 'store.dart';
+import 'utils.dart';
 /*
 
 Updating widgets when app is resumed:
@@ -32,15 +33,6 @@ Since the handler runs in its own isolate outside your applications context,
  (e.g. updating local storage), communicate with other plugins etc.
  */
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // TESTED AND WORKS
-  Log.debug("Handling a background message: ${message.messageId}");
-  Log.debug("Message body: ${message.notification?.body}");
-  _handleMessage(message);
-}
-
-FirebaseMessaging messaging = FirebaseMessaging.instance;
 
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
 // TODO doesn't seem to do anything yet, even when a message is sent in the aim112 channel
@@ -53,15 +45,6 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-
-void subscribeUserToTopic() async {
-  // subscribe to topic on each app start-up
-  // await messaging.subscribeToTopic('cork2024');
-}
-
-void unsubscribeUserToTopic() async {  // currently not called from anywhere
-  await messaging.unsubscribeFromTopic('cork2024');
-}
 
 Future<void> requestPermissions() async {
   NotificationSettings settings = await messaging.requestPermission(
@@ -79,7 +62,7 @@ Future<void> requestPermissions() async {
 }
 
 
-Future<void> notifyWhenFocused(message) async {
+Future<void> notifyWhenFocused(message) async { // called from fcm_client
   // TODO this isn't called from anywhere yet!
   RemoteNotification? notification = message.notification;
   AndroidNotification? android = message.notification?.android;
@@ -135,49 +118,38 @@ buildAndNotify(String updateType) {
 }
 
 
-
 void onIosSelectNotification(int num1, String? str1, String? str2, String? str3) async {
   Log.debug("IOS Notification received: $num1 $str1 $str2 $str3");
 }
 
+
 // https://stackoverflow.com/questions/76561585/flutter-local-notification-action-button-click-not-working
 Future<void> setNotifierEvents() async {
   const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('aimbird');
+  AndroidInitializationSettings('aimbird');
 
   const DarwinInitializationSettings initializationSettingsIOS =
-    DarwinInitializationSettings(
+  DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
       onDidReceiveLocalNotification: onIosSelectNotification);
 
   const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS,
   );
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   await requestPermissions();
 
-  await getFCMToken();
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  //subscribeUserToTopic();
-
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    // handle message received when app is in foreground
-    // TESTED AND WORKS
-    notifyWhenFocused(message);
-    _handleMessage(message);
-  });
 }
+
 
 void notificationClickListener(
     BuildContext context, Map<String, dynamic> data) {
@@ -201,40 +173,26 @@ void notificationClickListener(
       });
 }
 
-Future<void> getFCMToken() async {
-  final String fcmToken = await messaging.getToken() ?? '';
 
-  Log.debug('FCM token: $fcmToken');
+Future<void> _startForegroundServiceWithBlueBackgroundNotification() async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+  AndroidNotificationDetails(
+    'your channel id',
+    'your channel name',
+    channelDescription: 'color background channel description',
+    importance: Importance.max,
+    priority: Priority.high,
+    ticker: 'ticker',
+    color: Colors.blue,
+    colorized: true,
+  );
 
-  messaging.onTokenRefresh.listen((fcmToken) {
-    Log.debug('FCM token refreshed: $fcmToken');
-    // Note: This callback is fired at each app startup and whenever a new
-    // token is generated.
-  }).onError((err) {
-    // Error getting token.
-  });
-}
-
-Future<void> setupInteractedMessage() async {
-  // Get any messages which caused the application to open from
-  // a terminated state.
-  RemoteMessage? initialMessage =
-      await messaging.getInitialMessage();
-
-  if (initialMessage != null) {
-    _handleMessage(initialMessage);
-  }
-
-  // Also handle any interaction when the app is in the background via a
-  // Stream listener
-  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
-}
-
-void _handleMessage(RemoteMessage message) {
-  Log.debug('_handleMessage received a notification');
-  Log.debug("Title: ${message.notification?.title}");
-  Log.debug("body: ${message.notification?.body}");
-  Log.debug("data: ${message.data}");
-  // contentAvailable collapseKey category senderId
-  // message.data['type'] message.data
+  /// only using foreground service can color the background
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()
+      ?.startForegroundService(
+      1, 'colored background text title', 'colored background text body',
+      notificationDetails: androidPlatformChannelSpecifics,
+      payload: 'item x');
 }

@@ -7,6 +7,7 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 // app imports
+import 'fcm_client.dart';
 import 'firebase_options.dart';
 import 'home.dart';
 import 'notifications.dart';
@@ -33,6 +34,7 @@ Future main() async {
 
   await initPrefs();
   await setNotifierEvents();
+  await setupFCM();
   setupInteractedMessage(); // Handle any incoming FCM notifications that caused the terminated app to re-open
   runApp(const MyApp());
 }

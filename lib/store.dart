@@ -20,35 +20,6 @@ const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'tournament': 'cork2024',
 };
 
-class Log {
-  static List<List<dynamic>> logs = [];
-
-  static void debug(String text) {
-    debugPrint(text);
-  }
-
-  static void _saveLog(LOG type, String text) {
-    String typeString = enumToString(type);
-    logs.add([DateTime.now().toIso8601String(), typeString, text]);
-    debug('$typeString : $text');
-  }
-
-  static void unusual(String text) {
-    _saveLog(LOG.unusual, text);
-  }
-
-  static void warn(String text) {
-    _saveLog(LOG.warn, text);
-  }
-
-  static void error(String text) {
-    _saveLog(LOG.error, text);
-  }
-
-  static void info(String text) {
-    _saveLog(LOG.info, text);
-  }
-}
 
 class AllState {
   bool loadedOK = false;
