@@ -63,8 +63,7 @@ void unsubscribeUserToTopic() async {  // currently not called from anywhere
   await messaging.unsubscribeFromTopic('cork2024');
 }
 
-// iOS stuff:
-void requestPermissionsOnMac() async {
+Future<void> requestPermissions() async {
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
     announcement: false,
@@ -79,10 +78,13 @@ void requestPermissionsOnMac() async {
   // authorized, denied, notDetermined, provisional
 }
 
+
 Future<void> notifyWhenFocused(message) async {
+  // TODO this isn't called from anywhere yet!
   RemoteNotification? notification = message.notification;
   AndroidNotification? android = message.notification?.android;
 
+  Log.debug('in notifyWhenFocused');
   // If `onMessage` is triggered with a notification, construct our own
   // local notification to show to users using the created channel.
   if (notification != null && android != null) {
@@ -95,6 +97,14 @@ Future<void> notifyWhenFocused(message) async {
       priority: Priority.high,
       icon: 'aimbird',
       ticker: 'ticker',
+      actions: [
+        AndroidNotificationAction('action_1', 'Action 1', showsUserInterface: true),
+        AndroidNotificationAction('action_2', 'Action 2', showsUserInterface: true),
+      ],
+      styleInformation: BigTextStyleInformation(
+        'styleInformation text',
+        contentTitle: 'styleInformation contentTitle',
+      ),
     );
 
     NotificationDetails platformChannelSpecifics =
@@ -130,8 +140,8 @@ void onIosSelectNotification(int num1, String? str1, String? str2, String? str3)
   Log.debug("IOS Notification received: $num1 $str1 $str2 $str3");
 }
 
+// https://stackoverflow.com/questions/76561585/flutter-local-notification-action-button-click-not-working
 Future<void> setNotifierEvents() async {
-
   const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('aimbird');
 
@@ -147,9 +157,12 @@ Future<void> setNotifierEvents() async {
       iOS: initializationSettingsIOS,
   );
 
-  flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  await requestPermissions();
 
   await getFCMToken();
+
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   //subscribeUserToTopic();
 

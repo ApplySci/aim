@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
@@ -87,14 +89,17 @@ class _PlayerListState extends State<PlayerList> {
           ),
         ),
       ),
-      onSelected: (Player selection) {
+      onSelected: (Player selection) async {
         _controller.clear();
         store.dispatch({
           'type': STORE.setPlayerId,
           'playerId': selection.id,
         });
         Navigator.pop(context);
-        // TODO a notif here saying "{name} will be highlighted in seating & scores, and updates to them  will be notified"
+        /* notify(
+        '{selection.name} will be highlighted in seating & scores, and you will receive updates for them',
+        );
+         */
       },
       suggestionsCallback: (String needle) {
         List<Player> selected;
