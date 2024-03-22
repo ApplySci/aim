@@ -46,13 +46,13 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-Future<void> requestPermissions() async {
+Future<void> requestPermissions() async { // tested, works
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
     announcement: false,
     badge: true,
     carPlay: false,
-    criticalAlert: false,
+    criticalAlert: false, // this is for emergency services and the like. Not us
     provisional: false,
     sound: true,
   );

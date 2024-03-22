@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 
-version: 0.0.3+7
+version: 0.0.3+8
 
 environment:
   sdk: '>=3.2.5 <4.0.0'
@@ -37,6 +37,7 @@ dependencies:
   dio: ^5.4.1
   firebase_core: any
   firebase_messaging: ^14.0.0
+  firebase_storage: any
   fl_chart: ^0.66.0
   flutter_local_notifications: ^17.0.0
   flutter_redux: ^0.10.0

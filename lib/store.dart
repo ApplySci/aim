@@ -17,7 +17,6 @@ const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'japaneseNumbers': false,
   'serverUrl': 'https://tournaments.mahjong.ie/',
   'playerId': -1, // id of player being focused on
-  'tournament': 'cork2024',
 };
 
 
@@ -30,6 +29,7 @@ class AllState {
   int roundDone = 0;
   int selected = -1;
   SeatingPlan theseSeats=[], seating=[];
+  String tournament = 'cork2024';
 
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 

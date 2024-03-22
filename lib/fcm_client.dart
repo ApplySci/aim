@@ -25,26 +25,30 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   _handleMessage(message);
 }
 
-void subscribeUserToTopic() async {
+void subscribeUserToTopic(String tournament) async {
+  // TODO not yet called from anywhere
   // subscribe to topic on each app start-up
-  // await messaging.subscribeToTopic('cork2024');
+  await messaging.subscribeToTopic(tournament);
 }
 
-void unsubscribeUserToTopic() async {
-  // currently not called from anywhere
-  await messaging.unsubscribeFromTopic('cork2024');
+void unsubscribeUserToTopic(String tournament) async {
+  // TODO not yet called from anywhere
+  await messaging.unsubscribeFromTopic(tournament);
 }
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
 
   Log.debug('FCM token: $fcmToken');
+  // TODO send it to our server
 
   messaging.onTokenRefresh.listen((fcmToken) {
     Log.debug('FCM token refreshed: $fcmToken');
+    // TODO send it to our server
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
   }).onError((err) {
+    Log.error('Failed to set listener for fcmToken in onTokenRefresh: ${err.message}');
     // Error getting token.
   });
 }

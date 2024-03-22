@@ -4,19 +4,26 @@ from pathlib import Path
 
 from firebase_admin import credentials, messaging as fcm, \
     initialize_app as fcm_init
-
-cred = credentials.Certificate("fcm-admin.json")
-default_app = fcm_init(cred)
+from firebase_admin import firestore
 
 basedir = Path('/home/model/src/tournaments-static/')
-# basedir = Path('d:/zaps/')
+# basedir = Path('D:\\zaps\\aim_tournaments\\server')
 
-TOKEN = 'eu3cnQqXT9KsekF0nUuH10:APA91bFbXIjd_ymM9b2ddXDmEoUB1NTzli3eHSo2lNfimkp8QvthA-QZf24BHi8LB6RuejxtkkWewnb3wDr5nyHynz7-3TP9ZyikRRFakdrfh41T_HmMnNn9--sihcPYbEL3i-JZ-f6H'
+cork2024 = 'Y3sDqxajiXefmP9XBTvY'
+
+# Use the private key file of the service account directly.
+cred = credentials.Certificate(basedir / "fcm-admin.json")
+app = fcm_init(cred)
+firestore_client = firestore.client()
+
+ref = firestore_client.collection("tournaments")
+print(ref.document(cork2024).get().to_dict())
+
 
 def send_notification():
 
     # See documentation on defining a message payload.
-    message = fcm.Message(token=TOKEN,
+    message = fcm.Message(token='zzz',
         notification=fcm.Notification(title='Seating', body='just updated'),
         data={'type': 'seats',},
         android=fcm.AndroidConfig(
@@ -331,7 +338,7 @@ def send_multicast_and_handle_errors():
 
 # =====================================================================
 
-def write_files():
+def get_tourney_json():
     seating = [
         {   'id': 'R1',
             'roundDone': 1,
@@ -507,6 +514,9 @@ def write_files():
         row['rank'] = f'{prefix}{rank}'
         row_number += 1
 
+    return (players, seating, sorted_scores)
+
+def write_files(players, seating, sorted_scores):
     with open(basedir / 'players.json', 'w', encoding='utf-8') as f:
         json.dump(players, f, ensure_ascii=False, indent=0)
 
@@ -516,4 +526,18 @@ def write_files():
     with open(basedir / 'scores.json', 'w', encoding='utf-8') as f:
         json.dump(sorted_scores, f, ensure_ascii=False, indent=0)
 
-write_files()
+# write_files()
+
+def write_cloudstore():
+    players, seating, sorted_scores = get_tourney_json()
+    pj  = json.dumps(players,       ensure_ascii=False, indent=0)
+    sj  = json.dumps(seating,       ensure_ascii=False, indent=0)
+    ssj = json.dumps(sorted_scores, ensure_ascii=False, indent=0)
+
+    ref.document(cork2024).set(document_data={
+        'players': pj,
+        'seating': sj,
+        'scores': ssj,
+        }, merge=True)
+
+write_cloudstore()
