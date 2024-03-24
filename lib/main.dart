@@ -4,38 +4,32 @@ import 'package:flutter/services.dart';
 
 // third-party imports
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 // app imports
+import 'db.dart';
 import 'fcm_client.dart';
-import 'firebase_options.dart';
 import 'home.dart';
-import 'notifications.dart';
 import 'player_list.dart';
 import 'score_table.dart';
 import 'seats.dart';
 import 'store.dart';
+import 'tournaments.dart';
 import 'utils.dart';
 
 Future main() async {
   // do this before everything
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
+  await initPrefs();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
     statusBarIconBrightness: Brightness.light, //top bar icons
     systemNavigationBarColor: Colors.black, //bottom bar color
     systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
   ));
-
-  await initPrefs();
-  await setNotifierEvents();
   await setupFCM();
-  setupInteractedMessage(); // Handle any incoming FCM notifications that caused the terminated app to re-open
+
+  getTournaments();
   runApp(const MyApp());
 }
 
@@ -61,6 +55,7 @@ class MyApp extends StatelessWidget {
                 ROUTES.home: (context) => const MyHomePage(),
                 ROUTES.seating: (context) => const Seating(),
                 ROUTES.players: (context) => const Players(),
+                ROUTES.tournaments: (context) => const Tournaments(),
                 ROUTES.scoreTable: (context) => const ScoreTable(),
                 // ROUTES.settings: (context) => const (),
                 // ROUTES.privacyPolicy: (context) => const (),

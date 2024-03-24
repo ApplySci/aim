@@ -2,12 +2,14 @@
 
 // TODO when a notif is received, download the latest tournament info
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'client.dart';
+import 'firebase_options.dart';
 import 'store.dart';
 import 'utils.dart';
 /*
@@ -125,6 +127,10 @@ void onIosSelectNotification(int num1, String? str1, String? str2, String? str3)
 
 // https://stackoverflow.com/questions/76561585/flutter-local-notification-action-button-click-not-working
 Future<void> setNotifierEvents() async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('aimbird');
 

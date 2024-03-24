@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
 import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';

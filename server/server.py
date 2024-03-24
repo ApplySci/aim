@@ -341,7 +341,6 @@ def send_multicast_and_handle_errors():
 def get_tourney_json():
     seating = [
         {   'id': 'R1',
-            'roundDone': 1,
             'start': 'Saturday 09.00',
             'tables': {
                 'alef': [1, 2, 3, 4],
@@ -376,103 +375,104 @@ def get_tourney_json():
     scores = [
         {
             'id': 1,
-            'total': 50,
-            'roundScores': [0, -24, 49, 91, -11, -30]
+            'roundDone': 1,
+            't': 50,
+            's': [0, -24, 49, 91, -11, -30]
         },
         {
             'id': 2,
-            'total': 200,
-            'roundScores': [0, 15, 23, 35, 53, 112]
+            't': 200,
+            's': [0, 15, 23, 35, 53, 112]
         },
         {
             'id': 3,
-            'total': -105,
-            'roundScores': [0, 0, -40, 5, -36, -69]
+            't': -105,
+            's': [0, 0, -40, 5, -36, -69]
         },
         {
             'id': 4,
-            'total': -145,
-            'roundScores': [0, 10, 12, -126, -6, -13]
+            't': -145,
+            's': [0, 10, 12, -126, -6, -13]
         },
         {
             'id': 5,
-            'total': 50,
-            'roundScores': [0, -24, 49, 91, -11, -30]
+            't': 50,
+            's': [0, -24, 49, 91, -11, -30]
         },
         {
             'id': 6,
-            'total': 200,
-            'roundScores': [0, 15, 23, 35, 53, 112]
+            't': 200,
+            's': [0, 15, 23, 35, 53, 112]
         },
         {
             'id': 7,
-            'total': -100,
-            'roundScores': [0, 0, -40, 5, -36, -69]
+            't': -100,
+            's': [0, 0, -40, 5, -36, -69]
         },
         {
             'id': 8,
-            'total': -140,
-            'roundScores': [0, 10, 12, -126, -6, -13]
+            't': -140,
+            's': [0, 10, 12, -126, -6, -13]
         },
         {
             'id': 9,
-            'total': 52,
-            'roundScores': [0, -24, 49, 91, -11, -30]
+            't': 52,
+            's': [0, -24, 49, 91, -11, -30]
         },
         {
             'id': 10,
-            'total': 186,
-            'roundScores': [0, 15, 23, 35, 53, 112]
+            't': 186,
+            's': [0, 15, 23, 35, 53, 112]
         },
         {
             'id': 11,
-            'total': -108,
-            'roundScores': [0, 0, -40, 5, -36, -69]
+            't': -108,
+            's': [0, 0, -40, 5, -36, -69]
         },
         {
             'id': 12,
-            'total': -101,
-            'roundScores': [0, 10, 12, -126, -6, -13]
+            't': -101,
+            's': [0, 10, 12, -126, -6, -13]
         },
         {
             'id': 13,
-            'total': 67,
-            'roundScores': [0, -24, 49, 91, -11, -30]
+            't': 67,
+            's': [0, -24, 49, 91, -11, -30]
         },
         {
             'id': 14,
-            'total': 808,
-            'roundScores': [0, 15, 23, 35, 53, 112]
+            't': 808,
+            's': [0, 15, 23, 35, 53, 112]
         },
         {
             'id': 15,
-            'total': -909,
-            'roundScores': [0, 0, -40, 5, -36, -69]
+            't': -909,
+            's': [0, 0, -40, 5, -36, -69]
         },
         {
             'id': 16,
-            'total': -707,
-            'roundScores': [0, 10, 12, -126, -6, -13]
+            't': -707,
+            's': [0, 10, 12, -126, -6, -13]
         },
         {
             'id': 17,
-            'total': 606,
-            'roundScores': [0, -24, 49, 91, -11, -30]
+            't': 606,
+            's': [0, -24, 49, 91, -11, -30]
         },
         {
             'id': 18,
-            'total': 505,
-            'roundScores': [0, 15, 23, 35, 53, 112]
+            't': 505,
+            's': [0, 15, 23, 35, 53, 112]
         },
         {
             'id': 19,
-            'total': 404,
-            'roundScores': [0, 0, -40, 5, -36, -69]
+            't': 404,
+            's': [0, 0, -40, 5, -36, -69]
         },
         {
             'id': 20,
-            'total': -303,
-            'roundScores': [0, 10, 12, -126, -6, -13]
+            't': -303,
+            's': [0, 10, 12, -126, -6, -13]
         },
     ]
 
@@ -499,15 +499,15 @@ def get_tourney_json():
         20: '津田 梅子'
     }
 
-    sorted_scores = sorted(scores, key=lambda r: -r['total'])
+    sorted_scores = sorted(scores, key=lambda r: -r['t'])
     rank = 0
     row_number = 1
     previous_score = -99999.9
     for row in sorted_scores:
-        if previous_score == row['total']:
+        if previous_score == row['t']:
             prefix = '='
         else:
-            previous_score = row['total']
+            previous_score = row['t']
             rank = row_number
             prefix = ''
 

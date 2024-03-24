@@ -52,6 +52,7 @@ class ROUTES {
   static const String seating = '/seating';
   static const String scoreTable = '/scoreTable';
   static const String settings = '/settings';
+  static const String tournaments = '/tournaments';
 }
 
 const Color selectedHighlight = Color(0x88aaaaff);
@@ -104,6 +105,10 @@ class GLOBAL {
 
 typedef SeatingPlan = List<Map<String, dynamic>>;
 
+/// Get the seating for an individual player
+/// [seating] is the seating plan for the whole tournament
+/// [selected] is the player id
+/// [getSeats] returns the SeatingPlan just for the player selected
 SeatingPlan getSeats(SeatingPlan seating, int selected) {
   // deep-cloning this fairly simple object with JSON
   SeatingPlan theseSeats = SeatingPlan.from(jsonDecode(jsonEncode(seating)));

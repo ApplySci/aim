@@ -69,11 +69,11 @@ class ScoreTable extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
             )),
-            ScoreCell(score['total'], onTap),
+            ScoreCell(score['t'], onTap),
             DataCell(_verticalDivider),
           ];
           for (int i = rounds; i >= 0; i--) {
-            row.add(ScoreCell(score['roundScores'][i], onTap));
+            row.add(ScoreCell(score['s'][i], onTap));
           }
           bool highlight = s['selected'] == score['id'];
 

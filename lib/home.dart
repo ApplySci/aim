@@ -7,6 +7,7 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'client.dart';
 import 'frame.dart';
 import 'store.dart';
+import 'tournaments.dart';
 
 void _updateStore() {
   IO.getPlayers();
@@ -31,16 +32,15 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (BuildContext context, String color) {
           return Frame(
             context,
-            const SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: _updateStore,
-                    child: Text('update'),
-                  ),
-                ],
-              ),
+            const Column(
+              children: [
+                ElevatedButton(
+                  onPressed: _updateStore,
+                  child: Text('update'),
+                ),
+                Text('Pick a tournament to follow'),
+                TournamentList(),
+              ],
             ),
           );
         },

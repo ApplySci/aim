@@ -5,7 +5,6 @@ import 'dart:convert';
 
 import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
 
 import 'utils.dart';
 
@@ -16,6 +15,7 @@ const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'japaneseWinds': false,
   'japaneseNumbers': false,
   'serverUrl': 'https://tournaments.mahjong.ie/',
+  'tournament': 'cork2024',
   'playerId': -1, // id of player being focused on
 };
 
@@ -30,20 +30,7 @@ class AllState {
   int selected = -1;
   SeatingPlan theseSeats=[], seating=[];
   String tournament = 'cork2024';
-
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
-
-  String toJSON() {
-    // TODO save AllState data to local storage
-    Map<String, dynamic> valuesToSave = {
-      'scores': scores,
-      'players': players,
-      'rounds': rounds,
-      'selected': selected,
-      'seating': seating,
-    };
-    return jsonEncode(valuesToSave);
-  }
 }
 
 /// Sole arbiter of the contents of the Store after initialisation
@@ -105,15 +92,17 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setScores:
       state.scores = action['scores'];
+      if (state.scores.isNotEmpty) {
+        state.roundDone = state.scores[0].containsKey('roundDone')
+            ? state.scores[0]['roundDone']
+            : 0;
+      } else {
+        state.roundDone = 0;
+      }
       break;
 
     case STORE.setSeating:
       state.seating = SeatingPlan.from(action['seating']);
-      if (state.seating.isNotEmpty) {
-        state.roundDone = state.seating[0]['roundDone'];
-      } else {
-        state.roundDone = 0;
-      }
       if (state.selected >= 0) {
         state.theseSeats = getSeats(state.seating, state.selected);
       }

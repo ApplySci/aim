@@ -5,10 +5,12 @@ import 'utils.dart';
 
 Future<void> setupFCM() async {
 
+  await setNotifierEvents();
   await getFCMToken();
+  setupInteractedMessage(); // Handle any incoming FCM notifications that caused the terminated app to re-open
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  //subscribeUserToTopic();
+  //subscribeUserToTopic(); // TODO get topic(s) from shared_preferences, probably
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
   // handle message received when app is in foreground

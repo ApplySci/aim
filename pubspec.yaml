@@ -34,10 +34,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  cloud_firestore: ^4.15.9
   dio: ^5.4.1
   firebase_core: any
   firebase_messaging: ^14.0.0
-  firebase_storage: any
   fl_chart: ^0.66.0
   flutter_local_notifications: ^17.0.0
   flutter_redux: ^0.10.0
