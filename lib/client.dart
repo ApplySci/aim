@@ -23,14 +23,10 @@ class IO {
   );
 
   static Future<void> getPlayers() {
-    return download('json/players').then((map) {
-      if (map == null) {
+    return download('json/players').then((players) {
+      if (players == null) {
         return;
       }
-      List<Player> players = [];
-      map.forEach((k, v) {
-        players.add(Player(k is int ? k : int.parse(k), v));
-      });
       store.dispatch({
         'type': STORE.setPlayerList,
         'players': players,

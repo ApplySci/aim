@@ -12,7 +12,7 @@ basedir = Path('/home/model/src/tournaments-static/')
 cork2024 = 'Y3sDqxajiXefmP9XBTvY'
 
 # Use the private key file of the service account directly.
-cred = credentials.Certificate(basedir / "fcm-admin.json")
+cred = credentials.Certificate("fcm-admin.json")
 app = fcm_init(cred)
 firestore_client = firestore.client()
 
@@ -534,10 +534,11 @@ def write_cloudstore():
     sj  = json.dumps(seating,       ensure_ascii=False, indent=0)
     ssj = json.dumps(sorted_scores, ensure_ascii=False, indent=0)
 
-    ref.document(cork2024).set(document_data={
-        'players': pj,
-        'seating': sj,
-        'scores': ssj,
-        }, merge=True)
+    ref.document(f"{cork2024}/json/players").set(document_data={
+        'json': pj})
+    ref.document(f"{cork2024}/json/seating").set(document_data={
+        'json': sj})
+    ref.document(f"{cork2024}/json/scores").set(document_data={
+        'json': ssj})
 
 write_cloudstore()

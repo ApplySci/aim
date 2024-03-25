@@ -4,16 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
 // app imports
-import 'client.dart';
 import 'frame.dart';
 import 'store.dart';
 import 'tournaments.dart';
-
-void _updateStore() {
-  IO.getPlayers();
-  IO.getSeating();
-  IO.getScores();
-}
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -34,10 +27,6 @@ class _MyHomePageState extends State<MyHomePage> {
             context,
             const Column(
               children: [
-                ElevatedButton(
-                  onPressed: _updateStore,
-                  child: Text('update'),
-                ),
                 Text('Pick a tournament to follow'),
                 TournamentList(),
               ],

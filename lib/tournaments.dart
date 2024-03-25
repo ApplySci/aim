@@ -76,8 +76,12 @@ class _TournamentListState extends State<TournamentList> {
                 return ListTile(
                   title: Text(metadata['name']),
                   subtitle: Text(
-                      "$dateRange - ${DateFormat('HH:mm d MMM y').format(ed)}"),
-                  onTap: () {},
+                      "$dateRange - ${DateFormat('HH:mm d MMM y').format(ed)}"
+                      "\n${metadata['country']}"),
+                  onTap: () {
+                    getTournament(t);
+                    Navigator.popAndPushNamed(context, ROUTES.scoreTable);
+                  },
                 );
               })
               .toList()

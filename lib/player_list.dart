@@ -100,19 +100,19 @@ class _PlayerListState extends State<PlayerList> {
          */
       },
       suggestionsCallback: (String needle) {
-        List<Player> selected;
+        List<Player> filtered;
         if (needle == '') {
-          selected = widget.players;
+          filtered = widget.players;
         } else {
           final lowerText = needle.toLowerCase();
-          selected = widget.players.where((Player option) {
+          filtered = widget.players.where((Player option) {
             return option.name.toLowerCase().contains(lowerText);
           }).toList();
         }
-        if (selected.isNotEmpty && selected[0].id != -1) {
-          selected.insert(0, Player(-1, '(none)'));
+        if (filtered.isNotEmpty && filtered[0].id != -1) {
+          filtered.insert(0, Player(-1, '(none)'));
         }
-        return selected;
+        return filtered;
       },
     );
   }

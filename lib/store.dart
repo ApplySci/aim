@@ -71,7 +71,16 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setPlayerList:
-      state.players = action['players'];
+      var incoming = action['players'];
+      if (incoming is Map) {
+        List<Player> players = [];
+        incoming.forEach((k, v) {
+          players.add(Player(k is int ? k : int.parse(k), v));
+        });
+        state.players = players;
+      } else {
+        state.players = incoming;
+      }
       state.playerMap = {for (Player p in state.players) p.id: p.name};
       break;
 
@@ -109,6 +118,8 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setTournament:
+      state.tournament = action['tournament'];
+      // TODO get data for this tourney now
       break;
   }
 
