@@ -29,7 +29,7 @@ Future main() async {
   ));
   await setupFCM();
 
-  getTournaments();
+  DB.instance.getTournaments();
   runApp(const MyApp());
 }
 

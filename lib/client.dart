@@ -67,7 +67,7 @@ class IO {
     Response<dynamic> response;
     try {
       response = await IO._io.get('$url.json');
-      Log.info('downloaded ${response.toString()}');
+      Log.debug('downloaded ${response.toString()}');
       return response.data;
     } on DioException catch (e) {
       if (e.response == null) {

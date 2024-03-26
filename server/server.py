@@ -511,7 +511,7 @@ def get_tourney_json():
             rank = row_number
             prefix = ''
 
-        row['rank'] = f'{prefix}{rank}'
+        row['r'] = f'{prefix}{rank}'
         row_number += 1
 
     return (players, seating, sorted_scores)

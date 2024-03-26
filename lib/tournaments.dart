@@ -39,7 +39,7 @@ class TournamentList extends StatefulWidget {
 }
 
 class _TournamentListState extends State<TournamentList> {
-  final Stream<QuerySnapshot> _tournaments = getTournaments();
+  final Stream<QuerySnapshot> _tournaments = DB.instance.getTournaments();
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +79,7 @@ class _TournamentListState extends State<TournamentList> {
                       "$dateRange - ${DateFormat('HH:mm d MMM y').format(ed)}"
                       "\n${metadata['country']}"),
                   onTap: () {
-                    getTournament(t);
+                    DB.instance.getTournament(t);
                     Navigator.popAndPushNamed(context, ROUTES.scoreTable);
                   },
                 );

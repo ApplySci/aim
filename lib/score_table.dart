@@ -64,7 +64,7 @@ class ScoreTable extends StatelessWidget {
 
         for (final score in s['scores']) {
           List<DataCell> row = [
-            DataCell(Text(score['rank'])),
+            DataCell(Text(score['r'])),
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
