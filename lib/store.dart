@@ -100,7 +100,7 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setScores:
-      state.scores = action['scores'];
+      state.scores = List<Map<String,dynamic>>.from(action['scores']);
       if (state.scores.isNotEmpty) {
         state.roundDone = state.scores[0].containsKey('roundDone')
             ? state.scores[0]['roundDone']

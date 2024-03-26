@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -9,7 +10,9 @@ class DB {
   DB._();
   static final instance = DB._();
   final _db = FirebaseFirestore.instance;
-  List _listeners = [];
+  final Map _listeners = {};
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
   Stream<QuerySnapshot> getTournaments() {
     return _db.collection('tournaments').snapshots();
@@ -21,43 +24,32 @@ class DB {
       'type': STORE.setTournament,
       'tournament': id,
     });
-    _db.collection('tournaments').doc(id).collection('json').get().then(
-      (snap) {
-        Log.debug("Got json for tournament $id");
-        for (var doc in snap.docs) {
-          switch (doc.id) {
-            case 'seating':
-              store.dispatch({
-                'type': STORE.setSeating,
-                'seating': jsonDecode(doc.data()['json']),
-              });
-              break;
-            case 'players':
-              store.dispatch({
-                'type': STORE.setPlayerList,
-                'players': jsonDecode(doc.data()['json']),
-              });
-              break;
-            case 'scores':
-              store.dispatch({
-                'type': STORE.setScores,
-                'scores': List<Map<String, dynamic>>.from(
-                    jsonDecode(doc.data()['json'])),
-              });
-              break;
-          }
-        }
-      },
-      onError: (e) => Log.error("Error in getTournament completing: $e"),
-    );
-    /* TODO implement listeners
-    final listener = docRef.snapshots().listen(
-          (event) => print("current data: ${event.data()}"),
-          onError: (error) => print("Listen failed: $error"),
-        );
+    var collection = _db.collection('tournaments').doc(id).collection('json');
 
-    ...
-    listener.cancel();
-    */
+    List jsons = [
+      ['seating', STORE.setSeating,],
+      ['scores', STORE.setScores,],
+      ['players', STORE.setPlayerList,],
+    ];
+    for (List json in jsons) {
+      if (_listeners.containsKey(json[0])) {
+        try {
+          _listeners[json[0]].cancel();
+        } finally {}
+      }
+
+      _listeners[json[0]] = collection.doc(json[0]).snapshots().listen(
+            (event) {
+          store.dispatch({
+            'type': json[1],
+            json[0]: jsonDecode(event.data()!['json']),
+          });
+          final ScaffoldMessengerState? state = scaffoldMessengerKey.currentState;
+          state?.showSnackBar(
+              SnackBar(content: Text('${json[0]} updated')));
+        },
+        onError: (error) => Log.error("${json[0]} listener failed: $error"),
+      );
+    }
   }
 }

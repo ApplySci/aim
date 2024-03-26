@@ -46,6 +46,7 @@ class MyApp extends StatelessWidget {
           builder: (BuildContext context, String color) {
             return MaterialApp(
               initialRoute: ROUTES.home,
+              scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
               title: 'All-Ireland Mahjong Tournaments',
               theme: ThemeData(
                 colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

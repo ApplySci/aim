@@ -68,6 +68,7 @@ class _SeatingState extends State<Seating> {
       converter: (store) {
         return {
           'roundDone': store.state.roundDone,
+          'scores': store.state.scores,
           'seating': store.state.seating,
           'selected': store.state.selected,
           'thisSeating': store.state.theseSeats,
