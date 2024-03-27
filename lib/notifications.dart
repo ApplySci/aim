@@ -59,13 +59,51 @@ Future<void> requestPermissions() async { // tested, works
     sound: true,
   );
 
-  Log.debug('User granted permission: ${settings.authorizationStatus}');
+  Log.debug('User response to request for messaging permission: '
+      '${settings.authorizationStatus}');
   // authorized, denied, notDetermined, provisional
+
+  bool? alarms = await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestExactAlarmsPermission();
+
+  Log.debug('User response to request for alarms permission: $alarms');
+
 }
 
 
+Future<void> _showNotification() async {
+  // TODO schedule a notification for just before a hanchan starts
+  //      add the following to the zonedSchedule notifications:
+  //      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  // or androidScheduleMode: AndroidScheduleMode.alarmClock
+  // see https://developer.android.com/develop/background-work/services/alarms/schedule#set-exact-alarm
+  var androidPlatformChannelSpecifics = const AndroidNotificationDetails(
+    'channel_ID',
+    'channel_name',
+    channelDescription: 'channel_description',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  var iOSPlatformChannelSpecifics = const DarwinNotificationDetails();
+  var platformChannelSpecifics = NotificationDetails(
+    android: androidPlatformChannelSpecifics,
+    iOS: iOSPlatformChannelSpecifics,
+  );
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Test Title',
+    'Test Body',
+    platformChannelSpecifics,
+    payload: 'Test Payload',
+  );
+}
+
 Future<void> notifyWhenFocused(message) async { // called from fcm_client
-  // TODO this isn't called from anywhere yet!
+  // worked on Moto G 5G
+  // But it's not at all clear that it's useful
+  // TODO just do a snackbar instead
   RemoteNotification? notification = message.notification;
   AndroidNotification? android = message.notification?.android;
 
@@ -131,10 +169,10 @@ Future<void> setNotifierEvents() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  const AndroidInitializationSettings initializationSettingsAndroid =
+  const AndroidInitializationSettings initAndroid =
   AndroidInitializationSettings('aimbird');
 
-  const DarwinInitializationSettings initializationSettingsIOS =
+  const DarwinInitializationSettings initIOS =
   DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -142,11 +180,13 @@ Future<void> setNotifierEvents() async {
       onDidReceiveLocalNotification: onIosSelectNotification);
 
   const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsIOS,
+    android: initAndroid,
+    iOS: initIOS,
   );
 
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  var notifPlatform = await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+  );
 
   await requestPermissions();
 

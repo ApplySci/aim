@@ -15,6 +15,7 @@ const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'japaneseWinds': false,
   'japaneseNumbers': false,
   'serverUrl': 'https://tournaments.mahjong.ie/',
+  'todo': [],
   'tournament': 'cork2024',
   'playerId': -1, // id of player being focused on
 };
