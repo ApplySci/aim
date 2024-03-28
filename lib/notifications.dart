@@ -218,27 +218,3 @@ void notificationClickListener(
             ]);
       });
 }
-
-
-Future<void> _startForegroundServiceWithBlueBackgroundNotification() async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-  AndroidNotificationDetails(
-    'your channel id',
-    'your channel name',
-    channelDescription: 'color background channel description',
-    importance: Importance.max,
-    priority: Priority.high,
-    ticker: 'ticker',
-    color: Colors.blue,
-    colorized: true,
-  );
-
-  /// only using foreground service can color the background
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
-      ?.startForegroundService(
-      1, 'colored background text title', 'colored background text body',
-      notificationDetails: androidPlatformChannelSpecifics,
-      payload: 'item x');
-}

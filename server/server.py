@@ -375,7 +375,6 @@ def get_tourney_json():
     scores = [
         {
             'id': 1,
-            'roundDone': 1,
             't': 50,
             's': [0, -24, 49, 91, -11, -30]
         },
@@ -514,6 +513,8 @@ def get_tourney_json():
         row['r'] = f'{prefix}{rank}'
         row_number += 1
 
+    sorted_scores[0]['roundDone'] = 1
+
     return (players, seating, sorted_scores)
 
 def write_files(players, seating, sorted_scores):
@@ -530,9 +531,9 @@ def write_files(players, seating, sorted_scores):
 
 def write_cloudstore():
     players, seating, sorted_scores = get_tourney_json()
-    pj  = json.dumps(players,       ensure_ascii=False, indent=0)
-    sj  = json.dumps(seating,       ensure_ascii=False, indent=0)
-    ssj = json.dumps(sorted_scores, ensure_ascii=False, indent=0)
+    pj  = json.dumps(players,       ensure_ascii=False, indent=None)
+    sj  = json.dumps(seating,       ensure_ascii=False, indent=None)
+    ssj = json.dumps(sorted_scores, ensure_ascii=False, indent=None)
 
     ref.document(f"{cork2024}/json/players").set(document_data={
         'json': pj})
