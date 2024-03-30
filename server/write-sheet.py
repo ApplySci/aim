@@ -1,3 +1,6 @@
+import importlib
+import random
+
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -30,7 +33,7 @@ class GSP:
         return live.worksheet('results').get_all_values()
 
 
-    def reduce_table_count(self, results, template, table_count: int) -> None:
+    def _reduce_table_count(self, results, template, table_count: int) -> None:
         # delete unnecessary rows in the results sheet
         results.delete_rows(2 + table_count * 4, 1 + MAX_TABLES * 4)
         # delete unnecessary rows in the template before copying it
@@ -45,7 +48,7 @@ class GSP:
             )
 
 
-    def reduce_hanchan_count(self, results, hanchan_count: int) -> None:
+    def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:
         # delete unnecessary rows in the RoundResults range
         ref_sheet: gspread.worksheet.Worksheet = \
             self.live_sheet.worksheet('reference')
@@ -58,7 +61,7 @@ class GSP:
             hanchan_count + 6,  MAX_HANCHAN + 5)
 
 
-    def make_scoresheets(self, template, hanchan_count: int) -> None:
+    def _make_scoresheets(self, template, hanchan_count: int) -> None:
         for r in range(1, hanchan_count + 1):
             sheet = self.live_sheet.duplicate_sheet(
                 template.id, 5, new_sheet_name=f'R{r}')
@@ -66,7 +69,7 @@ class GSP:
             sheet.update([[r]], range_name='B1', raw=False)
 
 
-    def set_permissions(self, owner, scorers, notify):
+    def _set_permissions(self, owner, scorers, notify):
         permission = self.live_sheet.share(
             owner, perm_type='user', role='writer', notify=False)
 
@@ -76,9 +79,30 @@ class GSP:
                 scorer, perm_type='user', role='writer', notify=notify)
 
 
+    def _set_seating(self, table_count: int, hanchan_count: int):
+        seats = importlib.import_module(f"seating.{table_count*4}")
+        # randomize each table; all tables each round; & all rounds
+        for round in seats.seats:
+            for table in round:
+                random.shuffle(table)
+        for round in seats.seats:
+            random.shuffle(table)
+        random.shuffle(seats.seats)
+        seating = seats.seats[0 : hanchan_count]
+        destcells = []
+        for round in range(0, hanchan_count):
+            for table in range(0, table_count):
+                destcells.append([round+1, table+1, *seating[round][table]])
+
+        self.live_sheet.worksheet('seating').batch_update(
+            [{'range': f'A2:F{table_count*hanchan_count+1}',
+              'values': destcells,
+              }]
+            )
+
     def create_new_results_googlesheet(
             self,
-            table_count: int = 20,
+            table_count: int = 10,
             hanchan_count: int = 7,
             title: str = 'Riichi tournament results',
             owner: str = 'mj.apply.sci@gmail.com',
@@ -113,11 +137,22 @@ class GSP:
             self.live_sheet.worksheet('results')
 
         if table_count < MAX_TABLES:
-            self.reduce_table_count(results, template, table_count)
+            self._reduce_table_count(results, template, table_count)
 
         if hanchan_count < MAX_HANCHAN:
-            self.reduce_hanchan_count(results, hanchan_count)
+            self._reduce_hanchan_count(results, hanchan_count)
 
-        self.make_scoresheets(template, hanchan_count)
+        self._make_scoresheets(template, hanchan_count)
 
-        self.set_permissions(owner, scorers, notify)
+        self._set_seating(table_count, hanchan_count)
+
+        self._set_permissions(owner, scorers, notify)
+
+if __name__ == '__main__':
+    test = GSP().create_new_results_googlesheet(
+        table_count=10,
+        hanchan_count=3,
+        title='delete me',
+        )
+
+    print(test.live_sheet.id)
