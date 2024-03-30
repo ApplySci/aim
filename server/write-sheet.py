@@ -116,8 +116,8 @@ class GSP:
         and assigns write permissions to the scorers
 
         Args:
-            table_count (int): the number of tables (1-MAX_TABLES) (= number of players divided by 4)
-            hanchan_count (int): number of rounds (1-MAX_HANCHAN)
+            table_count (int): the number of tables (1-20) (= number of players divided by 4)
+            hanchan_count (int): number of rounds (1-20)
             title (str): title to be given to the new spreadsheet.
             owner (str): email address of the owner of the new spreadsheet.
             scorers (list[str]): list of email addresses to be given write permission.
