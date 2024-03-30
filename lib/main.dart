@@ -16,11 +16,17 @@ import 'store.dart';
 import 'tournaments.dart';
 import 'utils.dart';
 
+void prefsCallback(Map prefs) {
+  if (prefs.containsKey('tournament')) {
+    DB.instance.getTournament(prefs['tournament']);
+  }
+}
+
 Future main() async {
   // do this before everything
   WidgetsFlutterBinding.ensureInitialized();
 
-  await initPrefs();
+  initPrefs(prefsCallback);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
     statusBarIconBrightness: Brightness.light, //top bar icons

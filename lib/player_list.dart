@@ -19,7 +19,7 @@ class Players extends StatelessWidget {
         Center(
           child: Column(
             children: <Widget>[
-              const Text('Select which player you want to follow'),
+              const Text('Select a player to follow. Tap below to search'),
               PlayerList(
                 players: incoming['players'],
                 selected: incoming['selected'],
@@ -45,14 +45,14 @@ class PlayerList extends StatefulWidget {
 
 class _PlayerListState extends State<PlayerList> {
   final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-
+  final _suggestionsController = SuggestionsController<Player>();
   @override
   Widget build(BuildContext context) {
-    _focusNode.requestFocus();
+    _suggestionsController.open();
+    _suggestionsController.focusBox();
     return TypeAheadField<Player>(
+      suggestionsController: _suggestionsController,
       controller: _controller,
-      focusNode: _focusNode,
       hideOnEmpty: false,
       hideOnUnfocus: false,
       hideOnLoading: false,
@@ -60,6 +60,7 @@ class _PlayerListState extends State<PlayerList> {
       hideKeyboardOnDrag: false,
       hideOnSelect: false,
       hideWithKeyboard: false,
+
       itemBuilder: (context, player) => ListTile(
         title: Container(
           color: player.id == widget.selected ? selectedHighlight : null,

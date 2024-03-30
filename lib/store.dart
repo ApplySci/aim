@@ -54,6 +54,9 @@ AllState stateReducer(AllState state, dynamic action) {
       action['preferences'].forEach((key, val) {
         state.preferences[key] = val;
       });
+      if (action['preferences'].containsKey('tournament')) {
+        state.tournament = action['preferences']['tournament'];
+      }
       break;
 
     case STORE.restoreFromJSON:
@@ -120,7 +123,8 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setTournament:
       state.tournament = action['tournament'];
-      // TODO get data for this tourney now
+      state.preferences['tournament'] = state.tournament;
+      _prefs.setString('tournament', state.tournament);
       break;
   }
 
@@ -128,7 +132,7 @@ AllState stateReducer(AllState state, dynamic action) {
 }
 
 /// Initialise preferences, using defaults and values from disk
-Future initPrefs() {
+Future initPrefs(callback) {
   return SharedPreferences.getInstance().then((SharedPreferences prefs) {
     _prefs = prefs;
     final Map prefsFromDisk = {
@@ -143,6 +147,7 @@ Future initPrefs() {
     });
     if (prefsFromDisk['preferences'].length > 0) {
       store.dispatch(prefsFromDisk);
+      callback(prefsFromDisk);
     }
   });
 }

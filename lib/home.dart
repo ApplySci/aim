@@ -25,12 +25,7 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (BuildContext context, String color) {
           return Frame(
             context,
-            const Column(
-              children: [
-                Text('Pick a tournament to follow'),
-                TournamentList(),
-              ],
-            ),
+            const TournamentList(),
           );
         },
       ),
