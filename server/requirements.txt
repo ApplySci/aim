@@ -1,1 +1,3 @@
 firebase-admin
+gspread
+oauth2client

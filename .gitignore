@@ -49,3 +49,6 @@ app.*.map.json
 /macos/Runner/GoogleService-Info.plist
 /google-services.json
 /server/fcm-admin.json
+/server/.spyproject/*
+/server/apikey.py
+/pix/*
