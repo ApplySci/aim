@@ -52,3 +52,4 @@ app.*.map.json
 /server/.spyproject/*
 /server/apikey.py
 /pix/*
+/server/config.py

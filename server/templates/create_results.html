@@ -8,10 +8,11 @@
 <body>
 <h1>Create a google sheet for tournament scoring</h1>
 <p>When you press the button on the form below, a new google spreadsheet will
-be created. The ownership will be transferred to you ({{session['email']}}):
+be created. The ownership will be transferred to you ({{ session['email'] }}):
 you will receive an
 email and notification from google, and you will be asked to accept
 owership.<p>
+
     <form method="POST">
     <fieldset>
         {{ form.hidden_tag() }}
@@ -38,11 +39,11 @@ owership.<p>
             {{ form.notify() }}
         </p>
         <p>You will be assigned ownership of the Google Sheet, using the
-        google account you logged in here.<br>
-        Below, you can enter emails for the other scorers:
+        google account you logged in here ({{ session['email']  }}).<br>
+        Below, you can enter an email address for one other scorer:
         <p>
             {{ form.emails.label }}<br>
-            {{ form.emails(size=40) }}
+            {{ form.emails(size=60)  }}
             {% for error in form.emails.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}

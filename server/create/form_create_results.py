@@ -5,8 +5,9 @@ Created on Sun Mar 31 08:04:41 2024
 @author: ZAPS@mahjong.ie
 """
 from flask_wtf import FlaskForm
-from wtforms import FieldList, StringField, IntegerField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, NumberRange
+from wtforms import StringField, IntegerField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Email, NumberRange, Optional
+
 
 class GameParametersForm(FlaskForm):
     table_count = IntegerField(
@@ -20,15 +21,13 @@ class GameParametersForm(FlaskForm):
     title = StringField('Spreadsheet Title',
                         default = 'Riichi Tournament Scoresheet',
                         validators=[DataRequired()],
-
                         )
     notify = BooleanField(
-        'Notify scorers of the scoresheet URL, as soon as the scoresheet has been created?',
+        'Notify the scorer as soon as the scoresheet has been created?',
         default = True,
         )
-    emails = FieldList(StringField(
-        '',
-        validators=[Email()],
-        ), min_entries=5,
-        )
+    emails = StringField("Scorer's email address", validators=[
+        Optional(),
+        Email(),
+        ])
     submit = SubmitField('Create the google sheet')

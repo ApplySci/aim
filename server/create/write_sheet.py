@@ -1,5 +1,6 @@
 import importlib
 import random
+import re
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -71,12 +72,30 @@ class GSP:
 
     def _set_permissions(self, owner, scorers, notify):
         permission = self.live_sheet.share(
-            owner, perm_type='user', role='writer', notify=False)
+            email_address=owner,
+            perm_type='user',
+            role='writer',
+            notify=True,
+            )
 
-        self.live_sheet.transfer_ownership(permission.json()['id'])
+        # email regex is overly permissive, but not terribe
+        pattern = r'..*\@..*\....*'
         for scorer in scorers:
-            self.live_sheet.share(
-                scorer, perm_type='user', role='writer', notify=notify)
+            if re.match(pattern, scorer):
+                self.live_sheet.share(
+                    scorer,
+                    perm_type='user',
+                    role='writer',
+                    notify=notify,
+                    email_message=f"{owner} has nominated you as a scorer " \
+                        "for their mahjong tournament. This is the google " \
+                        "scoring spreadsheet that will be used."
+                    )
+        # TODO this isn't actually possible. Need another way to log all
+        # TODO    the spreadsheets created like this, and have an easy way
+        # TODO    to delete them
+        # print(f"transferring ownership on perms {permission.json()['id']}")
+        # self.live_sheet.transfer_ownership(permission.json()['id'])
 
 
     def _set_seating(self, table_count: int, hanchan_count: int):

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+import threading
 
 from flask import Blueprint, redirect, url_for, session, render_template
 from flask_login import UserMixin, login_required
 
 from .write_sheet import GSP
-from .create_results import GameParametersForm
+from .form_create_results import GameParametersForm
 from oauth_setup import oauth
 
 # login_manager = LoginManager()
@@ -51,18 +52,23 @@ def authorized(resp):
 @create_blueprint.route('/create/results', methods=['GET', 'POST', 'PUT'])
 #@login_required
 def results_create():
+    owner = session['email'] = 'mj.apply.sci@gmail.com'
     form = GameParametersForm()
     if not form.validate_on_submit():
         return render_template('create_results.html', form=form)
 
-    gsp = GSP()
-    sheet = gsp.create_new_results_googlesheet(
-        table_count=form.table_count.data,
-        hanchan_count=form.game_count.data,
-        title=form.title.data,
-        owner=session['email'],
-        scorers=form.emails.data.split(','),
-        notify=form.notify.data,
-    )
+    def make_sheet():
+        gsp = GSP()
+        gsp.create_new_results_googlesheet(
+            table_count=form.table_count.data,
+            hanchan_count=form.game_count.data,
+            title=form.title.data,
+            owner=owner,
+            scorers=form.emails.data.split(','),
+            notify=form.notify.data,
+        )
+        print(f"***  finished creating spreadsheet {gsp.live_sheet.id}")
 
-    return f'Form submitted successfully: new id is {sheet.id}'
+    thread = threading.Thread(target=make_sheet)
+    thread.start()
+    return render_template('sheet_wip.html')
