@@ -1,3 +1,8 @@
 firebase-admin
 gspread
 oauth2client
+flask
+authlib
+flask_wtf
+flask_login
+email_validator

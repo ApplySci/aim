@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Parameters Form</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+</head>
+<body>
+<h1>Create a google sheet for tournament scoring</h1>
+<p>When you press the button on the form below, a new google spreadsheet will
+be created. The ownership will be transferred to you ({{session['email']}}):
+you will receive an
+email and notification from google, and you will be asked to accept
+owership.<p>
+    <form method="POST">
+    <fieldset>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.table_count.label }}<br>
+            {{ form.table_count(size=4) }}
+            {% for error in form.table_count.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.game_count.label }}<br>
+            {{ form.game_count(size=4) }}
+            {% for error in form.game_count.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.title.label }}<br>
+            {{ form.title(size=60) }}
+        </p>
+        <p>
+            {{ form.notify.label }}<br>
+            {{ form.notify() }}
+        </p>
+        <p>You will be assigned ownership of the Google Sheet, using the
+        google account you logged in here.<br>
+        Below, you can enter emails for the other scorers:
+        <p>
+            {{ form.emails.label }}<br>
+            {{ form.emails(size=40) }}
+            {% for error in form.emails.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </fieldset>
+    </form>
+</body>
+</html>

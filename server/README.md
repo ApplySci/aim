@@ -1,4 +1,12 @@
+# Server-side stuff for the All-Ireland Mahjong Tournament app
 
+## running a dev server locally
+`flask --app tournament_setup.py run`
+
+### installing
+`pip install -r requirements.txt`
+
+## Seating
 
 Seating files are from Alice Miller's BoRAT - Breakout Room Allocation schedule Tool at http://breakoutroom.pythonanywhere.com/allocate/
 

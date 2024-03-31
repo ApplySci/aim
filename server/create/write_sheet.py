@@ -128,6 +128,12 @@ class GSP:
 
         '''
 
+        if table_count < 1 or table_count > MAX_TABLES:
+            raise ValueError(f'table_count must be between 1 and {MAX_TABLES}')
+
+        if hanchan_count < 1 or hanchan_count > MAX_HANCHAN:
+            raise ValueError(f'hanchan_count must be between 1 and {MAX_HANCHAN}')
+
         self.live_sheet : gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID, title=title, copy_comments=True,)
 
@@ -151,7 +157,7 @@ class GSP:
 if __name__ == '__main__':
     test = GSP().create_new_results_googlesheet(
         table_count=10,
-        hanchan_count=3,
+        hanchan_count=7,
         title='delete me',
         )
 
