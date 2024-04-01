@@ -6,7 +6,8 @@ creates the front-end pages for the user to set up a new google scoresheet
 import threading
 
 from flask import Blueprint, redirect, url_for, session, render_template
-from flask_login import UserMixin, login_required, login_user, logout_user
+from flask_login import UserMixin, login_required, login_user, logout_user, \
+    current_user
 
 from .write_sheet import GSP
 from .form_create_results import GameParametersForm
@@ -30,10 +31,10 @@ def load_user(user_id):
 
 @create_blueprint.route('/create/')
 def index():
-    if 'email' in session:
+    if current_user.is_authenticated:
         return render_template('welcome_admin.html')
     else:
-        return redirect(url_for('create.login'))
+        return render_template('welcome_anon.html')
 
 
 @create_blueprint.route('/create/login')
@@ -43,10 +44,10 @@ def login():
 
 
 @create_blueprint.route('/create/logout')
+@login_required
 def logout():
+    session.clear()
     logout_user()
-    session.pop('email', None)
-    session.pop('id', None)
     return redirect(url_for('create.index'))
 
 
