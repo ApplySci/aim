@@ -2,7 +2,7 @@
 
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
-from config.py import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 
 oauth = OAuth()
 login_manager = LoginManager()

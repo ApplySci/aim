@@ -31,7 +31,7 @@ def load_user(user_id):
 @create_blueprint.route('/create/')
 def index():
     if 'email' in session:
-        return render_template('create_results.html', email=session['email'])
+        return render_template('welcome_admin.html')
     else:
         return redirect(url_for('create.login'))
 
@@ -46,31 +46,29 @@ def login():
 def logout():
     logout_user()
     session.pop('email', None)
+    session.pop('id', None)
     return redirect(url_for('create.index'))
 
 
 @create_blueprint.route('/auth/')
-def authorized(resp):
+def authorized():
     # we're not going to use the token outside this call, so we don't
     #     need to save it to a variable here
     oauth.google.authorize_access_token()
 
     resp = oauth.google.get('userinfo')
     user_info = resp.json()
-    session['email'] = user_info['email']
-    return redirect(url_for('create.index'))
-
-    session['email'] = user_info['email']
-    session['id'] = user_info['id'] # obfuscated google user id
-    user = User(user_info['id'], user_info['email'])
+    email = session['email'] = user_info['email']
+    this_id = session['id'] = user_info['id'] # obfuscated google user id
+    user = User(this_id, email)
     login_user(user)
-    return redirect(url_for('hello_world'))
+    return redirect(url_for('create.index'))
 
 
 @create_blueprint.route('/create/results', methods=['GET', 'POST', 'PUT'])
 @login_required
 def results_create():
-    owner = session['email'] # = 'mj.apply.sci@gmail.com'
+    owner = session['email']
     form = GameParametersForm()
     if not form.validate_on_submit():
         return render_template('create_results.html', form=form)

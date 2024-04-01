@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
 """
 """
+import inspect
 import os
+import sys
 
 from flask import Flask, render_template, send_from_directory
 
+# add directory of this file, to the start of the path,
+# before importing any of the app
+
+sys.path.insert(
+    0,
+    os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(
+        inspect.currentframe()))[0]))
+    )
+
 from create.tournament_setup import create_blueprint
 from oauth_setup import config_oauth, config_login_manager
+
 
 def create_app():
     app = Flask(__name__)
@@ -30,5 +42,7 @@ def create_app():
 
     return app
 
+application = create_app()
+
 if __name__ == '__main__':
-    create_app().run(debug=True)
+    application.run(debug=True, threaded=True)

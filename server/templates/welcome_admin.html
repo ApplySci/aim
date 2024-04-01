@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Parameters Form</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+</head>
+<body>
+<h1>Welcome</h1>
+<p>You are now logged in, {{ session['email']}}.</p>
+
+<p>You can now <a href='{{ url_for('create.results_create') }}'>create a results scoresheet:</a>
+<p>or</p>
+<p><a href='{{ url_for('create.logout') }}'>logout</a></p>
+</body>
+</html>
