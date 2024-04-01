@@ -1,26 +1,68 @@
 # aim
 
 [All-Ireland Mahjong](https://mahjong.ie/) mobile app.
-This will provide information about upcoming tournaments.
-
-The client-side written in Flutter for android (tested), and is built in Android Studio.
- It will hopefully work in IOS too, but this has not yet been tested.
-
-Server-side written in Python. App notifications are by Firebase Cloud Messaging
-(via APN, for IOS)
+This will provide information about tournaments.
 
 For tournament participants, it will give **live** info during tournament: current scores,
 which table a given player is on next and when the round starts, etc
 
 Push notifications will let players know when the latest scores are available, and these scores will
-appear in the app. Players will also receive notifications if the timing or seating plans have
-changed.
+appear in the app. Players will also receive notifications if the timing or seating plans
+change, as soon as they change. An app user can choose to get information about any one
+specific player, and the expectation is that a player will choose to get information about
+themselves (but there are no constraints on this). If they do, then they'll receive tailored
+information about which table they are on next (done), and who they'll be playing with (done).
+And they'll get tailored notifications if that information changes. (not started yet)
 
-# Coding decisions that might be unexpected:
+## How I hope it will be used
+
+A tournament admin will be able to do everything through a web interface.
+I envisage them needing 3 or 4 tabs in a browser:
+
+- an admin interface (not started yet)
+- the google scoring sheet (in progress)
+- the live web page, (not started yet) and
+- maybe a staging page that can be pushed live once the admin is happy. (not started)
+
+## Platform / languages
+
+The client-side written in Dart with the Flutter framework. It's being developed and
+tested initially for android, in Android Studio.
+ The intention is that it will work on iPhone too (not started yet), which is why I chose
+  Flutter, because it works across platforms. But there's still some platform-specific
+  configuration to do.
+
+The server-side (in progress) is written in Python, with the Flask framework. GSPRead is used to read the
+scoresheet, to create the live score web page (to be done), and to put the data into the
+cloud, for onward transmission to the app (in progress).
+
+App notifications are by Firebase Cloud Messaging (in progress).
+And via APN, for IOS (not started yet).
+Live tournament data is stored in Google Cloud Firestore (in progress).
+
+When the app has a connection, and is in foreground or background, any update to
+the firebase cloud data gets noticed by the listener.
+If the app is closed, then it won't know anything about it, so I plan to trigger
+a push notification from my server (in progress).
+
+The live scoring of a tournament is done in a Google spreadsheet, based on the one
+developed by David Bresnick for the World Riichi Championship.
+
+# Coding decisions that might be unexpected (and might be unsound):
+
+### Going via firebase cloud store for the data, rather than server -> app directly
+
+I've had a few trial run-ups at it, and after a few false starts, have settled on
+google firebase & cloud messaging because it will be free for the level of use I'm anticipating,
+and because it takes care of loads of messy stuff such as background syncing of
+data between mobiles and server, and caching stuff on mobile so that everything
+behaves just perfectly even when the mobile has patchy signal. I did try crafting my own
+local caching thing for android, and it was super messy, so it just made sense to let google
+do all the clever io stuff, and I just concentrate on the mahjong stuff.
 
 ### Scores stored as integers
 
-Scores are multiplied by 10 and stored as integers. To avoid any nonsense with inaccurate
+Scores are multiplied by 10 and stored as integers. That's to avoid any nonsense with inaccurate
 floating point arithmetic.
 So a tournament score of +29.1 is stored as 291. A score of -5.0 is stored as -50.
 Scores are expected to be received from the server in this form too.
@@ -29,12 +71,21 @@ The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
 happens in [lib/score_cell.dart](lib/score_cell.dart#L16)
 
-
 ### All state is in a single global variable
 
 All of the state is stored in a single global state variable, of class AllState. I have no idea
 as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/store.dart#L53)
 
-### There's no login.
+### There's no login for the app.
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
+
+There will be logins for the server admin (using Flask logins).
+
+And the Google Sheet that is used for scoring for any given tournament,
+will have access permissions managed by Google.
+
+That score sheet is not public: the only accounts that can see it,
+will be the tournament scorers. We don't release the scores for a round, until
+all games in that round have finished. This is important. It removes an incentive
+to bad behaviour among players.

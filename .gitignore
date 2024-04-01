@@ -1,3 +1,10 @@
+# app-specific exclusions
+/google-services.json
+/server/fcm-admin.json
+/server/.spyproject/*
+/server/apikey.py
+/server/config.py
+
 # Miscellaneous
 *.class
 *.log
@@ -47,9 +54,3 @@ app.*.map.json
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
 /macos/Runner/GoogleService-Info.plist
-/google-services.json
-/server/fcm-admin.json
-/server/.spyproject/*
-/server/apikey.py
-/pix/*
-/server/config.py
