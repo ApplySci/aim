@@ -14,38 +14,37 @@ themselves (but there are no constraints on this). If they do, then they'll rece
 information about which table they are on next (done), and who they'll be playing with (done).
 And they'll get tailored notifications if that information changes. (not started yet)
 
-## How I hope it will be used
-
 A tournament admin will be able to do everything through a web interface.
 I envisage them needing 3 or 4 tabs in a browser:
 
 - an admin interface (not started yet)
 - the google scoring sheet (in progress)
-- the live web page, (not started yet) and
+- the live web page, (not started yet); and
 - maybe a staging page that can be pushed live once the admin is happy. (not started)
 
-## Platform / languages
+## Programming platforms, frameworks & languages used
 
-The client-side written in Dart with the Flutter framework. It's being developed and
-tested initially for android, in Android Studio.
- The intention is that it will work on iPhone too (not started yet), which is why I chose
-  Flutter, because it works across platforms. But there's still some platform-specific
-  configuration to do.
+The client-side written in Dart with the **Flutter** framework. It's being developed and
+tested initially for **android**, in Android Studio.
+The intention is that it will work on **iPhone** too (not started yet), which is why I chose
+Flutter, because it works across platforms. But there's still some platform-specific
+configuration to do.
 
-The server-side (in progress) is written in Python, with the Flask framework. GSPRead is used to read the
+The server-side (in progress) is written in **Python**, with the **Flask** framework.
+**GSPRead** is used to read the
 scoresheet, to create the live score web page (to be done), and to put the data into the
 cloud, for onward transmission to the app (in progress).
 
-App notifications are by Firebase Cloud Messaging (in progress).
-And via APN, for IOS (not started yet).
-Live tournament data is stored in Google Cloud Firestore (in progress).
+App notifications are by **Firebase Cloud Messaging** (in progress).
+And via **APN**, for IOS (not started yet).
+Live tournament data is stored in **Google Cloud Firestore** (in progress).
 
 When the app has a connection, and is in foreground or background, any update to
 the firebase cloud data gets noticed by the listener.
 If the app is closed, then it won't know anything about it, so I plan to trigger
 a push notification from my server (in progress).
 
-The live scoring of a tournament is done in a Google spreadsheet, based on the one
+The live scoring of a tournament is done in a **Google spreadsheet**, based on the one
 developed by David Bresnick for the World Riichi Championship.
 
 # Coding decisions that might be unexpected (and might be unsound):
@@ -71,7 +70,7 @@ The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
 happens in [lib/score_cell.dart](lib/score_cell.dart#L16)
 
-### All state is in a single global variable
+### In the app, all state is in a single global variable
 
 All of the state is stored in a single global state variable, of class AllState. I have no idea
 as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/store.dart#L53)
@@ -89,3 +88,9 @@ That score sheet is not public: the only accounts that can see it,
 will be the tournament scorers. We don't release the scores for a round, until
 all games in that round have finished. This is important. It removes an incentive
 to bad behaviour among players.
+
+### App screenshots (in progress)
+
+<img src='https://github.com/applysci/aim/blob/main/pix/1p-seats.png?raw=true' width=200>
+<img src='https://github.com/applysci/aim/blob/main/pix/all-seats.png?raw=true' width=200>
+<img src='https://github.com/applysci/aim/blob/main/pix/scoresheet.png?raw=true' width=200>
