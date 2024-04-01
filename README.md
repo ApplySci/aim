@@ -44,10 +44,10 @@ the firebase cloud data gets noticed by the listener.
 If the app is closed, then it won't know anything about it, so I plan to trigger
 a push notification from my server (in progress).
 
-The live scoring of a tournament is done in a **Google spreadsheet**, based on the one
-developed by David Bresnick for the World Riichi Championship.
+The live scoring of a tournament is done in a **Google spreadsheet** (template done, cloning done),
+based on the one developed by David Bresnick for the World Riichi Championship.
 
-# Coding decisions that might be unexpected (and might be unsound):
+## Coding decisions that might be unexpected (and might be unsound):
 
 ### Going via firebase cloud store for the data, rather than server -> app directly
 
@@ -61,14 +61,17 @@ do all the clever io stuff, and I just concentrate on the mahjong stuff.
 
 ### Scores stored as integers
 
-Scores are multiplied by 10 and stored as integers. That's to avoid any nonsense with inaccurate
-floating point arithmetic.
+On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored a
+ integers. That's to avoid any nonsense with inaccurate floating point arithmetic.
 So a tournament score of +29.1 is stored as 291. A score of -5.0 is stored as -50.
 Scores are expected to be received from the server in this form too.
 
 The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
 happens in [lib/score_cell.dart](lib/score_cell.dart#L16)
+
+In the Google scoresheet, scores are stored in their real form, as floats with one decimal place:
+so +29.1 is stored as 29.1 And -5.0 is stored as -5.0.
 
 ### In the app, all state is in a single global variable
 
@@ -79,7 +82,7 @@ as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/stor
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
-There will be logins for the server admin (using Flask logins).
+There will be logins for the server admin, using Flask logins (not started yet).
 
 And the Google Sheet that is used for scoring for any given tournament,
 will have access permissions managed by Google.

@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+This does all the comms with, & handling of, the google scoresheet
+"""
+
 import importlib
 import random
 import re
@@ -70,7 +75,20 @@ class GSP:
             sheet.update([[r]], range_name='B1', raw=False)
 
 
-    def _set_permissions(self, owner, scorers, notify):
+    def _set_permissions(self, owner : str, scorers, notify : bool) -> None:
+        '''
+        grants Google Sheet write permissions to the new scorers
+
+
+        Args:
+            owner (str): email address of the new owner
+            scorers (List<str>): email addresses of others to be given write permission
+            notify (bool): whether to send a notification email to the scorers, with link to the sheet
+
+        Returns:
+            list: the table of live results.
+
+        '''
         permission = self.live_sheet.share(
             email_address=owner,
             perm_type='user',
@@ -78,7 +96,8 @@ class GSP:
             notify=True,
             )
 
-        # email regex is overly permissive, but not terribe
+        # email regex is deliberately overly permissive,
+        # because it's better to have false positives than false negatives
         pattern = r'..*\@..*\....*'
         for scorer in scorers:
             if re.match(pattern, scorer):
@@ -89,16 +108,39 @@ class GSP:
                     notify=notify,
                     email_message=f"{owner} has nominated you as a scorer " \
                         "for their mahjong tournament. This is the google " \
-                        "scoring spreadsheet that will be used."
+                        "scoring spreadsheet that will be used. " \
+                        "See the README sheet to find out how to use it."
                     )
-        # TODO this isn't actually possible. Need another way to log all
-        # TODO    the spreadsheets created like this, and have an easy way
-        # TODO    to delete them
-        # print(f"transferring ownership on perms {permission.json()['id']}")
+        #
+        # Google prevents us from transferring ownership of a sheet.
+        # So the line below, has been commented out, because it doesn't work.
+        # I've kept it here, because I hope that someday, we will be able
+        # to do this.
+        #
         # self.live_sheet.transfer_ownership(permission.json()['id'])
 
 
-    def _set_seating(self, table_count: int, hanchan_count: int):
+    def _set_seating(self, table_count: int, hanchan_count: int) -> None:
+        '''
+        Reads in a standard solution to the social golfer problem for this
+        size of problem. It then randomises the order of things, to preserve
+        the uniqueness of match-ups, while varying which players sit at
+        which tables in which rounds.
+
+
+        Args:
+            table_count (int): number of tables (players divided by 4)
+            hanchan_count (int): number of rounds
+
+        Returns:
+            None
+
+        TOFIX: we might have more rounds than are catered for in the
+        solutions we have stored. For example, if there are
+        16 players and 6 rounds, it's impossible to avoid repeat
+        match-ups, so only 5 rounds are listed. Currently, this will
+        break. We need a smart way to deal with that.
+        '''
         seats = importlib.import_module(f"seating.{table_count*4}")
         # randomize each table; all tables each round; & all rounds
         for round in seats.seats:
@@ -174,7 +216,8 @@ class GSP:
         self._set_permissions(owner, scorers, notify)
 
 if __name__ == '__main__':
-    test = GSP().create_new_results_googlesheet(
+    test = GSP()
+    test.create_new_results_googlesheet(
         table_count=10,
         hanchan_count=7,
         title='delete me',

@@ -23,7 +23,7 @@ class GameParametersForm(FlaskForm):
                         validators=[DataRequired()],
                         )
     notify = BooleanField(
-        'Notify the scorer as soon as the scoresheet has been created?',
+        'Notify the scorer as soon as the scoresheet has been created',
         default = True,
         )
     emails = StringField("Scorer's email address", validators=[

@@ -29,8 +29,7 @@ p {
 }
 
 label {
-    display: block;
-    margin-bottom: 5px;
+    margin-left: 1em;
 }
 
 input[type="text"], input[type="number"], input[type="email"] {
@@ -52,6 +51,11 @@ input[type="submit"] {
 
 input[type="submit"]:hover {
     background-color: #444;
+}
+
+input[type="submit"]:active {
+    background-color: #888;
+    color: black;
 }
 
 .error {

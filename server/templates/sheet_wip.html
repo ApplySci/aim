@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>You scoresheet is being created now</title>
+    <title>Your scoresheet is being created now</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
 </head>
 <body>
     <h1>Now creating your scoresheet {{ session['id'] }}</h1>
-    <p>You should receive an email at {{ session['email'] }} about this shortly.</p>
+    <p>It will probably take 20-100 seconds (1-2 minutes)</p>
+    <p>You should receive an email at {{ session['email'] }} from google,
+    with a link to your new scoresheet, as soon as it's ready.</p>
     <p><a href='/'>Home</a></p>
 </body>
 </html>

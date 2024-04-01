@@ -1,22 +1,31 @@
 # -*- coding: utf-8 -*-
+'''
+creates the front-end pages for the user to set up a new google scoresheet
+'''
+
 import threading
 
 from flask import Blueprint, redirect, url_for, session, render_template
-from flask_login import UserMixin, login_required
+from flask_login import UserMixin, login_required, login_user, logout_user
 
 from .write_sheet import GSP
 from .form_create_results import GameParametersForm
-from oauth_setup import oauth
-
-# login_manager = LoginManager()
-# login_manager.init_app(current_app)
+from oauth_setup import oauth, login_manager
 
 create_blueprint = Blueprint('create', __name__)
+
 
 class User(UserMixin):
     def __init__(self, id, email):
         self.id = id
         self.email = email
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    if 'email' in session:
+        return User(session['email'], session['id'])
+    return None
 
 
 @create_blueprint.route('/create/')
@@ -26,6 +35,7 @@ def index():
     else:
         return redirect(url_for('create.login'))
 
+
 @create_blueprint.route('/create/login')
 def login():
     redirect_uri = url_for('create.authorized', _external=True)
@@ -34,10 +44,12 @@ def login():
 
 @create_blueprint.route('/create/logout')
 def logout():
+    logout_user()
     session.pop('email', None)
     return redirect(url_for('create.index'))
 
-@create_blueprint.route('/create/authorized')
+
+@create_blueprint.route('/auth/')
 def authorized(resp):
     # we're not going to use the token outside this call, so we don't
     #     need to save it to a variable here
@@ -48,11 +60,17 @@ def authorized(resp):
     session['email'] = user_info['email']
     return redirect(url_for('create.index'))
 
+    session['email'] = user_info['email']
+    session['id'] = user_info['id'] # obfuscated google user id
+    user = User(user_info['id'], user_info['email'])
+    login_user(user)
+    return redirect(url_for('hello_world'))
+
 
 @create_blueprint.route('/create/results', methods=['GET', 'POST', 'PUT'])
-#@login_required
+@login_required
 def results_create():
-    owner = session['email'] = 'mj.apply.sci@gmail.com'
+    owner = session['email'] # = 'mj.apply.sci@gmail.com'
     form = GameParametersForm()
     if not form.validate_on_submit():
         return render_template('create_results.html', form=form)

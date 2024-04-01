@@ -6,26 +6,29 @@
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
 </head>
 <body>
-<h1>Create a google sheet for tournament scoring</h1>
-<p>When you press the button on the form below, a new google spreadsheet will
-be created. The ownership will be transferred to you ({{ session['email'] }}):
-you will receive an
-email and notification from google, and you will be asked to accept
-owership.<p>
+    <h1>Create a google sheet for tournament scoring</h1>
+    <p>When you press the button on the form below, a new google spreadsheet will
+    be created. You ({{ session['email'] }}) will be given write-permissions:
+    you will receive an email from google, with a link to the sheet. If you
+    want, you can provide an email for an additional scorer who will be given
+    write permission too.</p>
+    <p>Because of constraints by Google, we are unable to
+    transfer ownership to you directly. This is frustrating.</p>
+    <p><em>However, you should be able to use "File" > "Make a copy"
+    and copy the sheet to a
+    new one that you do own, if you want. And we highly recommend doing this.<em></p>
 
     <form method="POST">
     <fieldset>
         {{ form.hidden_tag() }}
         <p>
-            {{ form.table_count.label }}<br>
-            {{ form.table_count(size=4) }}
+            {{ form.table_count(size=4) }} {{ form.table_count.label }}
             {% for error in form.table_count.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
-            {{ form.game_count.label }}<br>
-            {{ form.game_count(size=4) }}
+            {{ form.game_count(size=4) }} {{ form.game_count.label }}
             {% for error in form.game_count.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
@@ -34,16 +37,13 @@ owership.<p>
             {{ form.title.label }}<br>
             {{ form.title(size=60) }}
         </p>
-        <p>
-            {{ form.notify.label }}<br>
-            {{ form.notify() }}
-        </p>
         <p>You will be assigned ownership of the Google Sheet, using the
         google account you logged in here ({{ session['email']  }}).<br>
         Below, you can enter an email address for one other scorer:
         <p>
             {{ form.emails.label }}<br>
-            {{ form.emails(size=60)  }}
+            {{ form.emails(size=60)  }}<br>
+            {{ form.notify() }} {{ form.notify.label }}
             {% for error in form.emails.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}

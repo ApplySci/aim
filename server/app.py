@@ -6,7 +6,7 @@ import os
 from flask import Flask, render_template, send_from_directory
 
 from create.tournament_setup import create_blueprint
-from oauth_setup import config_oauth
+from oauth_setup import config_oauth, config_login_manager
 
 def create_app():
     app = Flask(__name__)
@@ -14,6 +14,7 @@ def create_app():
     app.config.from_object('config')
     app.debug = True
     config_oauth(app)
+    config_login_manager(app)
 
     @app.route('/')
     def index():
