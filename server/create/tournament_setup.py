@@ -12,6 +12,7 @@ from flask_login import UserMixin, login_required, login_user, logout_user, \
 from .write_sheet import GSP
 from .form_create_results import GameParametersForm
 from oauth_setup import oauth, login_manager
+from config import ALLOWED_USERS
 
 create_blueprint = Blueprint('create', __name__)
 
@@ -44,7 +45,6 @@ def login():
 
 
 @create_blueprint.route('/create/logout')
-@login_required
 def logout():
     session.clear()
     logout_user()
@@ -56,10 +56,13 @@ def authorized():
     # we're not going to use the token outside this call, so we don't
     #     need to save it to a variable here
     oauth.google.authorize_access_token()
-
     resp = oauth.google.get('userinfo')
     user_info = resp.json()
-    email = session['email'] = user_info['email']
+    email = user_info['email']
+    if email not in ALLOWED_USERS:
+        return logout()
+
+    session['email'] = email
     this_id = session['id'] = user_info['id'] # obfuscated google user id
     user = User(this_id, email)
     login_user(user)

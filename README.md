@@ -30,8 +30,10 @@ The intention is that it will work on **iPhone** too (not started yet), which is
 Flutter, because it works across platforms. But there's still some platform-specific
 configuration to do.
 
-The server-side (in progress) is written in **Python**, with the **Flask** framework.
-**GSPRead** is used to read the
+The server-side (in progress) is written in **Python**, with the **Flask** framework. I'm running it
+on the server with **wsgi**. Note that the oauth2 authentication won't work on localhost: you need
+a google project that knows about the domain that the app is being served from, and must be given
+the post-authentication URL to redirect back to.  **GSPRead** is used to read the
 scoresheet, to create the live score web page (to be done), and to put the data into the
 cloud, for onward transmission to the app (in progress).
 
