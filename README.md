@@ -17,8 +17,8 @@ And they'll get tailored notifications if that information changes. (not started
 A tournament admin will be able to do everything through a web interface.
 I envisage them needing 3 or 4 tabs in a browser:
 
-- an admin interface (not started yet)
-- the google scoring sheet (in progress)
+- an admin interface (in progress)
+- the google scoring sheet (done)
 - the live web page, (not started yet); and
 - maybe a staging page that can be pushed live once the admin is happy. (not started)
 
@@ -46,7 +46,7 @@ the firebase cloud data gets noticed by the listener.
 If the app is closed, then it won't know anything about it, so I plan to trigger
 a push notification from my server (in progress).
 
-The live scoring of a tournament is done in a **Google spreadsheet** (template done, cloning done),
+The live scoring of a tournament is done in a **Google spreadsheet** (done),
 based on the one developed by David Bresnick for the World Riichi Championship.
 
 ## Coding decisions that might be unexpected (and might be unsound):
@@ -63,7 +63,7 @@ do all the clever io stuff, and I just concentrate on the mahjong stuff.
 
 ### Scores stored as integers
 
-On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored a
+On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored as
  integers. That's to avoid any nonsense with inaccurate floating point arithmetic.
 So a tournament score of +29.1 is stored as 291. A score of -5.0 is stored as -50.
 Scores are expected to be received from the server in this form too.
@@ -84,7 +84,7 @@ as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/stor
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
-There will be logins for the server admin, using Flask logins (not started yet).
+There will be logins for the server admin, using Flask logins (in progress).
 
 And the Google Sheet that is used for scoring for any given tournament,
 will have access permissions managed by Google.
