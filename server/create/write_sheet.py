@@ -9,8 +9,9 @@ import re
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from config import GOOGLE_CLIENT_EMAIL, TEMPLATE_ID
 
-TEMPLATE_ID = '1jVE1OTjFKSkxE4o3FhI5eWmD2XHYtAcP9LaUvFMQQ50'
+
 KEYFILE = './fcm-admin.json'
 MAX_HANCHAN = 20
 MAX_TABLES = 20
@@ -25,7 +26,7 @@ class GSP:
             KEYFILE, SCOPE)
         self.client = gspread.authorize(creds)
 
-    def get_results(live : gspread.spreadsheet.Spreadsheet) -> list:
+    def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
         '''
         given a results spreadsheet, get the live results
 
@@ -54,6 +55,32 @@ class GSP:
             )
 
 
+    def list_sheets(self, user_email : str) -> dict:
+        sheet_dict : list= self.client.list_spreadsheet_files()
+        out = {'ours': [], 'theirs': [], 'ERROR': [], 'live': None}
+        for one in sheet_dict:
+            who = 'ERROR'
+            this_user_can_see_this_sheet : bool = False
+            sheet = self.client.open_by_key(one['id'])
+            details : dict = {
+                'id': one['id'],
+                'title': sheet.title,
+                }
+            try:
+                perms = sheet.list_permissions()
+                for perm in perms:
+                    if perm['emailAddress'] == user_email:
+                        this_user_can_see_this_sheet = True
+                    if perm['role'] == 'owner':
+                        who = 'ours' if perm['emailAddress'] == \
+                            GOOGLE_CLIENT_EMAIL else 'theirs'
+            except:
+                who = 'theirs'
+            if this_user_can_see_this_sheet:
+                out[who].append(details)
+        return out
+
+
     def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:
         # delete unnecessary rows in the RoundResults range
         ref_sheet: gspread.worksheet.Worksheet = \
@@ -65,6 +92,11 @@ class GSP:
         # delete unnecessary columns in the results sheet
         results.delete_columns(
             hanchan_count + 6,  MAX_HANCHAN + 5)
+
+
+    def _reduce_players(self, table_count: int) -> None:
+        sheet = self.live_sheet.worksheet('players')
+        sheet.delete_rows(2 + table_count * 4, 1 + MAX_TABLES * 4)
 
 
     def _make_scoresheets(self, template, hanchan_count: int) -> None:
@@ -213,14 +245,18 @@ class GSP:
 
         self._set_seating(table_count, hanchan_count)
 
+        self._reduce_players(table_count)
+
         self._set_permissions(owner, scorers, notify)
 
+
+googlesheet = GSP()
+
 if __name__ == '__main__':
-    test = GSP()
-    test.create_new_results_googlesheet(
+    googlesheet.create_new_results_googlesheet(
         table_count=10,
         hanchan_count=7,
         title='delete me',
         )
 
-    print(test.live_sheet.id)
+    print(googlesheet.live_sheet.id)

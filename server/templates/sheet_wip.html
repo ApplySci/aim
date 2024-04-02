@@ -6,10 +6,47 @@
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
 </head>
 <body>
-    <h1>Now creating your scoresheet {{ session['id'] }}</h1>
-    <p>It will probably take 20-100 seconds (1-2 minutes)</p>
+    <h1>Now creating your new tournament scoresheet.</h1>
+    <p>It will probably take 20-100 seconds (1-2 minutes).</p>
     <p>You should receive an email at {{ session['email'] }} from google,
-    with a link to your new scoresheet, as soon as it's ready.</p>
-    <p><a href='/'>Home</a></p>
+    with a link to it, as soon as it's ready. You can also refresh this page,
+    and when the document is ready, a link to it will appear below.</p>
+    <p>As soon as you get that email, click on the link in it which will
+    open the sheet for you. Then follow the instructions at the top of the
+    README tab. You will create a copy of that sheet. Once you've done that,
+    come back here, and paste the <em>new</em> document id
+    (or, more simply, just copy the whole URL from the address bar and paste it)
+    into the form below</p>
+    {% if docs['ours'] %}
+        <h3>Sheets we have created for you, that we own</h3>
+        {% for id in docs['ours'] %}
+            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
+        {% endfor %}
+    {% endif %}
+    {% if docs['ours'] %}
+        <h3>Sheets you own, that we have permission to view</h3>
+        {% for id in docs['theirs'] %}
+            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
+        {% endfor %}
+    {% endif %}
+    {% if docs['live'] %}
+        <h3>The sheet that we are currently using as the live sheet</h3>
+        <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ docs['live'] }}'>{{ docs['live'] }}</a>
+        {% endfor %}
+    {% endif %}
+    <form method="POST" action="{{ url_for('create.set_id') }}">
+    <fieldset>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.sheet_id.label }}<br>
+            {{ form.sheet_id(size=80) }}
+            {% for error in form.sheet_id.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </fieldset>
+    </form>
+
 </body>
 </html>

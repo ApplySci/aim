@@ -9,13 +9,14 @@ from flask import Blueprint, redirect, url_for, session, render_template
 from flask_login import UserMixin, login_required, login_user, logout_user, \
     current_user
 
-from .write_sheet import GSP
+from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
+from .form_set_tournament import PickTournament
 from oauth_setup import oauth, login_manager
 from config import ALLOWED_USERS
 
 create_blueprint = Blueprint('create', __name__)
-
+doc_ids = {}
 
 class User(UserMixin):
     def __init__(self, id, email):
@@ -64,6 +65,7 @@ def authorized():
 
     session['email'] = email
     this_id = session['id'] = user_info['id'] # obfuscated google user id
+    doc_ids[email] = {'ours': [], 'theirs': [], 'live': None}
     user = User(this_id, email)
     login_user(user)
     return redirect(url_for('create.index'))
@@ -78,8 +80,7 @@ def results_create():
         return render_template('create_results.html', form=form)
 
     def make_sheet():
-        gsp = GSP()
-        gsp.create_new_results_googlesheet(
+        googlesheet.create_new_results_googlesheet(
             table_count=form.table_count.data,
             hanchan_count=form.game_count.data,
             title=form.title.data,
@@ -87,8 +88,22 @@ def results_create():
             scorers=form.emails.data.split(','),
             notify=form.notify.data,
         )
-        print(f"***  finished creating spreadsheet {gsp.live_sheet.id}")
+        doc_ids[owner]['ours'].append(googlesheet.live_sheet.id)
 
     thread = threading.Thread(target=make_sheet)
     thread.start()
+    return redirect(url_for('create.set_id')) # render_template('sheet_wip.html')
+
+
+@create_blueprint.route('/create/select_sheet', methods=['GET', 'POST', 'PUT'])
+@login_required
+def select_sheet():
+    form = GameParametersForm()
+    if not form.validate_on_submit():
+        return render_template(
+            'sheet_wip.html',
+            form=form,
+            docs=googlesheet.list_sheets(session['email']),
+            )
+
     return render_template('sheet_wip.html')

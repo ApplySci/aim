@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Mar 31 08:04:41 2024
-
 @author: ZAPS@mahjong.ie
 """
 from flask_wtf import FlaskForm
