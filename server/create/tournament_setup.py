@@ -2,27 +2,52 @@
 '''
 creates the front-end pages for the user to set up a new google scoresheet
 '''
-
+import functools
 import threading
 
-from flask import Blueprint, redirect, url_for, session, render_template
+from flask import Blueprint, jsonify, redirect, url_for, session, \
+    render_template
 from flask_login import UserMixin, login_required, login_user, logout_user, \
     current_user
+from flask_socketio import disconnect, emit
 
 from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
 from .form_set_tournament import PickTournament
-from oauth_setup import oauth, login_manager
+from oauth_setup import oauth, login_manager, socketio
 from config import ALLOWED_USERS
 
 create_blueprint = Blueprint('create', __name__)
 doc_ids = {}
+previous_doc_ids = {}
 
 class User(UserMixin):
     def __init__(self, id, email):
         self.id = id
         self.email = email
 
+def authenticated_only(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            disconnect()
+        else:
+            return f(*args, **kwargs)
+    return wrapped
+
+dummy = """
+#@authenticated_only
+@socketio.on('connect')
+def create_connect():
+    print('*****      Client connected')
+    emit('my_event', { "data": "i'm connected" }, )
+
+
+#@authenticated_only
+@socketio.on('get_sheets')
+def handle_my_custom_event(data):
+    emit('my response', {}, broadcast=True) # doc_ids
+"""
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -95,10 +120,20 @@ def results_create():
     return redirect(url_for('create.set_id')) # render_template('sheet_wip.html')
 
 
+@create_blueprint.route('/create/poll_sheetlist')
+@login_required
+def poll_sheetlist():
+    doc_ids = googlesheet.list_sheets(session['email'])
+    # TODO test if this differs in contents from previous_doc_ids
+
+
+    return jsonify(doc_ids)
+
+
 @create_blueprint.route('/create/select_sheet', methods=['GET', 'POST', 'PUT'])
 @login_required
 def select_sheet():
-    form = GameParametersForm()
+    form = PickTournament()
     if not form.validate_on_submit():
         return render_template(
             'sheet_wip.html',

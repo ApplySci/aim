@@ -1,0 +1,17 @@
+    {% if docs['ours'] %}
+        <h3>Sheets we have created for you, that we own</h3>
+        {% for id in docs['ours'] %}
+            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
+        {% endfor %}
+    {% endif %}
+    {% if docs['ours'] %}
+        <h3>Sheets you own, that we have permission to view</h3>
+        {% for id in docs['theirs'] %}
+            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
+        {% endfor %}
+    {% endif %}
+    {% if docs['live'] %}
+        <h3>The sheet that we are currently using as the live sheet</h3>
+        <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ docs['live'] }}'>{{ docs['live'] }}</a>
+        {% endfor %}
+    {% endif %}

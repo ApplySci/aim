@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+copy this file to config.py and replace the curly brackets and their contents,
+with your actual values
+"""
+# config.py
+GOOGLE_CLIENT_ID = '{from google}'
+GOOGLE_CLIENT_SECRET = '{also from google}'
+SECRET_KEY = '{you set this yourself, it is unique to your app}'
+ALLOWED_USERS = ['{your-own-gmail}@gmail.com', '{your-tester}@gmail.com',]
+GOOGLE_CLIENT_EMAIL = "{firebase-adminsdk-something@somethingelse.gserviceaccount.com}"
+TEMPLATE_ID = '{google-doc-id}'
+PORT = 8000 # your app port number

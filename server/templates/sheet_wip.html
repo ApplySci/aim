@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <title>Your scoresheet is being created now</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var socket = io.connect("https://tournaments.mahjong.ie/create");
+        // Handle WebSocket events
+        const docSocket = io('/create');
+        docSocket.on("updated_docs", function(data) {
+            console.log("Received message:", data);
+            document.getElementById('doclist').text(data);
+        });
+    </script>
 </head>
 <body>
     <h1>Now creating your new tournament scoresheet.</h1>
@@ -17,26 +27,10 @@
     come back here, and paste the <em>new</em> document id
     (or, more simply, just copy the whole URL from the address bar and paste it)
     into the form below</p>
-    {% if docs['ours'] %}
-        <h3>Sheets we have created for you, that we own</h3>
-        {% for id in docs['ours'] %}
-            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
-        {% endfor %}
-    {% endif %}
-    {% if docs['ours'] %}
-        <h3>Sheets you own, that we have permission to view</h3>
-        {% for id in docs['theirs'] %}
-            <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ id }}'>{{ id }}</a>
-        {% endfor %}
-    {% endif %}
-    {% if docs['live'] %}
-        <h3>The sheet that we are currently using as the live sheet</h3>
-        <a target='_blank' href='https://docs.google.com/spreadsheets/d/{{ docs['live'] }}'>{{ docs['live'] }}</a>
-        {% endfor %}
-    {% endif %}
-    <form method="POST" action="{{ url_for('create.set_id') }}">
+    <form method="POST">
     <fieldset>
         {{ form.hidden_tag() }}
+        <p id=doclist></p>
         <p>
             {{ form.sheet_id.label }}<br>
             {{ form.sheet_id(size=80) }}

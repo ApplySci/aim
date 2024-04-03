@@ -84,7 +84,7 @@ as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/stor
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
-There will be logins for the server admin, using Flask logins (in progress).
+There will be logins for the server admin, using Google oauth2 and Flask logins (in progress).
 
 And the Google Sheet that is used for scoring for any given tournament,
 will have access permissions managed by Google.
