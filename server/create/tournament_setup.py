@@ -35,19 +35,23 @@ def authenticated_only(f):
             return f(*args, **kwargs)
     return wrapped
 
-dummy = """
+
 #@authenticated_only
 @socketio.on('connect')
-def create_connect():
-    print('*****      Client connected')
-    emit('my_event', { "data": "i'm connected" }, )
-
+def handle_connect():
+    print('Client connected')
 
 #@authenticated_only
-@socketio.on('get_sheets')
-def handle_my_custom_event(data):
-    emit('my response', {}, broadcast=True) # doc_ids
-"""
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
+#@authenticated_only
+@socketio.on('hello')
+def handle_hello(data):
+    print(f'Received hello from client: {data}')
+    socketio.emit('response', {'message': 'Hello from server!'})
+
 
 @login_manager.user_loader
 def load_user(user_id):

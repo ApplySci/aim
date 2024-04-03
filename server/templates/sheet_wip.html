@@ -6,12 +6,34 @@
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
     <script>
+
+/*
         var socket = io.connect("https://tournaments.mahjong.ie/create");
         // Handle WebSocket events
         const docSocket = io('/create');
         docSocket.on("updated_docs", function(data) {
             console.log("Received message:", data);
             document.getElementById('doclist').text(data);
+        });
+*/
+        var socket = io();
+
+        // Handle connection event
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        // Handle disconnection event
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+
+        // Emit a "hello" event to the server
+        socket.emit('hello', { data: 'Hello from client!' });
+
+        // Listen for a response from the server
+        socket.on('response', function(data) {
+            console.log('Server says:', data.message);
         });
     </script>
 </head>
