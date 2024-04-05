@@ -4,41 +4,67 @@
     <meta charset="UTF-8">
     <title>Your scoresheet is being created now</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
-    <script>
-        var strm = new EventSource("/create/stream");
-
-        strm.onmessage = function(event) {
-          console.log(event);
-          document.getElementById('doclist').innerHTML = event.data;
-          strm.close();
-        };
-    </script>
 </head>
 <body>
     <h1>Now creating your new tournament scoresheet.</h1>
-    <p>You should receive an email at {{ session['email'] }} from google,
-    with a link to it, as soon as it's ready. This page should incorporate
-    the information when the document is ready, and a button for it will
-    appear below.</p>
-    <p>Once it's there, open the sheet.
-    <em>Then follow the instructions at the top of the
-    README tab.<em> You will create a copy of that sheet.
-    Once you've done that, come back here, and press this button:</p>
-    <p><button id=copymade>I have copied the spreadsheet</button></p>
-
-    <fieldset>
-        <p id=doclist></p>
-    </fieldset>
+    <div id=doclist>
+        <p>You should receive an email at {{ session['email'] }} from google,
+        with a link to it, as soon as it's ready. Additionally, this page should
+        update with a link to the sheet, as soon as it is ready.</p>
+        <p>Once it's there, open the sheet.
+        <em>Then follow the instructions at the top of the
+        README tab. It will explain how to create your copy of that sheet.</p>
+        <p>When you've created the copy, come back to this tab,
+        and press this button:</p>
+        <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>
+    </div>
 
 <script defer>
-document.getElementById("copymade").addEventListener("click", function() {
+function get_sheet_copy() {
     document.getElementById('doclist').innerHTML =
         "<img src='/static/Loading_Key.gif'>";
+}
+
+
+function check_user_copy() {
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
-    xhr.open("GET", "{{ url_for('create.poll_sheetlist')}}?t=" + timestamp, true);
+    xhr.open("GET", "{{ url_for('create.poll_new_sheet')}}?t=" + timestamp, true);
+    xhr.onload = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            var data = JSON.parse(xhr.responseText);
+            console.log(data);
+            document.getElementById('doclist').innerHTML = 'got it!';
+        }
+    }
     xhr.send();
-});
+}
+
+
+function poll_usernew_sheet() {
+    let xhr = new XMLHttpRequest();
+    let timestamp = new Date().getTime();
+    xhr.open("GET", "{{ url_for('create.poll_new_sheet')}}?t=" + timestamp, true);
+    xhr.onload = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            var data = JSON.parse(xhr.responseText);
+            console.log(data);
+            document.getElementById('doclist').innerHTML =
+  `<p><a target='_blank' href='https://docs.google.com/spreadsheets/d/${data.id}'>
+  Click here to open your new spreadsheet.</a></p>
+  Follow the instructions at the top
+  of the README tab, and when you've created the copy, come back to this tab,
+  and press this button:</p>
+  <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>`
+        } else {
+            setTimeout(poll_new_sheet, 10000); // 10 seconds
+        }
+    }
+    xhr.send();
+}
+
+
+poll_new_sheet();
 </script>
 </body>
 </html>

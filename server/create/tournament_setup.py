@@ -7,7 +7,7 @@ import threading
 import time
 
 from flask import Blueprint, jsonify, redirect, url_for, session, \
-    render_template, stream_with_context, Response, current_app
+    render_template, current_app
 from flask_login import UserMixin, login_required, login_user, logout_user, \
     current_user
 
@@ -23,28 +23,6 @@ class User(UserMixin):
     def __init__(self, id, email):
         self.id = id
         self.email = email
-
-
-@stream_with_context
-def event_stream():
-   '''
-   Watch for messages stacked in the module variable, keyed to this user.
-   Send them over the Server-Side Events connection
-   '''
-   last_seen_id = -1
-   while True:
-       messages = messages_by_user.get(session['email'])
-       while messages and len(messages) > last_seen_id + 1:
-           current_app.logger.warning(f'trying to yield {messages[last_seen_id + 1]}')
-           yield 'data: {}\n\n'.format(messages[last_seen_id + 1])
-           last_seen_id += 1
-       time.sleep(10)
-
-
-@login_required
-@create_blueprint.route('/create/stream')
-def stream():
-    return Response(event_stream(), mimetype="text/event-stream")
 
 
 @login_manager.user_loader
@@ -123,6 +101,34 @@ def results_create():
     thread.start()
     return redirect(url_for('create.set_id')) # render_template('sheet_wip.html')
 
+
+@create_blueprint.route('/create/testing')
+@login_required
+def dummy_create_entry():
+    messages = messages_by_user.get(session['email'])
+    if not messages:
+        messages_by_user[session['email']] = []
+    messages_by_user[session['email']].append({
+        'id': '1jVE1OTjFKSkxE4o3FhI5eWmD2XHYtAcP9LaUvFMQQ50',
+        'title': 'Forced reference to our template',
+        'ours': True,
+        });
+
+    return "faked it successfully!", 200
+
+
+@create_blueprint.route('/create/is_sheet_created')
+@login_required
+def poll_new_sheet():
+    messages = messages_by_user.get(session['email'])
+    if messages:
+        for message in messages:
+            current_app.logger.warning(f'in poll_new_sheet with {message}')
+            if message['ours']:
+                current_app.logger.warning('sending it!')
+                return jsonify(message)
+
+    return "not ready yet", 204
 
 @create_blueprint.route('/create/copy_made')
 @login_required
