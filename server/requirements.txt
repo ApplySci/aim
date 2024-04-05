@@ -5,6 +5,4 @@ flask
 authlib
 flask_wtf
 flask_login
-flask-socketio
 email_validator
-gevent

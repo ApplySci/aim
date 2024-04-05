@@ -9,7 +9,7 @@ import re
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from config import GOOGLE_CLIENT_EMAIL, TEMPLATE_ID
+from config import TEMPLATE_ID, OUR_EMAILS
 
 
 KEYFILE = './fcm-admin.json'
@@ -55,11 +55,22 @@ class GSP:
             )
 
 
-    def list_sheets(self, user_email : str) -> dict:
+    def list_sheets(self, user_email : str) -> list[dict]:
+        '''
+        Return the list of sheets that the user has access to, with titles,
+        and a boolean flag to indicate whether WE are the owner.
+
+        Args:
+            user_email (str): gmail address of the user whose sheets we must list
+
+        Returns:
+            list[dict]: {id: sheet.id, title: sheet.title, ours: true if WE own it}
+
+        '''
         sheet_dict : list= self.client.list_spreadsheet_files()
-        out = {'ours': [], 'theirs': [], 'ERROR': [], 'live': None}
+        out = []
         for one in sheet_dict:
-            who = 'ERROR'
+            ours = False
             this_user_can_see_this_sheet : bool = False
             sheet = self.client.open_by_key(one['id'])
             details : dict = {
@@ -72,12 +83,12 @@ class GSP:
                     if perm['emailAddress'] == user_email:
                         this_user_can_see_this_sheet = True
                     if perm['role'] == 'owner':
-                        who = 'ours' if perm['emailAddress'] == \
-                            GOOGLE_CLIENT_EMAIL else 'theirs'
+                        ours = perm['emailAddress'] in OUR_EMAILS
             except:
-                who = 'theirs'
+                ours = False
             if this_user_can_see_this_sheet:
-                out[who].append(details)
+                details['ours'] = ours
+                out.append(details)
         return out
 
 
@@ -121,7 +132,8 @@ class GSP:
             list: the table of live results.
 
         '''
-        permission = self.live_sheet.share(
+        # permission =
+        self.live_sheet.share(
             email_address=owner,
             perm_type='user',
             role='writer',
@@ -201,7 +213,7 @@ class GSP:
             owner: str = 'mj.apply.sci@gmail.com',
             scorers: list[str] = (),
             notify: bool = False,
-            ) -> gspread.spreadsheet.Spreadsheet:
+            ) -> str:
         '''
 
         Clones the scoring template workbook into a new workbook,
@@ -248,6 +260,8 @@ class GSP:
         self._reduce_players(table_count)
 
         self._set_permissions(owner, scorers, notify)
+
+        return self.live_sheet.id
 
 
 googlesheet = GSP()

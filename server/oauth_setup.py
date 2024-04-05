@@ -8,14 +8,6 @@ from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 
 oauth = OAuth()
 login_manager = LoginManager()
-socketio = SocketIO()
-
-def config_socketio(app):
-    socketio.init_app(
-        app,
-        async_mode="gevent_uwsgi",
-        #cors_allowed_origins="https://tournaments.mahjong.ie",
-        )
 
 def config_login_manager(app):
     login_manager.init_app(app)

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 """
-from gevent import monkey
-monkey.patch_all()
-
 import inspect
 import os
 import sys
@@ -20,8 +17,7 @@ sys.path.insert(
     )
 
 from create.tournament_setup import create_blueprint
-from oauth_setup import config_oauth, config_login_manager, \
-    config_socketio, socketio
+from oauth_setup import config_oauth, config_login_manager
 
 def create_app():
     app = Flask(__name__)
@@ -46,7 +42,6 @@ def create_app():
     return app
 
 application = create_app()
-config_socketio(application)
 
 if __name__ == '__main__':
-    socketio.run(application, debug=True)
+    application.run(debug=True)

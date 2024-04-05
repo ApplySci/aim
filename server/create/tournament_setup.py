@@ -2,55 +2,49 @@
 '''
 creates the front-end pages for the user to set up a new google scoresheet
 '''
-import functools
+import json
 import threading
+import time
 
 from flask import Blueprint, jsonify, redirect, url_for, session, \
-    render_template
+    render_template, stream_with_context, Response, current_app
 from flask_login import UserMixin, login_required, login_user, logout_user, \
     current_user
-from flask_socketio import disconnect, emit
 
 from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
-from .form_set_tournament import PickTournament
-from oauth_setup import oauth, login_manager, socketio
+from oauth_setup import oauth, login_manager
 from config import ALLOWED_USERS
 
 create_blueprint = Blueprint('create', __name__)
-doc_ids = {}
-previous_doc_ids = {}
+messages_by_user = {}
 
 class User(UserMixin):
     def __init__(self, id, email):
         self.id = id
         self.email = email
 
-def authenticated_only(f):
-    @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated:
-            disconnect()
-        else:
-            return f(*args, **kwargs)
-    return wrapped
+
+@stream_with_context
+def event_stream():
+   '''
+   Watch for messages stacked in the module variable, keyed to this user.
+   Send them over the Server-Side Events connection
+   '''
+   last_seen_id = -1
+   while True:
+       messages = messages_by_user.get(session['email'])
+       while messages and len(messages) > last_seen_id + 1:
+           current_app.logger.warning(f'trying to yield {messages[last_seen_id + 1]}')
+           yield 'data: {}\n\n'.format(messages[last_seen_id + 1])
+           last_seen_id += 1
+       time.sleep(10)
 
 
-#@authenticated_only
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
-
-#@authenticated_only
-@socketio.on('disconnect')
-def handle_disconnect():
-    print('Client disconnected')
-
-#@authenticated_only
-@socketio.on('hello')
-def handle_hello(data):
-    print(f'Received hello from client: {data}')
-    socketio.emit('response', {'message': 'Hello from server!'})
+@login_required
+@create_blueprint.route('/create/stream')
+def stream():
+    return Response(event_stream(), mimetype="text/event-stream")
 
 
 @login_manager.user_loader
@@ -94,7 +88,6 @@ def authorized():
 
     session['email'] = email
     this_id = session['id'] = user_info['id'] # obfuscated google user id
-    doc_ids[email] = {'ours': [], 'theirs': [], 'live': None}
     user = User(this_id, email)
     login_user(user)
     return redirect(url_for('create.index'))
@@ -109,7 +102,7 @@ def results_create():
         return render_template('create_results.html', form=form)
 
     def make_sheet():
-        googlesheet.create_new_results_googlesheet(
+        sheet_id : str = googlesheet.create_new_results_googlesheet(
             table_count=form.table_count.data,
             hanchan_count=form.game_count.data,
             title=form.title.data,
@@ -117,32 +110,41 @@ def results_create():
             scorers=form.emails.data.split(','),
             notify=form.notify.data,
         )
-        doc_ids[owner]['ours'].append(googlesheet.live_sheet.id)
+        msg = messages_by_user.get(owner)
+        if not msg:
+            messages_by_user[owner] = []
+        messages_by_user[owner].append({
+            'id': sheet_id,
+            'title': form.title.data,
+            'ours': True,
+            })
 
     thread = threading.Thread(target=make_sheet)
     thread.start()
     return redirect(url_for('create.set_id')) # render_template('sheet_wip.html')
 
 
-@create_blueprint.route('/create/poll_sheetlist')
+@create_blueprint.route('/create/copy_made')
 @login_required
 def poll_sheetlist():
-    doc_ids = googlesheet.list_sheets(session['email'])
-    # TODO test if this differs in contents from previous_doc_ids
+    owner = session['email']
+    def get_list():
+        docs = googlesheet.list_sheets(owner)
+        msgs = messages_by_user.get(owner)
+        if not msgs:
+            messages_by_user[owner] = []
+        for doc in docs:
+            messages_by_user[owner].append(doc)
+        return docs
 
+    #thread = threading.Thread(target=get_list)
+    #thread.start()
 
-    return jsonify(doc_ids)
+    return jsonify(get_list()) # "OK", 200
 
 
 @create_blueprint.route('/create/select_sheet', methods=['GET', 'POST', 'PUT'])
 @login_required
 def select_sheet():
-    form = PickTournament()
-    if not form.validate_on_submit():
-        return render_template(
-            'sheet_wip.html',
-            form=form,
-            docs=googlesheet.list_sheets(session['email']),
-            )
-
-    return render_template('sheet_wip.html')
+    docs = messages_by_user.get(session['email'])
+    return render_template('sheet_wip.html', docs=docs)
