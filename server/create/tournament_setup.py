@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-creates the front-end pages for the user to set up a new google scoresheet
+creates the front-end pages for the user to set up a new google scoresheet.
+
+Sigh. We're really going to need a database here, at least to store their
+login id and their sheet id.
 '''
-import json
 import threading
-import time
 
 from flask import Blueprint, jsonify, redirect, url_for, session, \
     render_template, current_app
@@ -14,10 +15,12 @@ from flask_login import UserMixin, login_required, login_user, logout_user, \
 from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
 from oauth_setup import oauth, login_manager
-from config import ALLOWED_USERS
+from config import ALLOWED_USERS, GOOGLE_CLIENT_EMAIL
 
 create_blueprint = Blueprint('create', __name__)
 messages_by_user = {}
+
+login_manager.login_view = 'index'
 
 class User(UserMixin):
     def __init__(self, id, email):
@@ -99,7 +102,7 @@ def results_create():
 
     thread = threading.Thread(target=make_sheet)
     thread.start()
-    return redirect(url_for('create.set_id')) # render_template('sheet_wip.html')
+    return redirect(url_for('create.select_sheet'))
 
 
 @create_blueprint.route('/create/testing')
@@ -130,27 +133,27 @@ def poll_new_sheet():
 
     return "not ready yet", 204
 
+
 @create_blueprint.route('/create/copy_made')
 @login_required
-def poll_sheetlist():
+def get_their_copy():
     owner = session['email']
-    def get_list():
-        docs = googlesheet.list_sheets(owner)
-        msgs = messages_by_user.get(owner)
-        if not msgs:
-            messages_by_user[owner] = []
-        for doc in docs:
-            messages_by_user[owner].append(doc)
-        return docs
-
-    #thread = threading.Thread(target=get_list)
-    #thread.start()
-
-    return jsonify(get_list()) # "OK", 200
+    docs = googlesheet.list_sheets(owner)
+    their_docs = []
+    for doc in docs:
+        if not doc['ours']:
+            their_docs.append(doc)
+    if (their_docs):
+        return jsonify(their_docs)
+    return "none found", 204
 
 
 @create_blueprint.route('/create/select_sheet', methods=['GET', 'POST', 'PUT'])
 @login_required
 def select_sheet():
     docs = messages_by_user.get(session['email'])
-    return render_template('sheet_wip.html', docs=docs)
+    return render_template(
+        'sheet_wip.html',
+        docs=docs,
+        OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
+        )

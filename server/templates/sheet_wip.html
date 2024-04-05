@@ -12,7 +12,7 @@
         with a link to it, as soon as it's ready. Additionally, this page should
         update with a link to the sheet, as soon as it is ready.</p>
         <p>Once it's there, open the sheet.
-        <em>Then follow the instructions at the top of the
+        Then follow the instructions at the top of the
         README tab. It will explain how to create your copy of that sheet.</p>
         <p>When you've created the copy, come back to this tab,
         and press this button:</p>
@@ -20,35 +20,59 @@
     </div>
 
 <script defer>
-function get_sheet_copy() {
-    document.getElementById('doclist').innerHTML =
-        "<img src='/static/Loading_Key.gif'>";
+// TODO if the button is pushed, we need to stop the polling
+
+var sheetwip_timer;
+
+function list_sheets(docs) {
+    out = '<ul>';
+    docs.forEach((doc) => out +=
+        `<li><a href='/create/select/${doc["id"]}'>${doc['title']}</a></li>`
+    );
+    out += '</ul>';
+    console.log(out);
+    document.getElementById('doclist').innerHTML = out;
 }
 
 
-function check_user_copy() {
+function get_sheet_copy() {
+    document.getElementById('doclist').innerHTML =
+        "<img src='/static/Loading_Key.gif'>";
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
-    xhr.open("GET", "{{ url_for('create.poll_new_sheet')}}?t=" + timestamp, true);
+    xhr.timeout = 60000; // 60 seconds
+    xhr.open("GET", "{{ url_for('create.get_their_copy')}}?t=" + timestamp, true);
     xhr.onload = function() {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-            var data = JSON.parse(xhr.responseText);
-            console.log(data);
-            document.getElementById('doclist').innerHTML = 'got it!';
+        if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+                if (sheetwip_timer != undefined) {
+                    clearTimeout(sheetwip_timer);
+                }
+                var docs = JSON.parse(xhr.responseText);
+                list_sheets(docs);
+            } else if (xhr.status == 204) {
+                document.getElementById('doclist').innerHTML =
+  `<p>The only google sheets that we can see, belong to us.
+  If you have made a copy, we can't see it. If you want to
+  use this interface to manage it, you will need to share it with us:
+  </p><p>{{ OUR_EMAIL }}.</p><p>Note that it can take a few minutes for us to see the
+  change in permissions.</p>
+  <p><button onclick="get_sheet_copy()">I have now given you read permissions</button>
+  </p>`
+            }
         }
     }
     xhr.send();
 }
 
 
-function poll_usernew_sheet() {
+function poll_new_sheet() {
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
     xhr.open("GET", "{{ url_for('create.poll_new_sheet')}}?t=" + timestamp, true);
     xhr.onload = function() {
         if (xhr.readyState == 4 && xhr.status == 200) {
             var data = JSON.parse(xhr.responseText);
-            console.log(data);
             document.getElementById('doclist').innerHTML =
   `<p><a target='_blank' href='https://docs.google.com/spreadsheets/d/${data.id}'>
   Click here to open your new spreadsheet.</a></p>
@@ -57,9 +81,9 @@ function poll_usernew_sheet() {
   and press this button:</p>
   <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>`
         } else {
-            setTimeout(poll_new_sheet, 10000); // 10 seconds
+            sheetwip_timer = setTimeout(poll_new_sheet, 10000); // 10 seconds
         }
-    }
+    };
     xhr.send();
 }
 
