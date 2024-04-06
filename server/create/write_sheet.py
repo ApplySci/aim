@@ -205,6 +205,11 @@ class GSP:
               }]
             )
 
+
+    def delete_sheet(self, doc_id: str) -> None:
+        self.client.del_spreadsheet(doc_id)
+
+
     def create_new_results_googlesheet(
             self,
             table_count: int = 10,

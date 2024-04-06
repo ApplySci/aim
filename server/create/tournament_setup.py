@@ -15,7 +15,7 @@ from flask_login import UserMixin, login_required, login_user, logout_user, \
 from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
 from oauth_setup import oauth, login_manager
-from config import ALLOWED_USERS, GOOGLE_CLIENT_EMAIL
+from config import ALLOWED_USERS, GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
 
 create_blueprint = Blueprint('create', __name__)
 messages_by_user = {}
@@ -86,7 +86,7 @@ def results_create():
         sheet_id : str = googlesheet.create_new_results_googlesheet(
             table_count=form.table_count.data,
             hanchan_count=form.game_count.data,
-            title=form.title.data,
+            title=f"copy {form.title.data}",
             owner=owner,
             scorers=form.emails.data.split(','),
             notify=form.notify.data,
@@ -105,19 +105,24 @@ def results_create():
     return redirect(url_for('create.select_sheet'))
 
 
-@create_blueprint.route('/create/testing')
+@create_blueprint.route('/create/admin')
 @login_required
-def dummy_create_entry():
-    messages = messages_by_user.get(session['email'])
-    if not messages:
-        messages_by_user[session['email']] = []
-    messages_by_user[session['email']].append({
-        'id': '1jVE1OTjFKSkxE4o3FhI5eWmD2XHYtAcP9LaUvFMQQ50',
-        'title': 'Forced reference to our template',
-        'ours': True,
-        });
+def superuser():
+    if session['email'] not in OUR_EMAILS:
+        return "not found",  404
+    docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
+    our_docs = [doc for doc in docs if doc['ours'] and \
+                doc['id'] != TEMPLATE_ID]
+    return render_template('adminlist.html', docs=our_docs)
 
-    return "faked it successfully!", 200
+
+@create_blueprint.route('/create/delete/<doc_id>', methods=['DELETE',])
+@login_required
+def delet_dis(doc_id):
+    if session['email'] not in OUR_EMAILS:
+        return "not found",  404
+    googlesheet.delete_sheet(doc_id)
+    return "ok", 204
 
 
 @create_blueprint.route('/create/is_sheet_created')
