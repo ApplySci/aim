@@ -9,30 +9,24 @@ import threading
 
 from flask import Blueprint, jsonify, redirect, url_for, session, \
     render_template, current_app
-from flask_login import UserMixin, login_required, login_user, logout_user, \
+from flask_login import login_required, login_user, logout_user, \
     current_user
 
 from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
-from oauth_setup import oauth, login_manager
-from config import ALLOWED_USERS, GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
+from oauth_setup import oauth, login_manager, db
+from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
+from models import Access, Role, Tournament, User
 
 create_blueprint = Blueprint('create', __name__)
 messages_by_user = {}
 
 login_manager.login_view = 'index'
 
-class User(UserMixin):
-    def __init__(self, id, email):
-        self.id = id
-        self.email = email
-
 
 @login_manager.user_loader
 def load_user(user_id):
-    if 'email' in session:
-        return User(session['email'], session['id'])
-    return None
+    return db.session.query(User).get(user_id)
 
 
 @create_blueprint.route('/create/')
@@ -64,12 +58,10 @@ def authorized():
     resp = oauth.google.get('userinfo')
     user_info = resp.json()
     email = user_info['email']
-    if email not in ALLOWED_USERS:
+    user = db.session.query(User).get(session['email'])
+    if not user:
         return logout()
-
     session['email'] = email
-    this_id = session['id'] = user_info['id'] # obfuscated google user id
-    user = User(this_id, email)
     login_user(user)
     return redirect(url_for('create.index'))
 
@@ -121,6 +113,8 @@ def superuser():
 def delet_dis(doc_id):
     if session['email'] not in OUR_EMAILS:
         return "not found",  404
+    if doc_id == TEMPLATE_ID:
+        return "Sorry Dave, I can't do that", 403
     googlesheet.delete_sheet(doc_id)
     return "ok", 204
 
@@ -162,3 +156,20 @@ def select_sheet():
         docs=docs,
         OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
         )
+
+@create_blueprint.route('/create/select_tournament', methods=['GET', 'POST',])
+@login_required
+def select_tournament():
+    # Query the Access table for all records where the user_email is the current user's email
+    accesses = db.session.query(Access).filter_by(user_email=session['email']).all()
+    tournaments = [access.tournament for access in accesses]
+    render_template('select_tournament.html', tournaments=tournaments)
+
+def _add_to_db(id, title):
+    tournament = Tournament(id=id, title=title)
+    db.session.add(tournament)
+
+    access = Access(user=current_user, tournament=tournament, role=Role.admin)
+    db.session.add(access)
+
+    db.session.commit()

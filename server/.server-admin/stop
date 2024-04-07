@@ -1,0 +1,10 @@
+#!/bin/bash
+
+PIDFILE="$HOME/apps/tournaments/tmp/tournaments.pid"
+if [ -e "${PIDFILE}" ] && (ps -u $(whoami) -opid= |
+                           grep -P "^\s*$(cat ${PIDFILE})$" &> /dev/null); then
+/home/model/apps/tournaments/env/bin/uwsgi --stop /home/model/apps/tournaments/tmp/tournaments.pid
+rm  /home/model/apps/tournaments/tmp/tournaments.pid
+  exit 99
+fi
+echo "No PID file"

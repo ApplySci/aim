@@ -6,3 +6,5 @@ authlib
 flask_wtf
 flask_login
 email_validator
+flask_sqlalchemy
+alembic

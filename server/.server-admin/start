@@ -1,0 +1,11 @@
+#!/bin/bash
+PIDFILE="$HOME/apps/tournaments/tmp/tournaments.pid"
+if [ -e "${PIDFILE}" ] && (ps -u $(whoami) -opid= |
+                           grep -P "^\s*$(cat ${PIDFILE})$" &> /dev/null); then
+  echo "Already running."
+  exit 99
+fi
+rm /home/model/apps/tournaments/uwsgi.log
+echo -n 'Started at '
+date "+%Y-%m-%d %H:%M:%S"
+/home/model/apps/tournaments/env/bin/uwsgi --ini /home/model/apps/tournaments/uwsgi.ini

@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select a spreadsheet</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+</head>
+<body>
+    <ul>
+{% for tournament in tournaments %}
+<li>
+<form method="POST" action="">
+    <input type="hidden" name="id" value="{{ tournament.id }}">
+    <button type="submit">{{ tournament.name }}</button>
+</form>
+</li>
+{% endfor %}
+</ul>
+</body>
+</html>

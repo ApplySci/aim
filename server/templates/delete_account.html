@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Deletion</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+</head>
+<body>
+    <h1>Warning - you are now deleting your account with us</h1>
+    <p>To confirm, enter your account email ({{ email }}) here:</p>
+    <fieldset>
+    <form>
+    <label for=confirmdelete>Delete my account here: </label>
+    <input type=email name=confirmdelete size=60 placeholder={{ email }} required></input>
+    <br><input type=submit value=Delete>
+    </form>
+    </fieldset>
+</body>
+</html>

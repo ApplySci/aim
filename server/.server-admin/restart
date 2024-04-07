@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source stop
+echo waiting 11s for graceful stop
+sleep 11
+source start

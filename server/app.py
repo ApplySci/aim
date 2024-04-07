@@ -5,8 +5,8 @@ import inspect
 import os
 import sys
 
-from flask import Flask, render_template, send_from_directory
-
+from flask import Flask, render_template, send_from_directory, session
+from flask_login import login_required
 # add directory of this file, to the start of the path,
 # before importing any of the app
 
@@ -17,7 +17,7 @@ sys.path.insert(
     )
 
 from create.tournament_setup import create_blueprint
-from oauth_setup import config_oauth, config_login_manager
+from oauth_setup import config_oauth, config_login_manager, config_db
 
 def create_app():
     app = Flask(__name__)
@@ -26,10 +26,21 @@ def create_app():
     app.debug = True
     config_oauth(app)
     config_login_manager(app)
+    config_db(app)
 
     @app.route('/')
     def index():
         return render_template('index.html')
+
+    @app.route('/privacy')
+    def privacy():
+        return render_template('privacy.html')
+
+    @login_required
+    @app.route('/delete-account', methods=['GET', 'POST'])
+    def delete_account():
+        # TODO this doesn't do anything yet. It will, in time
+        return render_template('delete_account.html', email=session['email'])
 
     @app.route('/favicon.ico')
     def favicon():
@@ -53,3 +64,4 @@ def add_header(response):
 
 if __name__ == '__main__':
     application.run(debug=True)
+    pass

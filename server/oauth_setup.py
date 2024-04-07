@@ -1,13 +1,28 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
-from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 
 oauth = OAuth()
 login_manager = LoginManager()
+db = SQLAlchemy()
+
+def config_db(app):
+
+    # Get the directory of the current file
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    db_file = "tournaments.sqlite3"
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
+        os.path.join(current_directory, db_file)
+
+    db.init_app(app)
+
 
 def config_login_manager(app):
     login_manager.init_app(app)
