@@ -157,13 +157,16 @@ def select_sheet():
         OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
         )
 
+
 @create_blueprint.route('/create/select_tournament', methods=['GET', 'POST',])
 @login_required
 def select_tournament():
     # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(user_email=session['email']).all()
+    accesses = db.session.query(Access).filter_by(
+        user_email=session['email']).all()
     tournaments = [access.tournament for access in accesses]
     render_template('select_tournament.html', tournaments=tournaments)
+
 
 def _add_to_db(id, title):
     tournament = Tournament(id=id, title=title)

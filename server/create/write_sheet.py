@@ -4,6 +4,7 @@ This does all the comms with, & handling of, the google scoresheet
 """
 
 import importlib
+import os
 import random
 import re
 
@@ -12,7 +13,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from config import TEMPLATE_ID, OUR_EMAILS
 
 
-KEYFILE = './fcm-admin.json'
+current_directory = os.path.dirname(os.path.realpath(__file__))
+KEYFILE = os.path.join(current_directory, 'fcm-admin.json')
 MAX_HANCHAN = 20
 MAX_TABLES = 20
 SCOPE = ['https://spreadsheets.google.com/feeds',

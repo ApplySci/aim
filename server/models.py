@@ -5,11 +5,11 @@
 import enum
 from typing import List
 
+
+from flask_login import UserMixin
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String
-
-from oauth_setup import db
 
 
 class Base(DeclarativeBase):
@@ -42,10 +42,13 @@ class Access(Base):
     tournament: Mapped["Tournament"] = relationship(back_populates="users")
 
 
-class User(Base):
+class User(Base, UserMixin):
     __tablename__ = "user"
     email: Mapped[str] = mapped_column(String, primary_key=True)
     tournaments: Mapped[List[Access]] = relationship(back_populates="user")
+
+    def get_id(self):
+        return self.email
 
 
 class Tournament(Base):
