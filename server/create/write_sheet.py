@@ -108,8 +108,15 @@ class GSP:
 
 
     def _reduce_players(self, table_count: int) -> None:
+        player_count = table_count * 4
         sheet = self.live_sheet.worksheet('players')
-        sheet.delete_rows(4 + table_count * 4, 1 + MAX_TABLES * 4)
+        sheet.delete_rows(4 + player_count, 1 + MAX_TABLES * 4)
+        # randomise the seating. We expect organisers to do their own
+        # randomising though. These are just placeholders, really
+        seats = list(range(1, player_count + 1))
+        random.shuffle(seats)
+        seats = [[seat] for seat in seats]
+        sheet.update(f'A4:A{player_count + 3}', seats)
 
 
     def _make_scoresheets(self, template, hanchan_count: int) -> None:
@@ -207,10 +214,19 @@ class GSP:
               }]
             )
 
-
     def delete_sheet(self, doc_id: str) -> None:
         self.client.del_spreadsheet(doc_id)
 
+
+    def _set_schedule(self, hanchan_count: int, timezone : str,
+                      start_times : list[str],
+                      ):
+        sheet: gspread.worksheet.Worksheet = self.live_sheet.worksheet(
+            'schedule')
+        sheet.update([[timezone]], range_name='B2', raw=True)
+        starts = [[start.replace('T', ' ')] for start in start_times]
+        sheet.update(f'B4:B{3+hanchan_count}', starts, raw=False)
+        sheet.delete_rows(4 + hanchan_count, 3 + MAX_HANCHAN)
 
     def create_new_results_googlesheet(
             self,
@@ -236,6 +252,8 @@ class GSP:
             owner (str): email address of the owner of the new spreadsheet.
             scorers (list[str]): list of email addresses to be given write permission.
             notify (bool): if true, sends a notification email to the owner and scorers
+            start_times (list[str]): list of datetime strings
+            timezone (str): timezone in pytz format eg Europe/Dublin
 
         Returns:
             gspread.spreadsheet.Spreadsheet: the new spreadsheet.
@@ -251,22 +269,22 @@ class GSP:
         self.live_sheet : gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID, title=title, copy_comments=True,)
 
-        template : gspread.worksheet.Worksheet = \
-            self.live_sheet.worksheet('template')
-        results: gspread.worksheet.Worksheet = \
-            self.live_sheet.worksheet('results')
+        template : gspread.worksheet.Worksheet = self.live_sheet.worksheet('template')
+        results: gspread.worksheet.Worksheet = self.live_sheet.worksheet('results')
 
         if table_count < MAX_TABLES:
+            self._reduce_players(table_count)
             self._reduce_table_count(results, template, table_count)
 
         if hanchan_count < MAX_HANCHAN:
             self._reduce_hanchan_count(results, hanchan_count)
 
+
         self._make_scoresheets(template, hanchan_count)
 
         self._set_seating(table_count, hanchan_count)
 
-        self._reduce_players(table_count)
+        self._set_schedule(hanchan_count, timezone, start_times)
 
         self._set_permissions(owner, scorers, notify)
 
@@ -276,10 +294,10 @@ class GSP:
 googlesheet = GSP()
 
 if __name__ == '__main__':
-    googlesheet.create_new_results_googlesheet(
+    out = googlesheet.create_new_results_googlesheet(
         table_count=10,
         hanchan_count=7,
         title='delete me',
         )
 
-    print(googlesheet.live_sheet.id)
+    print(out)

@@ -7,8 +7,8 @@ login id and their sheet id.
 '''
 import threading
 
-from flask import Blueprint, jsonify, redirect, url_for, session, \
-    render_template, current_app
+from flask import Blueprint, jsonify, redirect, request, session, url_for, \
+    render_template, current_app, copy_current_request_context
 from flask_login import login_required, login_user, logout_user, \
     current_user
 
@@ -81,24 +81,26 @@ def results_create():
         return render_template('create_results.html', form=form)
 
     tournament : Tournament = Tournament(title=form.title.data)
+    hanchan_count = int(form.hanchan_count.data)
+    start_times = [request.form.get(f'round{i}') for i in
+                   range(1, 1 + hanchan_count)]
 
+
+    @copy_current_request_context
     def make_sheet():
-        rounds = int(form.hanchan_count.data)
-        start_times = [form.get(f'round{i}') for i in range(1, 1 + rounds)]
-
         sheet_id : str = googlesheet.create_new_results_googlesheet(
             table_count=int(form.table_count.data),
-            hanchan_count=rounds,
+            hanchan_count=hanchan_count,
             title=f"copy {form.title.data}",
             owner=owner,
             scorers=form.emails.data.split(','),
             notify=form.notify.data,
-            timezone=form.timezone,
+            timezone=form.timezone.data,
             start_times=start_times,
         )
         tournament.id = sheet_id
         db.session.add(tournament)
-        current_user.live_tournament = tournament
+            # current_user.live_tournament = tournament
 
         msg = messages_by_user.get(owner)
         if not msg:
@@ -181,7 +183,7 @@ def select_tournament():
     accesses = db.session.query(Access).filter_by(
         user_email=current_user.email).all()
     tournaments = [access.tournament for access in accesses]
-    render_template('select_tournament.html', tournaments=tournaments)
+    return render_template('select_tournament.html', tournaments=tournaments)
 
 
 def _add_to_db(id, title):

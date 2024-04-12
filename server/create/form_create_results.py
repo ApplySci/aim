@@ -20,7 +20,7 @@ class GameParametersForm(FlaskForm):
         'Number of tables [1-20] (players divided by 4)',
         default = 10,
         validators=[DataRequired(), NumberRange(min=1, max=20)])
-    game_count = IntegerField(
+    hanchan_count = IntegerField(
         'Number of hanchan [1-20]',
         default = 7,
         validators=[DataRequired(), NumberRange(min=1, max=20)])
