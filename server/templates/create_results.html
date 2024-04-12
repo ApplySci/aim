@@ -14,7 +14,7 @@
 <body>
     <h1>Preparing your google sheet for tournament scoring</h1>
     <p>When you press the button on the form below, a new google spreadsheet will
-    be created. You ({{ session['email'] }}) will be given write-permissions:
+    be created. You ({{ current_user.email }}) will be given write-permissions:
     you will receive an email from google, with a link to the sheet.
     You can also choose to provide an email for an additional scorer who will
     be given write permission too.</p>
@@ -43,7 +43,7 @@
             {{ form.title(size=60) }}
         </p>
         <p>You will be assigned ownership of the Google Sheet, using the
-        google account you logged in here ({{ session['email']  }}).<br>
+        google account you logged in here ({{ current_user.email }}).<br>
         Below, you can enter an email address for one other scorer:
         (you can add other scorers later, via the usual google sheet way)
         <p>

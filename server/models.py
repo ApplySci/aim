@@ -3,7 +3,7 @@
 
 """
 import enum
-from typing import List
+from typing import List, Optional
 
 
 from flask_login import UserMixin
@@ -42,17 +42,20 @@ class Access(Base):
     tournament: Mapped["Tournament"] = relationship(back_populates="users")
 
 
-class User(Base, UserMixin):
-    __tablename__ = "user"
-    email: Mapped[str] = mapped_column(String, primary_key=True)
-    tournaments: Mapped[List[Access]] = relationship(back_populates="user")
-
-    def get_id(self):
-        return self.email
-
-
 class Tournament(Base):
     __tablename__ = "tournament"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     title: Mapped[str]
     users: Mapped[List[Access]] = relationship(back_populates="tournament")
+
+
+class User(Base, UserMixin):
+    __tablename__ = "user"
+    email: Mapped[str] = mapped_column(String, primary_key=True)
+    live_tournament_id: Mapped[Optional[str]] = mapped_column(ForeignKey(Tournament.id))
+    tournaments: Mapped[List[Access]] = relationship(back_populates="user")
+    live_tournament: Mapped[Tournament] = relationship(
+        "Tournament", foreign_keys=[live_tournament_id],)
+
+    def get_id(self):
+        return self.email

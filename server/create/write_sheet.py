@@ -220,6 +220,8 @@ class GSP:
             owner: str = 'mj.apply.sci@gmail.com',
             scorers: list[str] = (),
             notify: bool = False,
+            timezone: str = 'Dublin/Europe',
+            start_times: list[str] = [],
             ) -> str:
         '''
 

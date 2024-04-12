@@ -8,7 +8,7 @@
 <body>
     <h1>Now creating your new tournament scoresheet.</h1>
     <div id=doclist>
-        <p>You should receive an email at {{ session['email'] }} from google,
+        <p>You should receive an email at {{ current_user.email }} from google,
         with a link to it, as soon as it's ready. Additionally, this page should
         update with a link to the sheet, as soon as it is ready.</p>
         <p>Once it's there, open the sheet.

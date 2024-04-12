@@ -6,7 +6,8 @@ from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS
+from models import User
 
 oauth = OAuth()
 login_manager = LoginManager()
@@ -22,6 +23,11 @@ def config_db(app):
         os.path.join(current_directory, db_file)
 
     db.init_app(app)
+    with app.app_context():
+        for email in DEFAULT_USERS:
+            if not db.session.query(User).get(email):
+                db.session.add(User(email=email))
+        db.session.commit()
 
 
 def config_login_manager(app):

@@ -1,15 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Run {{ tournament.name }}</title>
+    <title>Run {{ current_user.tournament.title }}</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
 </head>
 <body>
-<h1>Run {{ tournament.name }}</h1>
+<h1>Run {{ current_user.tournament.namtitle }}</h1>
 <ul>
 <li><button id=scores>Update scores from google sheet</button></li>
 <li><button id=preview>View preview of scoresheet</button></li>

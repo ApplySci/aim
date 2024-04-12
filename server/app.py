@@ -5,11 +5,11 @@ import inspect
 import os
 import sys
 
-from flask import Flask, render_template, send_from_directory, session
-from flask_login import login_required
+from flask import Flask, render_template, send_from_directory
+from flask_login import login_required, current_user
+
 # add directory of this file, to the start of the path,
 # before importing any of the app
-
 sys.path.insert(
     0,
     os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(
@@ -40,7 +40,7 @@ def create_app():
     @app.route('/delete-account', methods=['GET', 'POST'])
     def delete_account():
         # TODO this doesn't do anything yet. It will, in time
-        return render_template('delete_account.html', email=session['email'])
+        return render_template('delete_account.html', email=current_user.email)
 
     @app.route('/favicon.ico')
     def favicon():
