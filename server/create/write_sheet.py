@@ -109,7 +109,7 @@ class GSP:
 
     def _reduce_players(self, table_count: int) -> None:
         sheet = self.live_sheet.worksheet('players')
-        sheet.delete_rows(2 + table_count * 4, 1 + MAX_TABLES * 4)
+        sheet.delete_rows(4 + table_count * 4, 1 + MAX_TABLES * 4)
 
 
     def _make_scoresheets(self, template, hanchan_count: int) -> None:

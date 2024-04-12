@@ -2,21 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Game Parameters Form</title>
+    <title>Create a new tournament</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <style>
+    #datetimeInputs label{
+        display: block;
+        margin-top: 0.5em;
+    }
+    </style>
 </head>
 <body>
-    <h1>Create a google sheet for tournament scoring</h1>
+    <h1>Preparing your google sheet for tournament scoring</h1>
     <p>When you press the button on the form below, a new google spreadsheet will
     be created. You ({{ session['email'] }}) will be given write-permissions:
-    you will receive an email from google, with a link to the sheet. If you
-    want, you can provide an email for an additional scorer who will be given
-    write permission too.</p>
-    <p>Because of constraints by Google, we are unable to
-    transfer ownership to you directly. This is frustrating.</p>
-    <p><em>However, you should be able to use "File" > "Make a copy"
-    and copy the sheet to a
-    new one that you do own, if you want. And we highly recommend doing this.<em></p>
+    you will receive an email from google, with a link to the sheet.
+    You can also choose to provide an email for an additional scorer who will
+    be given write permission too.</p>
+    <p>Because of Google restrictions, we are unable to
+    transfer ownership to you directly.</p>
+    <p><em>Instead, you must use "File" > "Make a copy"
+    and copy the sheet to a new one that you do own.</em></p>
 
     <form method="POST">
     <fieldset>
@@ -40,6 +45,7 @@
         <p>You will be assigned ownership of the Google Sheet, using the
         google account you logged in here ({{ session['email']  }}).<br>
         Below, you can enter an email address for one other scorer:
+        (you can add other scorers later, via the usual google sheet way)
         <p>
             {{ form.emails.label }}<br>
             {{ form.emails(size=60)  }}<br>
@@ -48,8 +54,51 @@
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
+        <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
+        <label>Enter the start date/time for each round, in the local time for
+        the tournament (ie in the above timezone). You can change these later.
+        But it makes things easier, if you enter at least a rough estimate now
+        <div id="datetimeInputs"></div>
+        </label>
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
+     <script>
+
+function setDefaultDateTime(input, roundNumber) {
+    if (input.value === '') {
+        var previousInput = document.getElementById('round' + (roundNumber - 1));
+        if (previousInput && previousInput.value !== '') {
+            var previousDateTime = new Date(previousInput.value);
+            previousDateTime.setMinutes(previousDateTime.getMinutes() + 105); // Add 1 hour 45 minutes
+            var year = previousDateTime.getFullYear();
+            var month = ('0' + (previousDateTime.getMonth() + 1)).slice(-2);
+            var date = ('0' + previousDateTime.getDate()).slice(-2);
+            var hours = ('0' + previousDateTime.getHours()).slice(-2);
+            var minutes = ('0' + previousDateTime.getMinutes()).slice(-2);
+            var seconds = ('0' + previousDateTime.getSeconds()).slice(-2);
+            input.value = year + '-' + month + '-' + date + 'T' + hours + ':' + minutes + ':' + seconds;
+        }
+    }
+}
+
+
+function set_datetime_fields() {
+  var rounds = document.getElementById('game_count').value;
+  var datetimeInputs = document.getElementById('datetimeInputs');
+  datetimeInputs.innerHTML = '';
+  for(var i = 1; i <= rounds; i++) {
+    datetimeInputs.innerHTML += `<label for=round${i}>Round ${i}: `
+       + `<input type="datetime-local" id=round${i} name=round${i} required`
+       + ` onfocus="setDefaultDateTime(this, ${i})" ></label>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('game_count').addEventListener('change', set_datetime_fields);
+  set_datetime_fields();
+});
+
+    </script>
 </body>
 </html>

@@ -2,12 +2,20 @@
 """
 @author: ZAPS@mahjong.ie
 """
+import pytz
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, BooleanField, SubmitField
+from wtforms import BooleanField, IntegerField, SelectField, StringField, \
+    SubmitField
 from wtforms.validators import DataRequired, Email, NumberRange, Optional
 
 
 class GameParametersForm(FlaskForm):
+    timezone = SelectField(
+        'Timezone',
+        choices=[(tz, tz) for tz in pytz.common_timezones],
+        default='Europe/Dublin',
+        )
     table_count = IntegerField(
         'Number of tables [1-20] (players divided by 4)',
         default = 10,
