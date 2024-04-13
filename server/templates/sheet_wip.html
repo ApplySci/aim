@@ -28,7 +28,7 @@ var sheetwip_timer;
 function list_sheets(docs) {
     out = '<ul>';
     docs.forEach((doc) => out +=
-        `<li><a href='/create/select/${doc["id"]}'>${doc['title']}</a></li>`
+        `<li><a href='/create/select/${doc["id"]}'>${doc['title']} (${doc["id"]})</a></li>`
     );
     out += '</ul>';
     console.log(out);
@@ -56,7 +56,7 @@ function get_sheet_copy() {
   `<p>The only google sheets that we can see, belong to us.
   If you have made a copy, we can't see it. If you want to
   use this interface to manage it, you will need to share it with us:
-  </p><p>{{ OUR_EMAIL }}.</p><p>Note that it can take a few minutes for us to see the
+  </p><p>{{ OUR_EMAIL }}</p><p>Note that it can take a few minutes for us to see the
   change in permissions.</p>
   <p><button onclick="get_sheet_copy()">I have now given you read permissions</button>
   </p>`

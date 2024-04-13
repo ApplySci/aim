@@ -11,7 +11,10 @@
     {% for doc in docs %}
       <li id=buttonli{{ loop.index }}>
           <button onclick="delet_dis({{ loop.index }}, '{{ doc['id'] }}')">
-          delete {{ doc['title'] }} </button> ( {{ doc['id'] }} )
+          delete {{ doc['title'] }} </button> (
+          <a href='https://docs.google.com/spreadsheets/d/{{ doc['id'] }}'>
+          {{ doc['id'] }} )
+          </a>
       </li>
     {% endfor %}
 

@@ -2,12 +2,12 @@
 """
 
 """
+from datetime import datetime
 import enum
 from typing import List, Optional
 
-
 from flask_login import UserMixin
-from sqlalchemy import Enum, ForeignKey
+from sqlalchemy import Enum, ForeignKey, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String
 
@@ -36,17 +36,42 @@ class Access(Base):
         ForeignKey("user.email"), primary_key=True)
     tournament_id: Mapped[str] = mapped_column(
         ForeignKey("tournament.id"), primary_key=True)
-    role: Mapped[str] = mapped_column(Role, nullable=False)
+    role: Mapped[str] = mapped_column(
+        Role,
+        nullable=False,
+        default=RoleEnum.editor,
+        )
 
     user: Mapped["User"] = relationship(back_populates="tournaments")
     tournament: Mapped["Tournament"] = relationship(back_populates="users")
 
 
+class Hanchan(Base):
+    # we store these so that we can spot when a scorer changes the hanchan times in the googlesheet
+    # and then we can notify the players accordingly
+    __tablename__ = "hanchan"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[str] = mapped_column(ForeignKey("tournament.id"))
+    hanchan_number: Mapped[int] = mapped_column(Integer)
+    start_time: Mapped[Optional[datetime]]
+    tournament: Mapped["Tournament"] = relationship(
+        back_populates="hanchans",
+        foreign_keys=[tournament_id],
+        )
+
+
 class Tournament(Base):
     __tablename__ = "tournament"
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    our_template_id: Mapped[Optional[str]]
     title: Mapped[str]
+    outdir: Mapped[Optional[str]]
+    firebase_doc: Mapped[Optional[str]]
     users: Mapped[List[Access]] = relationship(back_populates="tournament")
+    hanchans: Mapped[List[Hanchan]] = relationship(
+       "Hanchan",
+       back_populates="tournament",
+   )
 
 
 class User(Base, UserMixin):

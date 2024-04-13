@@ -5,6 +5,7 @@ creates the front-end pages for the user to set up a new google scoresheet.
 Sigh. We're really going to need a database here, at least to store their
 login id and their sheet id.
 '''
+import json
 import threading
 
 from flask import Blueprint, jsonify, redirect, request, session, url_for, \
@@ -12,7 +13,7 @@ from flask import Blueprint, jsonify, redirect, request, session, url_for, \
 from flask_login import login_required, login_user, logout_user, \
     current_user
 
-from .write_sheet import googlesheet
+from .write_sheet import googlesheet, KEYFILE
 from .form_create_results import GameParametersForm
 from oauth_setup import oauth, login_manager, db
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
@@ -184,6 +185,50 @@ def select_tournament():
         user_email=current_user.email).all()
     tournaments = [access.tournament for access in accesses]
     return render_template('select_tournament.html', tournaments=tournaments)
+
+
+@login_required
+def results_to_cloud():
+    sheet = googlesheet.get_sheet(current_user.live_tournament_id)
+    results, done = sheet.get_results()
+    body = results[1:]
+    body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
+    all_scores = []
+    previous_score = -99999
+    for i in range(len(body)):
+        total = round(10 * body[i][3])
+        if previous_score == total:
+            prefix = '='
+        else:
+            previous_score = total
+            rank = i + 1
+            prefix = ''
+
+        all_scores.append({
+            "id": body[i][1],
+            "t": total,
+            "r": f'{prefix}{rank}',
+            "p": body[i][4],
+            "s": [round(10 * s) for s in body[i][5 : 5 + done]],
+            })
+
+    firebase_id : str = current_user.live_tournament.firebase_doc
+    all_scores[0]['roundDone'] = done
+    out : str = json.dumps(all_scores, ensure_ascii=False, indent=None)
+
+    # TODO just for testing - really, we want to do these once, and not here
+
+    from firebase_admin import credentials, initialize_app
+    from firebase_admin import firestore
+    firebase_id = 'Y3sDqxajiXefmP9XBTvY'
+    cred = credentials.Certificate(KEYFILE)
+    initialize_app(cred)
+    firestore_client = firestore.client()
+    ref = firestore_client.collection("tournaments")
+
+    # this does belong here:
+    ref.document(f"{firebase_id}/json/scores").set(document_data={
+        'json': out})
 
 
 def _add_to_db(id, title):

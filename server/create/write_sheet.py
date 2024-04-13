@@ -28,6 +28,11 @@ class GSP:
             KEYFILE, SCOPE)
         self.client = gspread.authorize(creds)
 
+
+    def get_sheet(self, id: str):
+        return gspread.open_by_key(id)
+
+
     def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
         '''
         given a results spreadsheet, get the live results
@@ -39,7 +44,13 @@ class GSP:
             list: the table of live results.
 
         '''
-        return live.worksheet('results').get_all_values()
+        triggers = live.named_range('PublicationTriggers').get_all_values()
+        done : int = 0
+        for i in range(len(triggers)):
+            if triggers[i][2] == '':
+                break
+            done = i
+        return done, live.worksheet('results').get_all_values()
 
 
     def _reduce_table_count(self, results, template, table_count: int) -> None:
@@ -214,6 +225,7 @@ class GSP:
               }]
             )
 
+
     def delete_sheet(self, doc_id: str) -> None:
         self.client.del_spreadsheet(doc_id)
 
@@ -227,6 +239,7 @@ class GSP:
         starts = [[start.replace('T', ' ')] for start in start_times]
         sheet.update(f'B4:B{3+hanchan_count}', starts, raw=False)
         sheet.delete_rows(4 + hanchan_count, 3 + MAX_HANCHAN)
+
 
     def create_new_results_googlesheet(
             self,
