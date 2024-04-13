@@ -30,7 +30,7 @@ class GSP:
 
 
     def get_sheet(self, id: str):
-        return gspread.open_by_key(id)
+        return self.client.open_by_key(id)
 
 
     def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
@@ -44,13 +44,14 @@ class GSP:
             list: the table of live results.
 
         '''
-        triggers = live.named_range('PublicationTriggers').get_all_values()
+        triggers = live.worksheet('reference').get('PublicationTriggers')
         done : int = 0
-        for i in range(len(triggers)):
-            if triggers[i][2] == '':
+        for i in range(1, len(triggers)):
+            if len(triggers[i]) < 3 or triggers[i][2] == '':
                 break
             done = i
-        return done, live.worksheet('results').get_all_values()
+        return done, live.worksheet('results').get(
+            value_render_option=gspread.utils.ValueRenderOption.unformatted)
 
 
     def _reduce_table_count(self, results, template, table_count: int) -> None:

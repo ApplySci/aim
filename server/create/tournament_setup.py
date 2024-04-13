@@ -187,11 +187,13 @@ def select_tournament():
     return render_template('select_tournament.html', tournaments=tournaments)
 
 
+@create_blueprint.route('/create/get_results')
 @login_required
-def results_to_cloud():
-    sheet = googlesheet.get_sheet(current_user.live_tournament_id)
-    results, done = sheet.get_results()
+def results_to_cloud(): # TODO don't hardcode the spreadsheet ID!!!
+    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+    done, results = googlesheet.get_results(sheet)
     body = results[1:]
+    print(body)
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
     all_scores = []
     previous_score = -99999
@@ -212,7 +214,7 @@ def results_to_cloud():
             "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             })
 
-    firebase_id : str = current_user.live_tournament.firebase_doc
+    firebase_id : str = 'Y3sDqxajiXefmP9XBTvY' # current_user.live_tournament.firebase_doc
     all_scores[0]['roundDone'] = done
     out : str = json.dumps(all_scores, ensure_ascii=False, indent=None)
 
@@ -229,6 +231,7 @@ def results_to_cloud():
     # this does belong here:
     ref.document(f"{firebase_id}/json/scores").set(document_data={
         'json': out})
+    return 'firestore updated, maybe', 200
 
 
 def _add_to_db(id, title):
