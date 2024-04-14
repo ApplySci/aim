@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import 'db.dart';
 import 'frame.dart';
-import 'store.dart';
 import 'utils.dart';
 
 class Tournaments extends StatelessWidget {
@@ -13,21 +12,17 @@ class Tournaments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AllState, Map<String, dynamic>>(converter: (store) {
-      return {'tournaments': store.state.players}; // TODO
-    }, builder: (BuildContext context, Map<String, dynamic> incoming) {
-      return Frame(
-        context,
-        const Center(
-          child: Column(
-            children: <Widget>[
-              Text('Pick a tournament to follow'),
-              TournamentList(),
-            ],
-          ),
+    return Frame(
+      context,
+      const Center(
+        child: Column(
+          children: <Widget>[
+            Text('Pick a tournament to follow'),
+            TournamentList(),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 }
 

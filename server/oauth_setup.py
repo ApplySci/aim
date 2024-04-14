@@ -5,6 +5,8 @@ import os
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from firebase_admin import credentials, initialize_app
+from firebase_admin import firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, DEFAULT_OWNER
 from models import User, Tournament, Access, RoleEnum
@@ -13,14 +15,20 @@ oauth = OAuth()
 login_manager = LoginManager()
 db = SQLAlchemy()
 
+app_directory = os.path.dirname(os.path.realpath(__file__))
+KEYFILE = os.path.join(app_directory, 'fcm-admin.json')
+
+cred = credentials.Certificate(KEYFILE)
+initialize_app(cred)
+firestore_client = firestore.client()
+
 def config_db(app):
 
     # Get the directory of the current file
-    current_directory = os.path.dirname(os.path.realpath(__file__))
     db_file = "tournaments.sqlite3"
 
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
-        os.path.join(current_directory, db_file)
+        os.path.join(app_directory, db_file)
 
     db.init_app(app)
     with app.app_context():

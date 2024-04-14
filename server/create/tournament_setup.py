@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
 creates the front-end pages for the user to set up a new google scoresheet.
-
-Sigh. We're really going to need a database here, at least to store their
-login id and their sheet id.
 '''
 import json
 import threading
@@ -13,9 +10,9 @@ from flask import Blueprint, jsonify, redirect, request, session, url_for, \
 from flask_login import login_required, login_user, logout_user, \
     current_user
 
-from .write_sheet import googlesheet, KEYFILE
+from .write_sheet import googlesheet
 from .form_create_results import GameParametersForm
-from oauth_setup import oauth, login_manager, db
+from oauth_setup import db, firestore_client, login_manager, oauth
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
 from models import Access, Role, Tournament, User
 
@@ -29,6 +26,11 @@ login_manager.login_view = 'index'
 def load_user(user_id):
     return db.session.query(User).get(user_id)
 
+@login_required
+@create_blueprint.route('/delete-account', methods=['GET', 'POST'])
+def delete_account():
+    # TODO this doesn't do anything yet. It will, in time
+    return render_template('delete_account.html', email=current_user.email)
 
 @create_blueprint.route('/create/')
 def index():
@@ -189,11 +191,18 @@ def select_tournament():
 
 @create_blueprint.route('/create/get_results')
 @login_required
-def results_to_cloud(): # TODO don't hardcode the spreadsheet ID!!!
+def sheet_to_cloud():
+    _scores_to_cloud()
+    _players_to_cloud()
+    _seating_to_cloud()
+    return 'data has been stored in the cloud', 200
+
+@login_required
+def _scores_to_cloud():
+    # TODO don't hardcode sheet id
     sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
     done, results = googlesheet.get_results(sheet)
     body = results[1:]
-    print(body)
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
     all_scores = []
     previous_score = -99999
@@ -214,24 +223,53 @@ def results_to_cloud(): # TODO don't hardcode the spreadsheet ID!!!
             "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             })
 
-    firebase_id : str = 'Y3sDqxajiXefmP9XBTvY' # current_user.live_tournament.firebase_doc
     all_scores[0]['roundDone'] = done
     out : str = json.dumps(all_scores, ensure_ascii=False, indent=None)
+    _save_to_cloud('scores', out)
 
-    # TODO just for testing - really, we want to do these once, and not here
 
-    from firebase_admin import credentials, initialize_app
-    from firebase_admin import firestore
-    firebase_id = 'Y3sDqxajiXefmP9XBTvY'
-    cred = credentials.Certificate(KEYFILE)
-    initialize_app(cred)
-    firestore_client = firestore.client()
+@login_required
+def _players_to_cloud():
+    # TODO don't hardcode sheet id
+    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+    raw : list(list) = googlesheet.get_players(sheet)
+    players = {int(p[0]): p[2] for p in raw}
+    out : str = json.dumps(players, ensure_ascii=False, indent=None)
+    _save_to_cloud('players', out)
+
+
+def _seating_to_cloud():
+    # TODO don't hardcode sheet id
+    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+    raw = googlesheet.get_seating(sheet)
+    schedules = googlesheet.get_schedule(sheet)
+    seating = []
+    previous_round = ''
+    hanchan_number = 0
+    for t in raw:
+        this_round = str(t[0])
+        table = str(t[1])
+        players = t[2:]
+        if this_round != previous_round:
+            previous_round = this_round
+            seating.append({
+                'id': this_round,
+                'start': schedules[hanchan_number][1],
+                'tables': {},
+                })
+            hanchan_number = hanchan_number + 1
+        seating[-1]['tables'][table] = players
+    out : str = json.dumps(seating, ensure_ascii=False, indent=None)
+    _save_to_cloud('seating', out)
+
+
+@login_required
+def _save_to_cloud(key: str, data: str):
+    # TODO just for testing - stuff shouldn't be hardcoded here
+    firebase_id : str = 'Y3sDqxajiXefmP9XBTvY' # current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments")
-
-    # this does belong here:
-    ref.document(f"{firebase_id}/json/scores").set(document_data={
-        'json': out})
-    return 'firestore updated, maybe', 200
+    ref.document(f"{firebase_id}/json/{key}").set(document_data={
+        'json': data})
 
 
 def _add_to_db(id, title):

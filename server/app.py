@@ -5,8 +5,7 @@ import inspect
 import os
 import sys
 
-from flask import Flask, render_template, send_from_directory
-from flask_login import login_required, current_user
+from flask import Flask
 
 # add directory of this file, to the start of the path,
 # before importing any of the app
@@ -17,39 +16,20 @@ sys.path.insert(
     )
 
 from create.tournament_setup import create_blueprint
+from public.public import public_blueprint
+from root import root_blueprint
 from oauth_setup import config_oauth, config_login_manager, config_db
 
 def create_app():
     app = Flask(__name__)
     app.register_blueprint(create_blueprint)
+    app.register_blueprint(public_blueprint)
+    app.register_blueprint(root_blueprint)
     app.config.from_object('config')
     app.debug = True
     config_oauth(app)
     config_login_manager(app)
     config_db(app)
-
-    @app.route('/')
-    def index():
-        return render_template('index.html')
-
-    @app.route('/privacy')
-    def privacy():
-        return render_template('privacy.html')
-
-    @login_required
-    @app.route('/delete-account', methods=['GET', 'POST'])
-    def delete_account():
-        # TODO this doesn't do anything yet. It will, in time
-        return render_template('delete_account.html', email=current_user.email)
-
-    @app.route('/favicon.ico')
-    def favicon():
-        return send_from_directory(
-            os.path.join(app.root_path, 'static'),
-            'favicon.ico',
-            mimetype='image/vnd.microsoft.icon',
-            )
-
     return app
 
 application = create_app()

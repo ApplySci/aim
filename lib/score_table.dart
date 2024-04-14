@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
@@ -72,8 +74,8 @@ class ScoreTable extends StatelessWidget {
             ScoreCell(score['t'], onTap),
             DataCell(_verticalDivider),
           ];
-          for (int i = rounds; i >= 0; i--) {
-            row.add(ScoreCell(score['s'][i], onTap));
+          for (int i = min(rounds, score['s'].length - 1); i > 0; i--) {
+            row.add(ScoreCell(score['s'][i-1], onTap));
           }
           bool highlight = s['selected'] == score['id'];
 
@@ -96,7 +98,8 @@ class ScoreTable extends StatelessWidget {
             scrollDirection: Axis.vertical,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: DataTable(
+              child: rows.isEmpty ? const Text('no data yet') :
+                DataTable(
                 columns: columns,
                 rows: rows,
                 columnSpacing: 10,

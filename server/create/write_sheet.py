@@ -4,17 +4,15 @@ This does all the comms with, & handling of, the google scoresheet
 """
 
 import importlib
-import os
 import random
 import re
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+
+from oauth_setup import KEYFILE
 from config import TEMPLATE_ID, OUR_EMAILS
 
-
-current_directory = os.path.dirname(os.path.realpath(__file__))
-KEYFILE = os.path.join(current_directory, 'fcm-admin.json')
 MAX_HANCHAN = 20
 MAX_TABLES = 20
 SCOPE = ['https://spreadsheets.google.com/feeds',
@@ -32,20 +30,23 @@ class GSP:
     def get_sheet(self, id: str):
         return self.client.open_by_key(id)
 
+    def get_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+        return live.worksheet('schedule').get()[3:]
+
+
+    def get_seating(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+        return live.worksheet('seating').get(value_render_option=
+            gspread.utils.ValueRenderOption.unformatted)[1:]
+
+
+    def get_players(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+        return live.worksheet('players').get(value_render_option=
+            gspread.utils.ValueRenderOption.unformatted)[3:]
+
 
     def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
-        '''
-        given a results spreadsheet, get the live results
-
-        Args:
-            live (gspread.spreadsheet.Spreadsheet): the gspread object for the workbook.
-
-        Returns:
-            list: the table of live results.
-
-        '''
         triggers = live.worksheet('reference').get('PublicationTriggers')
-        done : int = 0
+        done : int = 0 # number of completed hanchan
         for i in range(1, len(triggers)):
             if len(triggers[i]) < 3 or triggers[i][2] == '':
                 break
