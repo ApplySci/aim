@@ -32,21 +32,21 @@ def config_db(app):
 
     db.init_app(app)
     with app.app_context():
+        # ensure our defaults are in place
         scoresheet_id = '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8'
-        need_defaults : bool = False
+        firebase_doc = 'Y3sDqxajiXefmP9XBTvY'
         for email in DEFAULT_USERS:
             if not db.session.query(User).get(email):
                 db.session.add(User(email=email))
-                need_defaults = True
         db.session.commit()
 
-        if need_defaults:
+        if not db.session.query(Tournament).get(scoresheet_id):
             t = Tournament(
                 id=scoresheet_id,
                 our_template_id='',
                 title='Cork 2024',
                 outdir='',
-                firebase_doc='Y3sDqxajiXefmP9XBTvY',
+                firebase_doc=firebase_doc,
                 )
             db.session.add(t)
             db.session.add(Access(
