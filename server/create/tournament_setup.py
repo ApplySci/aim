@@ -19,7 +19,7 @@ from models import Access, Role, Tournament, User
 create_blueprint = Blueprint('create', __name__)
 messages_by_user = {}
 
-login_manager.login_view = 'index'
+login_manager.login_view = '/create/'
 
 
 @login_manager.user_loader
@@ -219,7 +219,7 @@ def _scores_to_cloud():
             "id": body[i][1],
             "t": total,
             "r": f'{prefix}{rank}',
-            "p": body[i][4],
+            "p": round(body[i][4] * 10),
             "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             })
 

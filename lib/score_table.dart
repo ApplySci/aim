@@ -27,11 +27,15 @@ class ScoreTable extends StatelessWidget {
         return {
           'scores': store.state.scores,
           'playerMap': store.state.playerMap,
-          'rounds': store.state.rounds,
+          'rounds': store.state.roundDone,
           'selected': store.state.selected,
         };
       },
       builder: (BuildContext context, Map<String, dynamic> s) {
+        /*
+        TODO 2) are we even handling penalties properly? Are they where we expect them?
+        TODO 3) Are the round orders in the order we expect, or in the reverse of what we expect?
+         */
         int rounds = s['rounds'];
         List<DataColumn> columns = <DataColumn>[
           const DataColumn(
@@ -77,6 +81,7 @@ class ScoreTable extends StatelessWidget {
           for (int i = min(rounds, score['s'].length - 1); i > 0; i--) {
             row.add(ScoreCell(score['s'][i-1], onTap));
           }
+          row.add(ScoreCell(score['p'], null));
           bool highlight = s['selected'] == score['id'];
 
           MaterialStateProperty<Color>? rowColour = highlight

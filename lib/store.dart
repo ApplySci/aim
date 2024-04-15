@@ -26,7 +26,6 @@ class AllState {
   List<Map<String, dynamic>> scores = [];
   List<Player> players = [];
   Map<int, String> playerMap = {};
-  int rounds = 5;
   int roundDone = 0;
   int selected = -1;
   SeatingPlan theseSeats=[], seating=[];
