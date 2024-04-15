@@ -197,6 +197,7 @@ def sheet_to_cloud():
     _seating_to_cloud()
     return 'data has been stored in the cloud', 200
 
+
 @login_required
 def _scores_to_cloud():
     # TODO don't hardcode sheet id
@@ -216,7 +217,7 @@ def _scores_to_cloud():
             prefix = ''
 
         all_scores.append({
-            "id": body[i][1],
+            "id": body[i][0],
             "t": total,
             "r": f'{prefix}{rank}',
             "p": round(body[i][4] * 10),

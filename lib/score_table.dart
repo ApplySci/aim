@@ -32,9 +32,6 @@ class ScoreTable extends StatelessWidget {
         };
       },
       builder: (BuildContext context, Map<String, dynamic> s) {
-        /*
-        TODO are the round orders in the order we expect, or in the reverse of what we expect?
-         */
         int rounds = s['rounds'];
         List<DataColumn> columns = <DataColumn>[
           const DataColumn(
@@ -70,6 +67,7 @@ class ScoreTable extends StatelessWidget {
         for (final score in s['scores']) {
           List<DataCell> row = [
             DataCell(Text(score['r'])), // rank
+            // TODO TOFIX it's looking up the wrong name - reg id instead of seating id
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
