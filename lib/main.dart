@@ -36,6 +36,7 @@ Future main() async {
   await setupFCM();
 
   DB.instance.getTournaments();
+  // TODO if there's a tournament in shared_preferences, use it
   runApp(const MyApp());
 }
 

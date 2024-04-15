@@ -33,8 +33,7 @@ class ScoreTable extends StatelessWidget {
       },
       builder: (BuildContext context, Map<String, dynamic> s) {
         /*
-        TODO 2) are we even handling penalties properly? Are they where we expect them?
-        TODO 3) Are the round orders in the order we expect, or in the reverse of what we expect?
+        TODO are the round orders in the order we expect, or in the reverse of what we expect?
          */
         int rounds = s['rounds'];
         List<DataColumn> columns = <DataColumn>[
@@ -70,18 +69,18 @@ class ScoreTable extends StatelessWidget {
 
         for (final score in s['scores']) {
           List<DataCell> row = [
-            DataCell(Text(score['r'])),
+            DataCell(Text(score['r'])), // rank
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
-            )),
-            ScoreCell(score['t'], onTap),
+            )), // name
+            ScoreCell(score['t'], onTap), // total
             DataCell(_verticalDivider),
           ];
-          for (int i = min(rounds, score['s'].length - 1); i > 0; i--) {
-            row.add(ScoreCell(score['s'][i-1], onTap));
+          for (int i = rounds - 1; i >= 0; i--) {
+            row.add(ScoreCell(score['s'][i], onTap)); // round score
           }
-          row.add(ScoreCell(score['p'], null));
+          row.add(ScoreCell(score['p'], null)); // penalties
           bool highlight = s['selected'] == score['id'];
 
           MaterialStateProperty<Color>? rowColour = highlight
