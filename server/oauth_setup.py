@@ -9,7 +9,7 @@ from firebase_admin import credentials, initialize_app
 from firebase_admin import firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, DEFAULT_OWNER
-from models import User, Tournament, Access, RoleEnum
+from models import User, Tournament, Access, Role
 
 oauth = OAuth()
 login_manager = LoginManager()
@@ -52,12 +52,12 @@ def config_db(app):
             db.session.add(Access(
                 user_email=DEFAULT_OWNER,
                 tournament_id=scoresheet_id,
-                role=RoleEnum.admin,
+                role=Role.admin,
                 ))
             db.session.add(Access(
                 user_email=DEFAULT_USERS[2],
                 tournament_id=scoresheet_id,
-                role=RoleEnum.admin,
+                role=Role.admin,
                 ))
             db.session.commit()
 

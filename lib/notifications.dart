@@ -8,9 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'client.dart';
 import 'firebase_options.dart';
-import 'store.dart';
 import 'utils.dart';
 /*
 
@@ -121,10 +119,10 @@ Future<void> notifyWhenFocused(message) async { // called from fcm_client
       icon: 'aimbird',
       ticker: 'ticker',
       actions: [
-        AndroidNotificationAction('action_1', 'Action 1', showsUserInterface: true),
-        AndroidNotificationAction('action_2', 'Action 2', showsUserInterface: true),
+        const AndroidNotificationAction('action_1', 'Action 1', showsUserInterface: true),
+        const AndroidNotificationAction('action_2', 'Action 2', showsUserInterface: true),
       ],
-      styleInformation: BigTextStyleInformation(
+      styleInformation: const BigTextStyleInformation(
         'styleInformation text',
         contentTitle: 'styleInformation contentTitle',
       ),

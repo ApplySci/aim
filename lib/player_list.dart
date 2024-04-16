@@ -1,7 +1,9 @@
+import 'package:aim_tournaments/fcm_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
+import 'db.dart';
 import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
@@ -90,15 +92,20 @@ class _PlayerListState extends State<PlayerList> {
       ),
       onSelected: (Player selection) async {
         _controller.clear();
+        int previousSelection = store.state.selected;
         store.dispatch({
           'type': STORE.setPlayerId,
           'playerId': selection.id,
         });
         Navigator.pop(context);
-        /* notify(
-        '{selection.name} will be highlighted in seating & scores, and you will receive updates for them',
+        final ScaffoldMessengerState? state = DB.instance.scaffoldMessengerKey.currentState;
+        state?.showSnackBar(SnackBar(content: Text(
+            '${selection.name} will be highlighted in seating & scores, and you will receive updates for them'
+        )));
+        subscribeUserToTopic(
+            '${store.state.tournament}-${selection.id}',
+            '${store.state.tournament}-$previousSelection'
         );
-         */
       },
       suggestionsCallback: (String needle) {
         List<Player> filtered;

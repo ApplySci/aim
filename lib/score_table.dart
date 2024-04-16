@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
@@ -66,19 +64,18 @@ class ScoreTable extends StatelessWidget {
 
         for (final score in s['scores']) {
           List<DataCell> row = [
-            DataCell(Text(score['r'])), // rank
-            // TODO TOFIX it's looking up the wrong name - reg id instead of seating id
+            DataCell(Text(score['r'])),                          // rank
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
-            )), // name
-            ScoreCell(score['t'], onTap), // total
+            )),                                                  // name
+            ScoreCell(score['t'], onTap),                        // total
             DataCell(_verticalDivider),
           ];
           for (int i = rounds - 1; i >= 0; i--) {
-            row.add(ScoreCell(score['s'][i], onTap)); // round score
+            row.add(ScoreCell(score['s'][i], onTap));            // round scores
           }
-          row.add(ScoreCell(score['p'], null)); // penalties
+          row.add(ScoreCell(score['p'], null));                  // penalties
           bool highlight = s['selected'] == score['id'];
 
           MaterialStateProperty<Color>? rowColour = highlight

@@ -3,13 +3,12 @@
 
 """
 from datetime import datetime
-import enum
+from enum import Enum as PyEnum
 from typing import List, Optional
 
 from flask_login import UserMixin
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer
+from sqlalchemy import Enum, ForeignKey, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
 from sqlalchemy.types import String
 
 
@@ -18,32 +17,9 @@ class Base(DeclarativeBase):
 
 metadata = Base.metadata
 
-class RoleEnum(enum.Enum):
+class Role(PyEnum):
     admin = "admin"
     editor = "editor"
-
-Role: RoleEnum = Enum(
-    RoleEnum,
-    name="roles",
-    create_constraint=True,
-    metadata=Base.metadata,
-    validate_strings=True,
-    )
-
-
-class FCMToken(Base):
-    __tablename__ = "fcm_token"
-    token: Mapped[str] = mapped_column(String, primary_key=True)
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        )
-    tournament_id: Mapped[str] = mapped_column(
-        String,
-        ForeignKey('tournament.id'),
-        )
-    some_integer: Mapped[int] = mapped_column(Integer)
-    tournament = relationship("Tournament", back_populates="fcm_tokens")
 
 
 class Access(Base):
@@ -52,10 +28,10 @@ class Access(Base):
         ForeignKey("user.email"), primary_key=True)
     tournament_id: Mapped[str] = mapped_column(
         ForeignKey("tournament.id"), primary_key=True)
-    role: Mapped[str] = mapped_column(
-        Role,
+    role: Mapped[Role] = mapped_column(
+        Enum(Role),
         nullable=False,
-        default=RoleEnum.editor,
+        default=Role.editor,
         )
 
     user: Mapped["User"] = relationship(back_populates="tournaments")

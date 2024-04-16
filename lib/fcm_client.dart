@@ -49,16 +49,20 @@ It is also recommended to complete your logic as soon as possible. Running long,
   _handleMessage(message);
 }
 
-void subscribeUserToTopic(String tournament) async {
-  // TODO not yet called from anywhere
-  // subscribe to topic on each app start-up
-  await messaging.subscribeToTopic(tournament);
+Future<void> subscribeUserToTopic(String topic, String? previous) async {
+  // this subscription persists through app restarts and changes of token
+  if (previous != null) {
+    // we await the unsubscribe, to avoid a race between subscribe & unsubscribe if the user re-selects the same thing
+    await messaging.unsubscribeFromTopic(previous);
+  }
+  messaging.subscribeToTopic(topic);
 }
 
-void unsubscribeUserToTopic(String tournament) async {
-  // TODO not yet called from anywhere
-  await messaging.unsubscribeFromTopic(tournament);
+/* current unused
+Future<void> unsubscribeUserToTopic(String topic) async {
+  messaging.unsubscribeFromTopic(topic);
 }
+*/
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';

@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_redux/flutter_redux.dart';
 import 'package:intl/intl.dart';
 
 import 'db.dart';
+import 'fcm_client.dart';
 import 'frame.dart';
+import 'store.dart';
 import 'utils.dart';
 
 class Tournaments extends StatelessWidget {
@@ -74,6 +75,7 @@ class _TournamentListState extends State<TournamentList> {
                       "$dateRange - ${DateFormat('HH:mm d MMM y').format(ed)}"
                       "\n${metadata['country']}"),
                   onTap: () {
+                    subscribeUserToTopic(t.id, store.state.tournament);
                     DB.instance.getTournament(t);
                     Navigator.popAndPushNamed(context, ROUTES.scoreTable);
                   },
