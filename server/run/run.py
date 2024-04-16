@@ -25,7 +25,7 @@ def _send_topic_fcm(topic: str, title: str, body: str):
     print('Successfully sent message:', response)
 
 
-@blueprint.route('/run')
+@blueprint.route('/run/')
 @login_required
 def run_tournament():
     if hasattr(current_user, 'tournament'):
@@ -46,10 +46,20 @@ def select_tournament():
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
-    # TODO send notifications
-    _scores_to_cloud()
-    _players_to_cloud()
-    _seating_to_cloud()
+    players = _players_to_cloud()
+    scores = _scores_to_cloud()
+    seats = _seating_to_cloud()
+
+    _send_topic_fcm('Y3sDqxajiXefmP9XBTvY', 'Scores have been updated', '')
+    done = scores[0]['roundDone']
+    for s in scores:
+        name = players[s['id']]
+        _send_topic_fcm(
+            f"Y3sDqxajiXefmP9XBTvY-{s['id']}",
+            f"{name} is now in {s['r']} position",
+            f"with {s['t']} points after {done} round(s)",
+            )
+
     return 'data has been stored in the cloud', 200
 
 
@@ -79,9 +89,11 @@ def _scores_to_cloud():
             "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             })
 
+
     all_scores[0]['roundDone'] = done
     out : str = json.dumps(all_scores, ensure_ascii=False, indent=None)
     _save_to_cloud('scores', out)
+    return all_scores
 
 
 @login_required
@@ -92,6 +104,7 @@ def _players_to_cloud():
     players = {int(p[0]): p[2] for p in raw}
     out : str = json.dumps(players, ensure_ascii=False, indent=None)
     _save_to_cloud('players', out)
+    return players
 
 
 @login_required
@@ -118,6 +131,7 @@ def _seating_to_cloud():
         seating[-1]['tables'][table] = players
     out : str = json.dumps(seating, ensure_ascii=False, indent=None)
     _save_to_cloud('seating', out)
+    return seating
 
 
 @login_required

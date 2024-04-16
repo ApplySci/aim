@@ -49,6 +49,13 @@ It is also recommended to complete your logic as soon as possible. Running long,
   _handleMessage(message);
 }
 
+/* TODO
+offer the user a complete notification reset option which will involve a forced
+refresh of the fcm token, if that's possible.
+
+ */
+
+
 Future<void> subscribeUserToTopic(String topic, String? previous) async {
   // this subscription persists through app restarts and changes of token
   if (previous != null) {
