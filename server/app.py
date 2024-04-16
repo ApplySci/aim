@@ -15,16 +15,19 @@ sys.path.insert(
         inspect.currentframe()))[0]))
     )
 
-from create.tournament_setup import create_blueprint
-from public.public import public_blueprint
-from root import root_blueprint
+from accounts.accounts import blueprint as bp_accounts
+from run.admin import blueprint as bp_admin
+from create.tournament_setup import blueprint as bp_create
+from public.public import blueprint as bp_public
+from root import blueprint as bp_root
+from run.run import blueprint as bp_run
 from oauth_setup import config_oauth, config_login_manager, config_db
 
 def create_app():
     app = Flask(__name__)
-    app.register_blueprint(create_blueprint)
-    app.register_blueprint(public_blueprint)
-    app.register_blueprint(root_blueprint)
+    for bp in (bp_accounts, bp_create, bp_public, bp_root, bp_run, bp_admin):
+        app.register_blueprint(bp)
+
     app.config.from_object('config')
     app.debug = True
     config_oauth(app)

@@ -5,7 +5,7 @@ import os
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-from firebase_admin import credentials, initialize_app
+from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, DEFAULT_OWNER
@@ -18,8 +18,7 @@ db = SQLAlchemy()
 app_directory = os.path.dirname(os.path.realpath(__file__))
 KEYFILE = os.path.join(app_directory, 'fcm-admin.json')
 
-cred = credentials.Certificate(KEYFILE)
-initialize_app(cred)
+initialize_firebase(credentials.Certificate(KEYFILE))
 firestore_client = firestore.client()
 
 def config_db(app):

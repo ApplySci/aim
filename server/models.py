@@ -69,7 +69,6 @@ class Tournament(Base):
        "Hanchan",
        back_populates="tournament",
     )
-    fcm_tokens = relationship("FCMToken", back_populates="tournament")
 
 
 class User(Base, UserMixin):
