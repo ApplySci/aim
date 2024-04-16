@@ -39,10 +39,10 @@ cloud, for onward transmission to the app (in progress).
 
 App notifications are by **Firebase Cloud Messaging** (in progress).
 And via **APN**, for IOS (not started yet).
-Live tournament data is stored in **Google Cloud Firestore** (in progress).
+Live tournament data is stored in **Google Cloud Firestore** (done).
 
 When the app has a connection, and is in foreground or background, any update to
-the firebase cloud data gets noticed by the listener.
+the firebase cloud data gets noticed by the listener (done).
 If the app is closed, then it won't know anything about it, so I plan to trigger
 a push notification from my server (in progress).
 
@@ -63,6 +63,10 @@ do all the clever io stuff, and I just concentrate on the mahjong stuff.
 
 ### Scores stored as integers
 
+
+In the Google scoresheet, scores are stored in their real form, as floats with one decimal place:
+so +29.1 is stored as 29.1 And -5.0 is stored as -5.0.
+
 On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored as
  integers. That's to avoid any nonsense with inaccurate floating point arithmetic.
 So a tournament score of +29.1 is stored as 291. A score of -5.0 is stored as -50.
@@ -72,8 +76,6 @@ The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
 happens in [lib/score_cell.dart](lib/score_cell.dart#L16)
 
-In the Google scoresheet, scores are stored in their real form, as floats with one decimal place:
-so +29.1 is stored as 29.1 And -5.0 is stored as -5.0.
 
 ### In the app, all state is in a single global variable
 
@@ -84,7 +86,7 @@ as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/stor
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
-There will be logins for the server admin, using Google oauth2 and Flask logins (in progress).
+There are logins for tournament admin and server admin, using Google oauth2 and Flask logins (in progress).
 
 And the Google Sheet that is used for scoring for any given tournament,
 will have access permissions managed by Google.

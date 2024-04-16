@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'fcm_client.dart';
 import 'utils.dart';
 
 late SharedPreferences _prefs;

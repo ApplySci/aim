@@ -52,9 +52,11 @@ It is also recommended to complete your logic as soon as possible. Running long,
 Future<void> subscribeUserToTopic(String topic, String? previous) async {
   // this subscription persists through app restarts and changes of token
   if (previous != null) {
-    // we await the unsubscribe, to avoid a race between subscribe & unsubscribe if the user re-selects the same thing
+    // we await the unsubscribe, to avoid a race between subscribe & unsubscribe
+    //   if the user re-selects the same thing
     await messaging.unsubscribeFromTopic(previous);
   }
+  Log.debug("FCM subscribing to $topic");
   messaging.subscribeToTopic(topic);
 }
 

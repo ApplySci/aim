@@ -13,7 +13,6 @@ from oauth_setup import db, firestore_client
 from models import Access
 
 blueprint = Blueprint('run', __name__)
-messages_by_user = {}
 
 
 @login_required
