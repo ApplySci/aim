@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,7 +16,15 @@ class DB {
     GlobalKey<ScaffoldMessengerState>();
 
   Stream<QuerySnapshot> getTournaments() {
-    return _db.collection('tournaments').snapshots();
+    Stream<QuerySnapshot> docs;
+    Log.debug('kDebugMode is $kDebugMode');
+    if (kDebugMode) {
+      docs = _db.collection('tournaments').snapshots();
+    } else {
+      docs = _db.collection('tournaments')
+          .where('status', isEqualTo: 'live').snapshots();
+    }
+    return docs;
   }
 
   Future<void> getTournament(DocumentSnapshot t) async {
