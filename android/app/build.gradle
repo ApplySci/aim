@@ -69,8 +69,8 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
         }
     }
     buildToolsVersion '34.0.0'
