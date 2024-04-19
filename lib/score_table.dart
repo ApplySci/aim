@@ -91,7 +91,7 @@ class ScoreTable extends StatelessWidget {
           shade = !shade;
         }
 
-        return Frame(
+        return navFrame(
           context,
           SingleChildScrollView(
             scrollDirection: Axis.vertical,

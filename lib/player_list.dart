@@ -16,7 +16,7 @@ class Players extends StatelessWidget {
     return StoreConnector<AllState, Map<String, dynamic>>(converter: (store) {
       return {'selected': store.state.selected, 'players': store.state.players};
     }, builder: (BuildContext context, Map<String, dynamic> incoming) {
-      return Frame(
+      return navFrame(
         context,
         Center(
           child: Column(

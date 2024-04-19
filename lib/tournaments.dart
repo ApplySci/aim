@@ -12,7 +12,7 @@ class Tournaments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Frame(
+    return navFrame(
       context,
       const Center(
         child: Column(

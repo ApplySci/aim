@@ -79,7 +79,7 @@ class _SeatingState extends State<Seating> {
         SeatingPlan seats =
             s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
         if (seats.isEmpty) {
-          return Frame(context,
+          return navFrame(context,
               const Center(child: Text('No seating schedule available')));
         }
 
@@ -104,7 +104,7 @@ class _SeatingState extends State<Seating> {
           );
         }
         rows.addAll(getHanchan(seats, s['roundDone']));
-        return Frame(
+        return navFrame(
             context, SingleChildScrollView(child: Column(children: rows)));
       },
     );

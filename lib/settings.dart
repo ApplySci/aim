@@ -37,7 +37,7 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Frame(
+    return navFrame(
       context,
       ListView(
         children: <Widget>[

@@ -23,7 +23,7 @@ class _MyHomePageState extends State<MyHomePage> {
       child: StoreConnector<AllState, String>(
         converter: (store) => store.state.preferences['backgroundColour'],
         builder: (BuildContext context, String color) {
-          return Frame(
+          return navFrame(
             context,
             const TournamentList(),
           );

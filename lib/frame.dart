@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'utils.dart';
 import 'venue.dart';
 
-Widget Frame(BuildContext context, Widget body) {
+Widget navFrame(BuildContext context, Widget body) {
   final List<Widget> actions = [];
 
   actions.add(IconButton(
