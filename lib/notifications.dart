@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'firebase_options.dart';
 import 'utils.dart';
@@ -68,6 +69,15 @@ Future<void> requestPermissions() async { // tested, works
 
   Log.debug('User response to request for alarms permission: $alarms');
 
+  // TODO add permission_handler package
+  final status = await Permission.scheduleExactAlarm.status;
+  Log.debug('Schedule exact alarm permission: $status.');
+  if (status.isDenied) {
+    Log.debug('Requesting schedule exact alarm permission...');
+    final res = await Permission.scheduleExactAlarm.request();
+    String granted = res.isGranted ? 'granted' : 'REFUSED';
+    Log.debug('Schedule exact alarm permission $granted');
+  }
 }
 
 

@@ -1,4 +1,5 @@
 // native imports
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +13,7 @@ import 'home.dart';
 import 'player_list.dart';
 import 'score_table.dart';
 import 'seats.dart';
+import 'settings.dart';
 import 'store.dart';
 import 'tournaments.dart';
 import 'utils.dart';
@@ -34,6 +36,7 @@ Future main() async {
     systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
   ));
   await setupFCM();
+  await Alarm.init();
 
   DB.instance.getTournaments();
   // TODO if there's a tournament in shared_preferences, use it
@@ -62,6 +65,7 @@ class MyApp extends StatelessWidget {
                 ROUTES.home: (context) => const MyHomePage(),
                 ROUTES.seating: (context) => const Seating(),
                 ROUTES.players: (context) => const Players(),
+                ROUTES.settings: (context) => const SettingsScreen(),
                 ROUTES.tournaments: (context) => const Tournaments(),
                 ROUTES.scoreTable: (context) => const ScoreTable(),
                 // ROUTES.settings: (context) => const (),
