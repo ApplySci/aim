@@ -64,25 +64,25 @@ class ScoreTable extends StatelessWidget {
 
         for (final score in s['scores']) {
           List<DataCell> row = [
-            DataCell(Text(score['r'])),                          // rank
+            DataCell(Text(score['r'])), // rank
             DataCell(ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
-            )),                                                  // name
-            ScoreCell(score['t'], onTap),                        // total
+            )), // name
+            ScoreCell(score['t'], onTap), // total
             DataCell(_verticalDivider),
           ];
           for (int i = rounds - 1; i >= 0; i--) {
-            row.add(ScoreCell(score['s'][i], onTap));            // round scores
+            row.add(ScoreCell(score['s'][i], onTap)); // round scores
           }
-          row.add(ScoreCell(score['p'], null));                  // penalties
+          row.add(ScoreCell(score['p'], null)); // penalties
           bool highlight = s['selected'] == score['id'];
 
           MaterialStateProperty<Color>? rowColour = highlight
               ? MaterialStateProperty.all<Color>(selectedHighlight)
               : (shade
-              ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
-              : null);
+                  ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
+                  : null);
 
           rows.add(DataRow(
             color: rowColour,
@@ -94,16 +94,14 @@ class ScoreTable extends StatelessWidget {
         return navFrame(
           context,
           SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: rows.isEmpty ? const Text('no data yet') :
-                DataTable(
-                columns: columns,
-                rows: rows,
-                columnSpacing: 10,
-              ),
-            ),
+            scrollDirection: Axis.horizontal,
+            child: rows.isEmpty
+                ? const Text('no data yet')
+                : DataTable(
+                    columns: columns,
+                    rows: rows,
+                    columnSpacing: 10,
+                  ),
           ),
         );
       },

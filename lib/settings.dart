@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,7 +40,7 @@ class SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return navFrame(
       context,
-      ListView(
+      Column(
         children: <Widget>[
           SwitchListTile(
             title: const Text('Alarms for start of hanchan'),

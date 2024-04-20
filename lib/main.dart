@@ -10,6 +10,7 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'db.dart';
 import 'fcm_client.dart';
 import 'home.dart';
+import 'info.dart';
 import 'player_list.dart';
 import 'score_table.dart';
 import 'seats.dart';
@@ -20,7 +21,13 @@ import 'utils.dart';
 
 void prefsCallback(Map prefs) {
   if (prefs.containsKey('tournament')) {
-    DB.instance.getTournament(prefs['tournament']);
+    DB.instance.getTournament(
+      prefs['tournament'],
+      {
+        'name': prefs['tournamentName'],
+        'address': prefs['tournamentAddress'],
+      },
+    );
   }
 }
 
@@ -54,23 +61,25 @@ class MyApp extends StatelessWidget {
           converter: (store) => store.state.preferences['backgroundColour'],
           builder: (BuildContext context, String color) {
             return MaterialApp(
-              initialRoute: ROUTES.home,
-              scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
-              title: 'All-Ireland Mahjong Tournaments',
-              theme: ThemeData(
-                colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-                useMaterial3: true,
-              ),
-              routes: {
-                ROUTES.home: (context) => const MyHomePage(),
-                ROUTES.seating: (context) => const Seating(),
-                ROUTES.players: (context) => const Players(),
-                ROUTES.settings: (context) => const SettingsScreen(),
-                ROUTES.tournaments: (context) => const Tournaments(),
-                ROUTES.scoreTable: (context) => const ScoreTable(),
-                // ROUTES.settings: (context) => const (),
-                // ROUTES.privacyPolicy: (context) => const (),
-              }
+                initialRoute: ROUTES.home,
+                scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
+                title: 'All-Ireland Mahjong Tournaments',
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                      seedColor: Colors.deepPurple),
+                  useMaterial3: true,
+                ),
+                routes: {
+                  ROUTES.home: (context) => const MyHomePage(),
+                  ROUTES.info: (context) => const TournamentInfo(),
+                  ROUTES.seating: (context) => const Seating(),
+                  ROUTES.players: (context) => const Players(),
+                  ROUTES.settings: (context) => const SettingsScreen(),
+                  ROUTES.tournaments: (context) => const Tournaments(),
+                  ROUTES.scoreTable: (context) => const ScoreTable(),
+                  // ROUTES.settings: (context) => const (),
+                  // ROUTES.privacyPolicy: (context) => const (),
+                }
             );
           }),
     );

@@ -29,6 +29,8 @@ class Tournaments extends StatelessWidget {
 class TournamentList extends StatefulWidget {
   const TournamentList({super.key});
 
+
+  // TODO we need the whole tournament doc
   @override
   State createState() => _TournamentListState();
 }
@@ -75,7 +77,7 @@ class _TournamentListState extends State<TournamentList> {
                       "\n${metadata['country']}"),
                   onTap: () {
                     subscribeUserToTopic(t.id, store.state.tournament);
-                    DB.instance.getTournament(t);
+                    DB.instance.getTournament(t, metadata);
                     Navigator.popAndPushNamed(context, ROUTES.scoreTable);
                   },
                 );

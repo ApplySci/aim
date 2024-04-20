@@ -29,7 +29,9 @@ class AllState {
   int roundDone = 0;
   int selected = -1;
   SeatingPlan theseSeats=[], seating=[];
-  String tournament = 'cork2024';
+  String tournament = "Y3sDqxajiXefmP9XBTvY"; // google document id
+  String tournamentAddress = "The Crows Nest, Victoria Cross Road, Cork, Ireland";
+  String tournamentName = "Irish Riichi Championship 2024";
   Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
 }
 
@@ -122,9 +124,13 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setTournament:
       state.tournament = action['tournament'];
-      state.preferences['tournament'] = state.tournament;
+      state.tournamentName = action['tournamentName'];
+      state.tournamentAddress = action['tournamentAddress'];
       _prefs.setString('tournament', state.tournament);
+      _prefs.setString('tournamentName', state.tournamentName);
+      _prefs.setString('tournamentAddress', state.tournamentAddress);
       break;
+
   }
 
   return state;

@@ -47,6 +47,7 @@ const Map<String, Color> BACKGROUND_COLOURS = {
 
 class ROUTES {
   static const String home = '/home';
+  static const String info = '/info';
   static const String players = '/players';
   static const String privacyPolicy = '/privacyPolicy';
   static const String seating = '/seating';

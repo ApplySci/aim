@@ -105,7 +105,9 @@ class _SeatingState extends State<Seating> {
         }
         rows.addAll(getHanchan(seats, s['roundDone']));
         return navFrame(
-            context, SingleChildScrollView(child: Column(children: rows)));
+          context,
+          Column(children: rows),
+        );
       },
     );
   }
@@ -138,12 +140,12 @@ class _AssignedTableState extends State<AssignedTable> {
         rows.add(DataRow(
             color: MaterialStateProperty.all<Color>(
                 widget.seats[i] == s['selected']
-                ? selectedHighlight
-                : Colors.transparent),
+                    ? selectedHighlight
+                    : Colors.transparent),
             cells: [
-          DataCell(Text(winds[i])),
-          DataCell(Text(s['players'][widget.seats[i]])),
-        ]));
+              DataCell(Text(winds[i])),
+              DataCell(Text(s['players'][widget.seats[i]])),
+            ]));
       }
       return DataTable(
         border: TableBorder.symmetric(
