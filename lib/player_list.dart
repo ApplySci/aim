@@ -97,6 +97,7 @@ class _PlayerListState extends State<PlayerList> {
           'type': STORE.setPlayerId,
           'playerId': selection.id,
         });
+        DB.instance.setAllAlarms();
         Navigator.pop(context);
         final ScaffoldMessengerState? state = DB.instance.scaffoldMessengerKey.currentState;
         state?.showSnackBar(SnackBar(content: Text(

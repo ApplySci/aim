@@ -56,19 +56,22 @@ class DB {
     return docs;
   }
 
-  void setAllAlarms(SeatingPlan seating) {
+  void setAllAlarms() {
     DateTime now = DateTime.now().toUtc();
-    String? playerName;
 
-    if (store.state.selected >= 0) {
-      playerName = store.state.playerMap[store.state.selected];
-    }
     int roundNumber = 1;
     String body;
     String tableName;
     String roundId;
     String title;
+    // a deterministic way to generate a unique-ish int from the google doc id:
     int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
+    bool targetPlayer = store.state.selected >= 0;
+    SeatingPlan seating = targetPlayer ? store.state.theseSeats
+        : store.state.seating;
+    String playerName = targetPlayer
+        ? store.state.playerMap[store.state.selected]!
+        : '';
     for (Map round in seating) {
       Log.debug("Hanchan start time: ${round['start']}");
       DateTime alarmTime =
@@ -79,9 +82,8 @@ class DB {
         // generate alarm id from tournament name and hanchan number
         roundId = round['id'];
         title = "Hanchan $roundId starts in 5 minutes";
-        if (store.state.selected >= 0) {
-          String playerName = store.state.playerMap[store.state.selected]!;
-          tableName = store.state.theseSeats[roundNumber]['tables'].keys.first;
+        if (targetPlayer) {
+          tableName = round['tables'].keys.first;
           body = "$playerName is on table $tableName";
         } else {
           body = '';
@@ -132,7 +134,7 @@ class DB {
             json[0]: jsonDecode(event.data()!['json']),
           });
           if (inSeating && wantAlarms) {
-            setAllAlarms(store.state.seating);
+            setAllAlarms();
           }
           final ScaffoldMessengerState? state =
               scaffoldMessengerKey.currentState;
