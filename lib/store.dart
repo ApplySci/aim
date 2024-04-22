@@ -72,6 +72,7 @@ AllState stateReducer(AllState state, dynamic action) {
     case STORE.setPlayerId:
       state.selected = action['playerId'];
       state.theseSeats = getSeats(state.seating, state.selected);
+      prefs.setInt('selected', state.selected);
       break;
 
     case STORE.setPlayerList:
@@ -86,20 +87,6 @@ AllState stateReducer(AllState state, dynamic action) {
         state.players = incoming;
       }
       state.playerMap = {for (Player p in state.players) p.id: p.name};
-      break;
-
-    case STORE.setPreferences:
-      action['preferences'].forEach((key, val) {
-        if (val is bool) {
-          prefs.setBool(key, val);
-        } else if (val is String) {
-          prefs.setString(key, val);
-        } else if (val is double) {
-          prefs.setDouble(key, val);
-        } else if (val is int) {
-          prefs.setInt(key, val);
-        }
-      });
       break;
 
     case STORE.setScores:

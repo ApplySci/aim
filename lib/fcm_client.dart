@@ -45,11 +45,6 @@ Future<void> subscribeUserToTopic(String topic, String? previous) async {
   messaging.subscribeToTopic(topic);
 }
 
-/* current unused
-Future<void> unsubscribeUserToTopic(String topic) async {
-  messaging.unsubscribeFromTopic(topic);
-}
-*/
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';

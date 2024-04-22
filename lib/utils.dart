@@ -29,7 +29,6 @@ enum STORE {
   restoreFromJSON,
   setPlayerId,
   setPlayerList,
-  setPreferences,
   setScores,
   setSeating,
   setTournament,

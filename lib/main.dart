@@ -24,6 +24,10 @@ Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await initPrefs();
+  store.dispatch({
+    'type': STORE.setPlayerId,
+    'playerId': prefs.getInt('selected') ?? -2,
+  });
   await setupFCM();
   DB.instance.getTournaments();
   DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
