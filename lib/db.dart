@@ -100,6 +100,7 @@ class DB {
           'tournamentId': docId,
           'tournament': event.data(),
         });
+        listenToTournament(docId);
       },
       onError: (error) => Log.warn("Tournament-doc Listen failed: $error"),
     );

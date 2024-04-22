@@ -1,7 +1,3 @@
-// TODO this was all copied from previous app and needs checking
-
-// TODO when a notif is received, download the latest tournament info
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -69,7 +65,6 @@ Future<void> requestPermissions() async { // tested, works
 
   Log.debug('User response to request for alarms permission: $alarms');
 
-  // TODO add permission_handler package
   final status = await Permission.scheduleExactAlarm.status;
   Log.debug('Schedule exact alarm permission: $status.');
   if (status.isDenied) {

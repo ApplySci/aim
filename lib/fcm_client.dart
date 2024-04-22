@@ -26,34 +26,12 @@ Future<void> setupFCM() async {
 // the following pragma prevents the function from being "optimised" out
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  /* TODO: Missing Default Notification Channel metadata in AndroidManifest.
-           Default value will be used.
-
-  "Since the handler runs in its own isolate outside your applications context,
-  it is not possible to update application state or execute any UI impacting
-  logic. You can, however, perform logic such as HTTP requests, perform IO
-  operations (e.g. updating local storage), communicate with other plugins etc.
-
-It is also recommended to complete your logic as soon as possible. Running long,
-   intensive tasks impacts device performance and may cause the OS to terminate
-   the process. If tasks run for longer than 30 seconds, the device may
-   automatically kill the process."
-
-   So maybe I should just leave a TODO in shared_preferences or something,
-   to do the cloud store update when resume happens properly
-
-   */
   Log.debug("Handling a background message: ${message.messageId}");
   Log.debug("Message body: ${message.notification?.body}");
   _handleMessage(message);
 }
 
-/* TODO
-offer the user a complete notification reset option which will involve a forced
-refresh of the fcm token, if that's possible.
-
- */
-
+// TODO offer the user a notification-reset option, by forcing fcm token refresh
 
 Future<void> subscribeUserToTopic(String topic, String? previous) async {
   // this subscription persists through app restarts and changes of token
@@ -76,12 +54,9 @@ Future<void> unsubscribeUserToTopic(String topic) async {
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
 
-  Log.debug('FCM token: $fcmToken');
-  // TODO send it to our server
-
   messaging.onTokenRefresh.listen((fcmToken) {
     Log.debug('FCM token refreshed: $fcmToken');
-    // TODO send it to our server
+    // TODO may need to re-do all the subscriptions
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
   }).onError((err) {

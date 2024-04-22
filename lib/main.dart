@@ -25,6 +25,7 @@ Future main() async {
 
   await initPrefs();
   await setupFCM();
+  DB.instance.getTournaments();
   DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
@@ -34,7 +35,6 @@ Future main() async {
   ));
   await Alarm.init();
 
-  DB.instance.getTournaments();
   runApp(const MyApp());
 }
 
