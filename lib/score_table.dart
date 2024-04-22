@@ -22,7 +22,9 @@ class ScoreTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return StoreConnector<AllState, Map<String, dynamic>>(
       converter: (store) {
+        bool japaneseNumbers = prefs.getBool('japaneseNumbers') ?? false;
         return {
+          'negSign': japaneseNumbers ? '▲' : '-',
           'scores': store.state.scores,
           'playerMap': store.state.playerMap,
           'rounds': store.state.roundDone,
@@ -69,13 +71,13 @@ class ScoreTable extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(s['playerMap'][score['id']]),
             )), // name
-            ScoreCell(score['t'], onTap), // total
+            ScoreCell(score['t'], s['negSign'], onTap), // total
             DataCell(_verticalDivider),
           ];
           for (int i = rounds - 1; i >= 0; i--) {
-            row.add(ScoreCell(score['s'][i], onTap)); // round scores
+            row.add(ScoreCell(score['s'][i], s['negSign'], onTap)); // round scores
           }
-          row.add(ScoreCell(score['p'], null)); // penalties
+          row.add(ScoreCell(score['p'], s['negSign'], null)); // penalties
           bool highlight = s['selected'] == score['id'];
 
           MaterialStateProperty<Color>? rowColour = highlight

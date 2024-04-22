@@ -14,7 +14,6 @@ Future<void> setupFCM() async {
   setupInteractedMessage(); // Handle any incoming FCM notifications that caused the terminated app to re-open
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  //subscribeUserToTopic(); // TODO get topic(s) from shared_preferences, probably
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     // handle message received when app is in foreground
@@ -61,6 +60,7 @@ Future<void> subscribeUserToTopic(String topic, String? previous) async {
   if (previous != null) {
     // we await the unsubscribe, to avoid a race between subscribe & unsubscribe
     //   if the user re-selects the same thing
+    Log.debug("FCM unsubscribing from $topic");
     await messaging.unsubscribeFromTopic(previous);
   }
   Log.debug("FCM subscribing to $topic");

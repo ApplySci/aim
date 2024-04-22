@@ -26,7 +26,7 @@ class DB {
     DateTime when,
     String title,
     String body,
-    int id, // TODO something we can derive from tourney id and hanchan number
+    int id,
   ) async {
     final alarmSettings = AlarmSettings(
       id: id,
@@ -58,7 +58,6 @@ class DB {
 
   void setAllAlarms() {
     DateTime now = DateTime.now().toUtc();
-
     int roundNumber = 1;
     String body;
     String tableName;
@@ -72,6 +71,7 @@ class DB {
     String playerName = targetPlayer
         ? store.state.playerMap[store.state.selected]!
         : '';
+    // set one alarm for each round
     for (Map round in seating) {
       Log.debug("Hanchan start time: ${round['start']}");
       DateTime alarmTime =
@@ -79,7 +79,6 @@ class DB {
       int alarmId = 10 * alarmIdBase + roundNumber;
       roundNumber += 1;
       if (now.isBefore(alarmTime)) {
-        // generate alarm id from tournament name and hanchan number
         roundId = round['id'];
         title = "Hanchan $roundId starts in 5 minutes";
         if (targetPlayer) {
@@ -93,15 +92,23 @@ class DB {
     }
   }
 
-  Future<void> getTournament(DocumentSnapshot t, Map tData) async {
-    String id = t.id;
-    store.dispatch({
-      'type': STORE.setTournament,
-      'tournament': id,
-      'tournamentName': tData['name'],
-      'tournamentAddress': tData['address'],
-    });
-    var collection = _db.collection('tournaments').doc(id).collection('json');
+  void getTournamentFromId(String docId) {
+    _db.collection('tournaments').doc(docId).snapshots().listen(
+      (event) {
+        store.dispatch({
+          'type': STORE.setTournament,
+          'tournamentId': docId,
+          'tournament': event.data(),
+        });
+      },
+      onError: (error) => Log.warn("Tournament-doc Listen failed: $error"),
+    );
+  }
+
+
+  Future<void> listenToTournament(String docId) async {
+  CollectionReference collection = _db.collection('tournaments').doc(docId)
+        .collection('json');
 
     List jsons = [
       [
@@ -129,9 +136,10 @@ class DB {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           bool inSeating = json[0] == "seating";
           bool wantAlarms = prefs.getBool('alarm') ?? true;
+          dynamic eventData = event.data();
           store.dispatch({
             'type': json[1],
-            json[0]: jsonDecode(event.data()!['json']),
+            json[0]: jsonDecode(eventData['json']),
           });
           if (inSeating && wantAlarms) {
             setAllAlarms();

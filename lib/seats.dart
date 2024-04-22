@@ -131,7 +131,7 @@ class _AssignedTableState extends State<AssignedTable> {
       return {
         'players': store.state.playerMap,
         'selected': store.state.selected,
-        'winds': store.state.preferences['japaneseWinds'],
+        'winds': prefs.getBool('japaneseWinds') ?? false,
       };
     }, builder: (BuildContext context, Map<String, dynamic> s) {
       List<DataRow> rows = <DataRow>[];

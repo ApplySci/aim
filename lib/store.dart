@@ -8,7 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'utils.dart';
 
-late SharedPreferences _prefs;
+late SharedPreferences prefs;
+
+Future<void> initPrefs() async {
+  prefs = await SharedPreferences.getInstance();
+}
 
 const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
@@ -16,7 +20,7 @@ const Map<String, dynamic> DEFAULT_PREFERENCES = {
   'japaneseNumbers': false,
   'serverUrl': 'https://tournaments.mahjong.ie/',
   'todo': [],
-  'tournament': 'cork2024',
+  'tournamentId': "Y3sDqxajiXefmP9XBTvY",
   'playerId': -1, // id of player being focused on
 };
 
@@ -28,12 +32,15 @@ class AllState {
   Map<int, String> playerMap = {};
   int roundDone = 0;
   int selected = -1;
-  SeatingPlan theseSeats=[], seating=[];
-  String tournament = "Y3sDqxajiXefmP9XBTvY"; // google document id
-  String tournamentAddress = "The Crows Nest, Victoria Cross Road, Cork, Ireland";
-  String tournamentName = "Irish Riichi Championship 2024";
-  Map<String, dynamic> preferences = Map.from(DEFAULT_PREFERENCES);
+  SeatingPlan theseSeats=[];
+  SeatingPlan seating=[];
+  String tournamentId = "Y3sDqxajiXefmP9XBTvY";  // google document id
+  Map<String, dynamic> tournament = {
+    'name': 'Irish Riichi Open 2024',
+    'address': 'The Crows Nest, Victoria Cross Road, Cork, Ireland',
+  };
 }
+
 
 /// Sole arbiter of the contents of the Store after initialisation
 AllState stateReducer(AllState state, dynamic action) {
@@ -51,14 +58,6 @@ AllState stateReducer(AllState state, dynamic action) {
   STORE toDo = action is STORE ? action : action['type'];
 
   switch (toDo) {
-    case STORE.initPreferences:
-      action['preferences'].forEach((key, val) {
-        state.preferences[key] = val;
-      });
-      if (action['preferences'].containsKey('tournament')) {
-        state.tournament = action['preferences']['tournament'];
-      }
-      break;
 
     case STORE.restoreFromJSON:
       try {
@@ -91,15 +90,14 @@ AllState stateReducer(AllState state, dynamic action) {
 
     case STORE.setPreferences:
       action['preferences'].forEach((key, val) {
-        state.preferences[key] = val;
         if (val is bool) {
-          _prefs.setBool(key, val);
+          prefs.setBool(key, val);
         } else if (val is String) {
-          _prefs.setString(key, val);
+          prefs.setString(key, val);
         } else if (val is double) {
-          _prefs.setDouble(key, val);
+          prefs.setDouble(key, val);
         } else if (val is int) {
-          _prefs.setInt(key, val);
+          prefs.setInt(key, val);
         }
       });
       break;
@@ -123,38 +121,17 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setTournament:
-      state.tournament = action['tournament'];
-      state.tournamentName = action['tournamentName'];
-      state.tournamentAddress = action['tournamentAddress'];
-      _prefs.setString('tournament', state.tournament);
-      _prefs.setString('tournamentName', state.tournamentName);
-      _prefs.setString('tournamentAddress', state.tournamentAddress);
+      state.tournament = Map.from(action['tournament']);
+      if (state.tournament.containsKey('json')) {
+        state.tournament.remove('json');
+      }
+      state.tournament['id'] = action['tournamentId'];
+      prefs.setString('tournamentId', action['tournamentId']);
       break;
 
   }
 
   return state;
-}
-
-/// Initialise preferences, using defaults and values from disk
-Future initPrefs(callback) {
-  return SharedPreferences.getInstance().then((SharedPreferences prefs) {
-    _prefs = prefs;
-    final Map prefsFromDisk = {
-      'type': STORE.initPreferences,
-      'preferences': {}
-    };
-    store.state.preferences.forEach((key, val) {
-      dynamic test = _prefs.get(key);
-      if (test != null && test != val) {
-        prefsFromDisk['preferences'][key] = test;
-      }
-    });
-    if (prefsFromDisk['preferences'].length > 0) {
-      store.dispatch(prefsFromDisk);
-      callback(prefsFromDisk);
-    }
-  });
 }
 
 /// global variables are bad. But incredibly useful here.

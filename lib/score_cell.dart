@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'store.dart';
-
 class ScoreCell extends DataCell {
   final int score;
-  @override
-  final GestureTapCallback? onTap;
-
-  ScoreCell(this.score, this.onTap)
+  final String negSign;
+  ScoreCell(this.score, this.negSign, GestureTapCallback? onTap)
       : super(InkWell(
           onTap: onTap,
           child: Text(
-            NumberFormat('+#0.0;${store.state.preferences['japaneseNumbers'] ? '▲' : '-'}#0.0'
+            NumberFormat('+#0.0;$negSign#0.0'
             ).format(score / 10),
             // Display score with 1 decimal point
             style: TextStyle(

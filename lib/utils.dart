@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/intl.dart';
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -25,7 +26,6 @@ T enumFromString<T>(String key, List<T> values) {
 enum LOG { debug, info, score, unusual, warn, error }
 
 enum STORE {
-  initPreferences,
   restoreFromJSON,
   setPlayerId,
   setPlayerList,
@@ -44,6 +44,24 @@ const Map<String, Color> BACKGROUND_COLOURS = {
   'fireball red': Color(0xFF330000),
   'deep purple': Color(0xFF220033),
 };
+
+String dateRange(dynamic startDT, dynamic endDT) {
+  DateTime sd = startDT.toDate();
+  DateTime ed = endDT.toDate();
+  String start = 'ERROR: unassigned dateRange!';
+  if (sd.year == ed.year) {
+    if (sd.month == ed.month && sd.day == ed.day) {
+      start = DateFormat('HH:mm').format(sd);
+    } else {
+      start = DateFormat('HH:mm d MMM').format(sd);
+    }
+  } else {
+    start = DateFormat('HH:mm d MMM y').format(sd);
+  }
+  String end = DateFormat('HH:mm d MMM y').format(ed);
+  return "$start - $end";
+}
+
 
 class ROUTES {
   static const String home = '/home';
@@ -74,34 +92,6 @@ class Player implements Comparable<Player> {
 
   @override
   toString() => '$name ($id)';
-}
-
-class GLOBAL {
-  static bool nameIsNotUnique(String name) {
-    for (Map<String, dynamic> player in allPlayers) {
-      if (player['name'] == name) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static String currentRouteName(BuildContext context) {
-    String routeName = '';
-
-    Navigator.popUntil(context, (route) {
-      if (route.settings.name != null) {
-        routeName = route.settings.name!;
-      }
-      return true;
-    });
-
-    return routeName;
-  }
-
-  static List<Map<String, dynamic>> allPlayers = [];
-  static bool playersListUpdated = false;
-  static int nextUnregisteredID = -2;
 }
 
 typedef SeatingPlan = List<Map<String, dynamic>>;

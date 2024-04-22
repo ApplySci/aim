@@ -104,8 +104,8 @@ class _PlayerListState extends State<PlayerList> {
             '${selection.name} will be highlighted in seating & scores, and you will receive updates for them'
         )));
         subscribeUserToTopic(
-            '${store.state.tournament}-${selection.id}',
-            '${store.state.tournament}-$previousSelection'
+            '${store.state.tournamentId}-${selection.id}',
+            '${store.state.tournamentId}-$previousSelection'
         );
       },
       suggestionsCallback: (String needle) {

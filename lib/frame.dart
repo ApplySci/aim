@@ -8,14 +8,11 @@ import 'venue.dart';
 
 Widget navFrame(BuildContext context, Widget body) {
 
-  return StoreConnector<AllState, Map<String, dynamic>>(
+  return StoreConnector<AllState, Map<String,dynamic>>(
     converter: (store) {
-      return {
-        'name': store.state.tournamentName,
-        'address': store.state.tournamentAddress,
-      };
+      return store.state.tournament;
     },
-    builder: (BuildContext context, Map<String, dynamic> s) {
+    builder: (BuildContext context, Map<String,dynamic> t) {
       final List<Widget> actions = [];
 
       actions.add(IconButton(
@@ -28,7 +25,7 @@ Widget navFrame(BuildContext context, Widget body) {
       ));
       actions.add(IconButton(
         icon: const Icon(Icons.location_on),
-        onPressed: () => openMap(s['address'])
+        onPressed: () => openMap(t['address'])
       ));
       actions.add(IconButton(
         icon: const Icon(Icons.info),
@@ -61,7 +58,7 @@ Widget navFrame(BuildContext context, Widget body) {
           child: Column(
             children: [
               Text(
-                s['name'],
+                t['name'],
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'db.dart';
 import 'fcm_client.dart';
 import 'frame.dart';
@@ -29,8 +28,6 @@ class Tournaments extends StatelessWidget {
 class TournamentList extends StatefulWidget {
   const TournamentList({super.key});
 
-
-  // TODO we need the whole tournament doc
   @override
   State createState() => _TournamentListState();
 }
@@ -55,29 +52,22 @@ class _TournamentListState extends State<TournamentList> {
           shrinkWrap: true,
           children: snapshot.data!.docs
               .map((DocumentSnapshot t) {
-                Map<String, dynamic> metadata =
-                    t.data()! as Map<String, dynamic>;
-                // TODO make it a function that returns a string with nice format
-                DateTime sd = metadata['start_date'].toDate();
-                DateTime ed = metadata['end_date'].toDate();
-                String dateRange = 'ERROR: unassigned dateRange!';
-                if (sd.year == ed.year) {
-                  if (sd.month == ed.month && sd.day == ed.day) {
-                    dateRange = DateFormat('HH:mm').format(sd);
-                  } else {
-                    dateRange = DateFormat('HH:mm d MMM').format(sd);
-                  }
-                } else {
-                  dateRange = DateFormat('HH:mm d MMM y').format(sd);
-                }
+                Map<String, dynamic> tData = t.data()! as Map<String, dynamic>;
+                String dates = dateRange(
+                  tData['start_date'],
+                  tData['end_date'],
+                );
                 return ListTile(
-                  title: Text(metadata['name']),
-                  subtitle: Text(
-                      "$dateRange - ${DateFormat('HH:mm d MMM y').format(ed)}"
-                      "\n${metadata['country']}"),
+                  title: Text(tData['name']),
+                  subtitle: Text("$dates\n${tData['country']}"),
                   onTap: () {
-                    subscribeUserToTopic(t.id, store.state.tournament);
-                    DB.instance.getTournament(t, metadata);
+                    subscribeUserToTopic(t.id, store.state.tournament['id']);
+                    store.dispatch({
+                      'type': STORE.setTournament,
+                      'tournamentId': t.id,
+                      'tournament': tData,
+                    });
+                    DB.instance.listenToTournament(t.id);
                     Navigator.popAndPushNamed(context, ROUTES.scoreTable);
                   },
                 );

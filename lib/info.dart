@@ -11,19 +11,13 @@ class TournamentInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return StoreConnector<AllState, Map<String, dynamic>>(
       converter: (store) {
-        return {
-          'name': store.state.tournamentName,
-          'address': store.state.tournamentAddress,
-          'playerMap': store.state.playerMap,
-          'rounds': store.state.roundDone,
-          'selected': store.state.selected,
-        };
+        return store.state.tournament;
       },
-      builder: (BuildContext context, Map<String, dynamic> s) {
+      builder: (BuildContext context, Map<String, dynamic> t) {
         return navFrame(
           context,
           Column(children: [
-            Row(children: [const Icon(Icons.location_on), Text(s['address'])]),
+            Row(children: [const Icon(Icons.location_on), Text(t['address'])]),
           ]),
         );
       },

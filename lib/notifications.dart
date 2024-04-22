@@ -81,33 +81,6 @@ Future<void> requestPermissions() async { // tested, works
 }
 
 
-Future<void> _showNotification() async {
-  // TODO schedule a notification for just before a hanchan starts
-  //      add the following to the zonedSchedule notifications:
-  //      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  // or androidScheduleMode: AndroidScheduleMode.alarmClock
-  // see https://developer.android.com/develop/background-work/services/alarms/schedule#set-exact-alarm
-  var androidPlatformChannelSpecifics = const AndroidNotificationDetails(
-    'channel_ID',
-    'channel_name',
-    channelDescription: 'channel_description',
-    importance: Importance.max,
-    priority: Priority.high,
-  );
-  var iOSPlatformChannelSpecifics = const DarwinNotificationDetails();
-  var platformChannelSpecifics = NotificationDetails(
-    android: androidPlatformChannelSpecifics,
-    iOS: iOSPlatformChannelSpecifics,
-  );
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    'Test Title',
-    'Test Body',
-    platformChannelSpecifics,
-    payload: 'Test Payload',
-  );
-}
-
 Future<void> notifyWhenFocused(message) async { // called from fcm_client
   // worked on Moto G 5G
   // But it's not at all clear that it's useful
