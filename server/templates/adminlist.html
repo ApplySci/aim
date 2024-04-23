@@ -24,7 +24,7 @@ function delet_dis(index, id) {
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
     xhr.open("DELETE",
-      `{{ url_for('create.delet_dis', doc_id='') }}${id}`,
+      `{{ url_for('admin.delet_dis', doc_id='') }}${id}`,
       true);
     xhr.onload = function() {
         if (xhr.readyState == 4) {

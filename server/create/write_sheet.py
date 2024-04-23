@@ -123,7 +123,7 @@ class GSP:
     def _reduce_players(self, table_count: int) -> None:
         player_count = table_count * 4
         sheet = self.live_sheet.worksheet('players')
-        sheet.delete_rows(4 + player_count, 1 + MAX_TABLES * 4)
+        sheet.delete_rows(4 + player_count, 3 + MAX_TABLES * 4)
         # randomise the seating. We expect organisers to do their own
         # randomising though. These are just placeholders, really
         seats = list(range(1, player_count + 1))

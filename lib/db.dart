@@ -57,6 +57,7 @@ class DB {
   }
 
   void setAllAlarms() {
+    // TODO check behaviour with mixed timezones!
     DateTime now = DateTime.now().toUtc();
     int roundNumber = 1;
     String body;
@@ -93,6 +94,7 @@ class DB {
   }
 
   void getTournamentFromId(String docId) {
+    if (docId.length < 5) return;
     _db.collection('tournaments').doc(docId).snapshots().listen(
       (event) {
         store.dispatch({

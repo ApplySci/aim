@@ -24,11 +24,9 @@ Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await initPrefs();
-  store.dispatch({
-    'type': STORE.setPlayerId,
-    'playerId': prefs.getInt('selected') ?? -2,
-  });
   await setupFCM();
+
+  // TOFIX TODO need to get the default right, if no preferences are present / no tournament is selected
   DB.instance.getTournaments();
   DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -65,7 +63,6 @@ class MyApp extends StatelessWidget {
           ROUTES.settings: (context) => const SettingsScreen(),
           ROUTES.tournaments: (context) => const Tournaments(),
           ROUTES.scoreTable: (context) => const ScoreTable(),
-          // ROUTES.privacyPolicy: (context) => const (),
         },
       ),
     );

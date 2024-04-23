@@ -49,7 +49,7 @@ def sheet_to_cloud():
     players = _players_to_cloud()
     scores = _scores_to_cloud()
     seats = _seating_to_cloud()
-
+    # TODO get actual tournament doc, not this hardcoded id!
     _send_topic_fcm('Y3sDqxajiXefmP9XBTvY', 'Scores have been updated', '')
     done = scores[0]['roundDone']
     for s in scores:

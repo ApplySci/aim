@@ -21,6 +21,7 @@ KEYFILE = os.path.join(app_directory, 'fcm-admin.json')
 initialize_firebase(credentials.Certificate(KEYFILE))
 firestore_client = firestore.client()
 
+
 def config_db(app):
 
     # Get the directory of the current file
@@ -63,6 +64,7 @@ def config_db(app):
 
 def config_login_manager(app):
     login_manager.init_app(app)
+    login_manager.login_view = '/login'
 
 def config_oauth(app):
     oauth.init_app(app)

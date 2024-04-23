@@ -13,7 +13,6 @@ from models import User
 blueprint = Blueprint('accounts', __name__)
 messages_by_user = {}
 
-login_manager.login_view = '/'
 
 
 @login_manager.user_loader
@@ -28,13 +27,13 @@ def delete_account():
     return render_template('delete_account.html', email=current_user.email)
 
 
-@blueprint.route('/account/login')
+@blueprint.route('/login')
 def login():
     redirect_uri = url_for('accounts.authorized', _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
 
 
-@blueprint.route('/account/logout')
+@blueprint.route('/logout')
 def logout():
     session.clear()
     logout_user()

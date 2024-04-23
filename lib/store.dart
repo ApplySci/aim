@@ -12,6 +12,10 @@ late SharedPreferences prefs;
 
 Future<void> initPrefs() async {
   prefs = await SharedPreferences.getInstance();
+  store.dispatch({
+    'type': STORE.setPlayerId,
+    'playerId': prefs.getInt('selected') ?? -2,
+  });
 }
 
 const Map<String, dynamic> DEFAULT_PREFERENCES = {
@@ -36,8 +40,8 @@ class AllState {
   SeatingPlan seating=[];
   String tournamentId = "Y3sDqxajiXefmP9XBTvY";  // google document id
   Map<String, dynamic> tournament = {
-    'name': 'Irish Riichi Open 2024',
-    'address': 'The Crows Nest, Victoria Cross Road, Cork, Ireland',
+    'name': 'No tournament selected yet',
+    'address': '',
   };
 }
 

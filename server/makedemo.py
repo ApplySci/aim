@@ -8,14 +8,13 @@ import json
 import datetime
 from pathlib import Path
 
-from firebase_admin import credentials, messaging as fcm, \
-    initialize_app as fcm_init
+from firebase_admin import credentials, initialize_app as fcm_init
 from firebase_admin import firestore
 
 basedir = Path('/home/model/src/tournaments-static/')
 # basedir = Path('D:\\zaps\\aim_tournaments\\server')
 
-cork2024 = 'Y3sDqxajiXefmP9XBTvY'
+demoTournament = 'Y3sDqxajiXefmP9XBTvY'
 
 # Use the private key file of the service account directly.
 cred = credentials.Certificate("fcm-admin.json")
@@ -23,28 +22,7 @@ app = fcm_init(cred)
 firestore_client = firestore.client()
 
 ref = firestore_client.collection("tournaments")
-print(ref.document(cork2024).get().to_dict())
-
-def send_notification():
-    # NOT TESTED YET
-    # See documentation on defining a message payload.
-    message = fcm.Message(token='zzz',
-        notification=fcm.Notification(title='Seating', body='just updated'),
-        data={'type': 'seats',},
-        android=fcm.AndroidConfig(
-            ttl=datetime.timedelta(seconds=3600),
-            priority='normal',
-            notification=fcm.AndroidNotification(
-                channel_id='aim112',
-                icon='stock_ticker_update',
-                color='#f45342'
-            ),
-        ),
-    )
-
-    response = fcm.send(message)
-    # message ID
-    print('Response to sent message:', response)
+print(ref.document(demoTournament).get().to_dict())
 
 
 def get_tourney_json():
@@ -226,15 +204,6 @@ def get_tourney_json():
 
     return (players, seating, sorted_scores)
 
-def write_files(players, seating, sorted_scores):
-    with open(basedir / 'players.json', 'w', encoding='utf-8') as f:
-        json.dump(players, f, ensure_ascii=False, indent=0)
-
-    with open(basedir / 'seating.json', 'w', encoding='utf-8') as f:
-        json.dump(seating, f, ensure_ascii=False, indent=0)
-
-    with open(basedir / 'scores.json', 'w', encoding='utf-8') as f:
-        json.dump(sorted_scores, f, ensure_ascii=False, indent=0)
 
 # write_files()
 
@@ -244,11 +213,11 @@ def write_cloudstore():
     sj  = json.dumps(seating,       ensure_ascii=False, indent=None)
     ssj = json.dumps(sorted_scores, ensure_ascii=False, indent=None)
 
-    ref.document(f"{cork2024}/json/players").set(document_data={
+    ref.document(f"{demoTournament}/json/players").set(document_data={
         'json': pj})
-    ref.document(f"{cork2024}/json/seating").set(document_data={
+    ref.document(f"{demoTournament}/json/seating").set(document_data={
         'json': sj})
-    ref.document(f"{cork2024}/json/scores").set(document_data={
+    ref.document(f"{demoTournament}/json/scores").set(document_data={
         'json': ssj})
 
 write_cloudstore()
