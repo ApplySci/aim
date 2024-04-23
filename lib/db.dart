@@ -66,11 +66,11 @@ class DB {
     String title;
     // a deterministic way to generate a unique-ish int from the google doc id:
     int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
-    bool targetPlayer = store.state.selected >= 0;
+    bool targetPlayer = store.state.playerMap.containsKey(store.state.selected);
     SeatingPlan seating = targetPlayer ? store.state.theseSeats
         : store.state.seating;
-    String playerName = targetPlayer && store.state.selected != null
-        ? store.state.playerMap[store.state.selected]!
+    String playerName = targetPlayer
+        ? store.state.playerMap[store.state.selected] ?? ''
         : '';
     // set one alarm for each round
     for (Map round in seating) {
