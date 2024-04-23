@@ -15,20 +15,32 @@ class TournamentInfo extends StatelessWidget {
         return store.state.tournament;
       },
       builder: (BuildContext context, Map<String, dynamic> t) {
+
+        DataTable timings;
+
         return navFrame(
           context,
           Column(children: [
-            Row(children: [const Icon(Icons.location_on), Text(t['address'])]),
+            const SizedBox(height: 20),
             Row(children: [
+              const SizedBox(width: 5),
+              const Icon(Icons.location_on),
+              Text(t['address'] ?? ''),
+            ]),
+            const SizedBox(height: 20),
+            Row(children: [
+              const SizedBox(width: 5),
               const Icon(Icons.calendar_month),
               Text(dateRange(t['start_date'], t['end_date'])),
             ]),
+            const SizedBox(height: 20),
             const Row(children: [
+              SizedBox(width: 5),
               Icon(Icons.table_restaurant),
               Icon(Icons.watch_later_outlined),
               Text('Hanchan timings'),
             ]),
-            DataTable(columns: const [], rows: const []),
+            //timings,
           ]),
         );
       },

@@ -103,7 +103,7 @@ class _PlayerListState extends State<PlayerList> {
         state?.showSnackBar(SnackBar(content: Text(
             '${selection.name} will be highlighted in seating & scores, and you will receive updates for them'
         )));
-        subscribeUserToTopic(
+        subscribeToTopic(
             '${store.state.tournamentId}-${selection.id}',
             '${store.state.tournamentId}-$previousSelection'
         );

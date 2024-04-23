@@ -45,6 +45,7 @@ const Map<String, Color> BACKGROUND_COLOURS = {
 };
 
 String dateRange(dynamic startDT, dynamic endDT) {
+  if (startDT == null || endDT == null) return '';
   DateTime sd = startDT.toDate();
   DateTime ed = endDT.toDate();
   String start = 'ERROR: unassigned dateRange!';

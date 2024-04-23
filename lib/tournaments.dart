@@ -61,7 +61,17 @@ class _TournamentListState extends State<TournamentList> {
                   title: Text(tData['name']),
                   subtitle: Text("$dates\n${tData['country']}"),
                   onTap: () {
-                    subscribeUserToTopic(t.id, store.state.tournament['id']);
+                    if (store.state.tournament['id'] != null
+                    && t.id != store.state.tournament['id']) {
+                      unsubscribeFromTournament(store.state.tournament['id'],
+                        store.state.players.length,
+                      );
+                      store.dispatch({
+                        'type': STORE.setPlayerId,
+                        'playerId': -2,
+                      });
+                    }
+                    subscribeToTopic(t.id, store.state.tournament['id']);
                     store.dispatch({
                       'type': STORE.setTournament,
                       'tournamentId': t.id,

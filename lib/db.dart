@@ -69,7 +69,7 @@ class DB {
     bool targetPlayer = store.state.selected >= 0;
     SeatingPlan seating = targetPlayer ? store.state.theseSeats
         : store.state.seating;
-    String playerName = targetPlayer
+    String playerName = targetPlayer && store.state.selected != null
         ? store.state.playerMap[store.state.selected]!
         : '';
     // set one alarm for each round
@@ -115,16 +115,19 @@ class DB {
 
     List jsons = [
       [
-        'seating',
-        STORE.setSeating,
+        'seating',        // field name
+        STORE.setSeating, // Store update type
+        <SeatingPlan>[],  // default value
       ],
       [
         'scores',
         STORE.setScores,
+        <List<Map<String,dynamic>>>[],
       ],
       [
         'players',
         STORE.setPlayerList,
+        <Player>[],
       ],
     ];
     for (List json in jsons) {
@@ -140,9 +143,15 @@ class DB {
           bool inSeating = json[0] == "seating";
           bool wantAlarms = prefs.getBool('alarm') ?? true;
           dynamic eventData = event.data();
+          dynamic newValue;
+          if (eventData == null || ! eventData.containsKey('json')) {
+            newValue = json[2];
+          } else {
+            newValue = jsonDecode(eventData['json']);
+          }
           store.dispatch({
             'type': json[1],
-            json[0]: jsonDecode(eventData['json']),
+            json[0]: newValue,
           });
           if (inSeating && wantAlarms) {
             setAllAlarms();

@@ -20,13 +20,13 @@ import 'tournaments.dart';
 import 'utils.dart';
 
 Future main() async {
-  // do this before everything
-  WidgetsFlutterBinding.ensureInitialized();
+
+  WidgetsFlutterBinding.ensureInitialized(); // do this before everything
 
   await initPrefs();
   await setupFCM();
+  await Alarm.init();
 
-  // TOFIX TODO need to get the default right, if no preferences are present / no tournament is selected
   DB.instance.getTournaments();
   DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -35,7 +35,6 @@ Future main() async {
     systemNavigationBarColor: Colors.black, //bottom bar color
     systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
   ));
-  await Alarm.init();
 
   runApp(const MyApp());
 }

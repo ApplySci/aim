@@ -33,18 +33,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 // TODO offer the user a notification-reset option, by forcing fcm token refresh
 
-Future<void> subscribeUserToTopic(String topic, String? previous) async {
+Future<void> subscribeToTopic(String topic, String? previous) async {
   // this subscription persists through app restarts and changes of token
   if (previous != null) {
     // we await the unsubscribe, to avoid a race between subscribe & unsubscribe
     //   if the user re-selects the same thing
-    Log.debug("FCM unsubscribing from $topic");
+    // Log.debug("FCM unsubscribing from $topic");
     await messaging.unsubscribeFromTopic(previous);
   }
-  Log.debug("FCM subscribing to $topic");
+  // Log.debug("FCM subscribing to $topic");
   messaging.subscribeToTopic(topic);
 }
 
+Future<void> unsubscribeFromTournament(String topic, int playerCount) async {
+  if (topic.length < 5) return;
+  for (var i = 1; i <= playerCount; i++) {
+    messaging.unsubscribeFromTopic("previous$i");
+  }
+  messaging.unsubscribeFromTopic(topic);
+}
 
 Future<void> getFCMToken() async {
   final String fcmToken = await messaging.getToken() ?? '';
