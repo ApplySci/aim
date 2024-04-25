@@ -80,6 +80,10 @@ input[type="submit"]:active {
     text-align: left;
 }
 
+#scoreHeader #paginator {
+    font-size: 0.5em;
+}
+
 #scoreBody {
     position: fixed;
     bottom: 0;

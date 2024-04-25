@@ -7,7 +7,10 @@
 </head>
 <body>
     <div id=scoreHeader>
-        <h1>{{ title }} - scores after round {{ scores[0]['roundDone'] }} </h1>
+        <h1>
+            {{ title }} - scores after round {{ scores[0]['roundDone'] }}
+            <span id=paginator></span>
+        </h1>
     </div>
 
     <div id=scoreBody>
@@ -21,8 +24,36 @@
     </div>
 
 <script>
-// TODO trigger recalcs on window resize
-var scoresTimer;
+const scoreBody = document.getElementById('scoreBody');
+const paginator = document.getElementById('paginator');
+const leftmost = scoreBody.getBoundingClientRect().left;
+const transitionSeconds = 2;
+let scoresTimer = 0;
+let resizeTimeout;
+
+function onResize() {
+    // trigger recalcs on window resize
+    console.log('resize!');
+    if (scoresTimer) {
+        clearInterval(scoresTimer);
+    }
+    // just a little pause before we recalculate,
+    //   to ensure any transition has finished,
+    //   and everything has reflowed
+    setTimeout(() => {
+        scoreBody.style.transition = 'none';
+        scoreBody.style.marginBottom = '0px';
+        scoreBody.style.left = `${leftmost}px`;
+        paginator.textContent = '';
+        setSizes();
+        closeBottomGap();
+        }, transitionSeconds * 1500);
+}
+
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(onResize, 1000); // 1 second debounce
+});
 
 window.onload = function() {
     setSizes();
@@ -31,21 +62,12 @@ window.onload = function() {
 
 function setSizes() {
     let h = document.getElementById('scoreHeader');
-    let t = document.getElementById('scoreBody');
-
     // Set the top of scoreBody to be the bottom of scoreHeader
-    t.style.top = 1 + h.offsetHeight + 'px';
-
-    // Calculate the actual size of the player entry on screen
-    let player = t.children[0];
-
-    // Calculate the height and width of the score table
-    let tSize = t.getBoundingClientRect();
+    scoreBody.style.top = 1 + h.offsetHeight + 'px';
 }
 
 function closeBottomGap() {
     // Get the scoreBody element
-    var scoreBody = document.getElementById('scoreBody');
     var bodyBox = scoreBody.getBoundingClientRect();
 
     // Get all the scorePlayer elements
@@ -92,27 +114,26 @@ function closeBottomGap() {
 
     // start the horizontal scroll
     if (colCount > 0) {
-        setupScroll(colCount, bodyBox.left, width, displacement);
+        setupScroll(colCount, width, displacement);
     }
 }
 
-function setupScroll(colCount, left, width, displacement) {
-    console.log(`setupScroll: ${colCount} ${left} ${width} ${displacement}`);
+function setupScroll(colCount, width, displacement) {
     let direction = 1;
     let currentColumn = 0;
-    const div = document.getElementById('scoreBody');
-    let baseline = div.getBoundingClientRect().left;
+    let baseline = scoreBody.getBoundingClientRect().left;
 
     const scrollDiv = () => {
 
         currentColumn += direction;
+        paginator.textContent = `p${currentColumn+1}/${colCount+1}`;
 
-        div.style.transition = 'left 2s';
-        let newLeft = left - width * currentColumn;
+        scoreBody.style.transition = `left ${transitionSeconds}s`;
+        let newLeft = leftmost - width * currentColumn;
         if (currentColumn) {
             newLeft -= displacement + 6;
         }
-        div.style.left = `${newLeft}px`;
+        scoreBody.style.left = `${newLeft}px`;
 
         if (currentColumn === colCount || currentColumn === 0) {
             direction = -direction;
@@ -120,7 +141,7 @@ function setupScroll(colCount, left, width, displacement) {
     };
 
     // Start the scrolling loop
-    scoresTimer = setInterval(scrollDiv, 15 * 1000); // 15 seconds
+    scoresTimer = setInterval(scrollDiv, 4 * 1000); // 15 seconds
 }
 </script>
 </body>
