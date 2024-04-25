@@ -3,6 +3,7 @@
 This does all the comms with, & handling of, the google scoresheet
 """
 
+from datetime import datetime
 import importlib
 import random
 import re
@@ -37,7 +38,9 @@ class GSP:
         tz = pytz.timezone(vals[0][1])
         vals = vals[2:]
         for i in range(1, len(vals)):
-            vals[i][1] = tz.localize(vals[i][1])
+            thisDatetime = datetime.strptime(vals[i][1], "%A %d %B %Y, %H:%M")
+            dt = tz.localize(thisDatetime)
+            vals[i][1] = dt.strftime("%A %d %B %Y, %H:%M %z")
         return vals
 
 

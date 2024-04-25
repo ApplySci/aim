@@ -4,9 +4,11 @@ pages and backend for the user running the tournament
 '''
 import json
 import os
+import threading
 
 from firebase_admin import messaging
-from flask import Blueprint, redirect, request, url_for, render_template
+from flask import Blueprint, redirect, url_for, render_template, \
+    copy_current_request_context, current_app
 from flask_login import login_required, current_user
 
 from create.write_sheet import googlesheet
@@ -15,16 +17,33 @@ from oauth_setup import firestore_client
 blueprint = Blueprint('run', __name__)
 
 
+def prettyScore(score: int):
+    if score < 0:
+        prefix = '-'
+    elif score > 0:
+        prefix = '+'
+    else:
+        prefix = ''
+    return f"{prefix} {(abs(round(score/10, 1)))}"
+
 
 @login_required
-def publish_scores_on_web(roundDone, scores):
+def publish_scores_on_web(scores, players):
+    env = current_app.jinja_env
+    env.filters['prettyScore'] = prettyScore
     title = current_user.live_tournament.title
-    html = render_template('scores.html', title, roundDone, scores)
+    html = render_template('scores.html',
+                           title=title,
+                           scores=scores,
+                           players=players,
+                           )
     fn = os.path.join(
         current_user.live_tournament.web_directory,
         'scores.html')
-    with open(fn, 'rw', encoding='utf-8') as f:
+    with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
+
+    return html, 200
 
 
 @login_required
@@ -33,8 +52,7 @@ def _send_topic_fcm(topic: str, title: str, body: str):
         notification = messaging.Notification(title=title,body=body,),
         topic=topic,  # The topic name
         )
-    response = messaging.send(message)
-    print('Successfully sent message:', response)
+    messaging.send(message)
 
 
 @blueprint.route('/run/')
@@ -59,19 +77,26 @@ def sheet_to_cloud():
     schedule = _schedule_to_cloud(sheet)
     seats = _seating_to_cloud(sheet, schedule)
 
-    _send_topic_fcm(firebase_id, 'Scores have been updated', '')
-    done = scores[0]['roundDone']
-    for s in scores:
-        name = players[s['id']]
-        _send_topic_fcm(
-            f"{firebase_id}-{s['id']}",
-            f"{name} is now in {s['r']} position",
-            f"with {s['t']} points after {done} round(s)",
-            )
+    @copy_current_request_context
+    def _send_messages():
+        '''
+        send all our firebase notifications out
+        do this in a separate thread so as not to hold up the main response
+        '''
+        _send_topic_fcm(firebase_id, 'Scores have been updated', '')
+        done = scores[0]['roundDone']
+        for s in scores:
+            name = players[s['id']]
+            _send_topic_fcm(
+                f"{firebase_id}-{s['id']}",
+                f"{name} is now in {s['r']} position",
+                f"with {s['t']} points after {done} round(s)",
+                )
 
-    publish_scores_on_web()
-
-    return redirect(request.referrer)
+    thread = threading.Thread(target=_send_messages)
+    thread.start()
+    return publish_scores_on_web(scores, players)
+    # return redirect(request.referrer)
 
 @login_required
 def _scores_to_cloud(sheet):
@@ -115,8 +140,7 @@ def _schedule_to_cloud(sheet):
 def _players_to_cloud(sheet):
     raw : list(list) = googlesheet.get_players(sheet)
     players = {int(p[0]): p[2] for p in raw}
-    out : str = json.dumps(players, ensure_ascii=False, indent=None)
-    _save_to_cloud('players', out)
+    _save_to_cloud('players', players)
     return players
 
 
@@ -139,15 +163,16 @@ def _seating_to_cloud(sheet, schedule):
                 })
             hanchan_number = hanchan_number + 1
         seating[-1]['tables'][table] = players
-    out : str = json.dumps(seating, ensure_ascii=False, indent=None)
-    _save_to_cloud('seating', out)
+
+    _save_to_cloud('seating', seating)
     return seating
 
 
 @login_required
-def _save_to_cloud(key: str, data: str):
+def _save_to_cloud(key: str, data):
     # TODO just for testing - stuff shouldn't be hardcoded here
     firebase_id : str = 'Y3sDqxajiXefmP9XBTvY' # current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments")
+    out : str = json.dumps(data, ensure_ascii=False, indent=None)
     ref.document(f"{firebase_id}/json/{key}").set(document_data={
-        'json': data})
+        'json': out})

@@ -7,45 +7,120 @@
 </head>
 <body>
     <div id=scoreHeader>
-        <h1>{{ title }} - scores after {{ scores[0]['roundDone'] }} </h1>
-
+        <h1>{{ title }} - scores after round {{ scores[0]['roundDone'] }} </h1>
     </div>
 
     <div id=scoreBody>
-        <div id=test class=scorePlayer>
-        <div class=scoreRank>=100</div>
-        <div class=scoreName>this is really a person's name</div>
-        <div class=scoreScore>-103.9</div>
-        <div>
+    {% for p in scores %}
+        <div class=scorePlayer>
+            <div class=scoreRank>{{ p['r'] }}</div>
+            <div class=scoreScore>{{ p['t'] | prettyScore }}</div>
+            <div class=scoreName>{{ players[p['id']] }}</div>
+        </div>
+    {% endfor %}
     </div>
 
 <script>
+// TODO trigger recalcs on window resize
+var scoresTimer;
+
 window.onload = function() {
     setSizes();
+    closeBottomGap();
 }
 
 function setSizes() {
     let h = document.getElementById('scoreHeader');
     let t = document.getElementById('scoreBody');
 
-    // Set the top of divB to be the bottom of scoreHeader
-    // t.style.top = h.offsetHeight + 'px';
+    // Set the top of scoreBody to be the bottom of scoreHeader
+    t.style.top = 1 + h.offsetHeight + 'px';
 
     // Calculate the actual size of the player entry on screen
-    let player = document.getElementById('test');
-
-    let playerSize = player.getBoundingClientRect();
-    let h = playerSize.height;
-
-    t.style.gridTemplateRows = `repeat(auto-fill, minmax(${h}px, 1fr))`
+    let player = t.children[0];
 
     // Calculate the height and width of the score table
     let tSize = t.getBoundingClientRect();
+}
 
-    // TODO work out how many columns we have, and whether we need to pan
+function closeBottomGap() {
+    // Get the scoreBody element
+    var scoreBody = document.getElementById('scoreBody');
+    var bodyBox = scoreBody.getBoundingClientRect();
 
-    // not sure what this calc was for any more:
-    // Math.floor(t.width / playerSize.width) * Math.floor(t.height / playerSize.height);
+    // Get all the scorePlayer elements
+    var scorePlayers = document.getElementsByClassName('scorePlayer');
+
+    // Initialize the bottom of the lowest scorePlayer to the top of the scoreBody
+    var lowestScorePlayerBottom = bodyBox.top;
+    var rightEdge = bodyBox.right;
+
+    var colCount = 0;
+    var previousBottom = 99999;
+    var firstLeft = scorePlayers[0].getBoundingClientRect().left;
+    var width = 0;
+    var displacement;
+    var lastBoxRight;
+
+    // Find the lowest scorePlayer element, and count columns
+    for (var i = 0; i < scorePlayers.length; i++) {
+        // Get the bottom of the current scorePlayer
+        var thisBox = scorePlayers[i].getBoundingClientRect();
+        var scorePlayerBottom = thisBox.bottom;
+
+        // If the bottom of the current scorePlayer is lower than the current lowest, update the lowest
+        if (scorePlayerBottom > lowestScorePlayerBottom) {
+            lowestScorePlayerBottom = scorePlayerBottom;
+        } else if (scorePlayerBottom < previousBottom) {
+            if (width === 0) {
+                width = thisBox.left - firstLeft;
+                displacement = thisBox.x - lastBoxRight;
+            }
+            if (thisBox.right > window.innerWidth) {
+                colCount += 1;
+            }
+        }
+        lastBoxRight = thisBox.x + thisBox.width;
+        previousBottom = scorePlayerBottom;
+    }
+
+    // Calculate the gap
+    var gap = scoreBody.getBoundingClientRect().bottom - lowestScorePlayerBottom;
+
+    // close the gap
+    scoreBody.style.marginBottom = `${gap}px`;
+
+    // start the horizontal scroll
+    if (colCount > 0) {
+        setupScroll(colCount, bodyBox.left, width, displacement);
+    }
+}
+
+function setupScroll(colCount, left, width, displacement) {
+    console.log(`setupScroll: ${colCount} ${left} ${width} ${displacement}`);
+    let direction = 1;
+    let currentColumn = 0;
+    const div = document.getElementById('scoreBody');
+    let baseline = div.getBoundingClientRect().left;
+
+    const scrollDiv = () => {
+
+        currentColumn += direction;
+
+        div.style.transition = 'left 2s';
+        let newLeft = left - width * currentColumn;
+        if (currentColumn) {
+            newLeft -= displacement + 6;
+        }
+        div.style.left = `${newLeft}px`;
+
+        if (currentColumn === colCount || currentColumn === 0) {
+            direction = -direction;
+        }
+    };
+
+    // Start the scrolling loop
+    scoresTimer = setInterval(scrollDiv, 15 * 1000); // 15 seconds
 }
 </script>
 </body>

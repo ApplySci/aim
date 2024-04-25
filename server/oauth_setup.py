@@ -35,6 +35,8 @@ def config_db(app):
         # ensure our defaults are in place
         scoresheet_id = '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8'
         firebase_doc = 'Y3sDqxajiXefmP9XBTvY'
+        webdir = '/home/model/apps/tournaments/myapp/static/'
+        title = 'Irish Riichi Open, Cork 2024'
         for email in DEFAULT_USERS:
             if not db.session.query(User).get(email):
                 db.session.add(User(email=email))
@@ -43,8 +45,8 @@ def config_db(app):
         if not db.session.query(Tournament).get(scoresheet_id):
             t = Tournament(
                 id=scoresheet_id,
-                title='Cork 2024',
-                web_directory='',
+                title=title,
+                web_directory=webdir,
                 firebase_doc=firebase_doc,
                 )
             db.session.add(t)

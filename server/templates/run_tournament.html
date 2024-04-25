@@ -7,11 +7,12 @@
 </head>
 <body>
 <h1>Run {{ current_user.live_tournament.title }}</h1>
-<ul>
-<li><button id=scores>Update scores from google sheet</button></li>
-<li><button id=preview>View preview of scoresheet</button></li>
-<li><button id=scoreslive>Put the new scoresheet live</button></li>
-<li><button id=seating>I've changed the seating; update that page</button></li>
-</ul>
+<h3>Live options:</h3>
+<p><a href='{{ url_for('run.sheet_to_cloud') }}'>
+  Update scores on web and app
+  </a></p>
+<hr>
+<h3>None of the below do anything yet:</h3>
+<p><a href=''>I've changed the seating - update that page</a></p>
 </body>
 </html>

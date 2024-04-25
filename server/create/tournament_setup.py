@@ -112,8 +112,7 @@ def get_their_copy():
 @login_required
 def google_doc_selected(doc):
     title = request.form.get('submit')
-    t = _add_to_db(doc, title)
-    #db.session.query(User).get(current)
+    _add_to_db(doc, title)
     current_user.live_tournament_id = doc
     db.session.commit()
     return redirect(url_for('run.run_tournament'))

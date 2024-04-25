@@ -76,30 +76,52 @@ input[type="submit"]:active {
     width: 100%;
 }
 
+#scoreHeader h1 {
+    text-align: left;
+}
+
 #scoreBody {
     position: fixed;
     bottom: 0;
-    width: 100%;
-    overflow-x: auto;
+    left: 1em;
     display: grid;
+    margin: 1em 3em 0 3em;
     grid-auto-flow: column;
+    column-gap: 5px;
+    background-color: #005;
+    grid-template-rows: repeat(auto-fill, 2.5em);
+    grid-template-columns: repeat(auto-fill, 35em);
+}
+
+.scorePlayer:nth-child(2n) {
+  background-color: #ddd;
 }
 
 .scorePlayer {
-    height: 1.5em;
-    border-right: 2px double #004;
     padding-right: 5px;
-    margin-right: 5px;
+    margin-right: 3em;
+    background-color: #eee;
+    padding-top: 0.75em;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .scoreRank {
     width: 3em;
+    display: inline-block;
+    text-align: right;
+    vertical-align: middle;
 }
 
 .scoreName {
-    width: 15em;
+    display: inline-block;
+    padding-left: 1em;
+    vertical-align: middle;
 }
 
 .scoreScore {
     width: 4em;
+    display: inline-block;
+    text-align: right;
+    vertical-align: middle;
 }

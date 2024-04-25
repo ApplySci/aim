@@ -14,6 +14,12 @@ Widget navFrame(BuildContext context, Widget body) {
     builder: (BuildContext context, Map<String, dynamic> t) {
       final List<Widget> actions = [];
 
+// TODO add a refresh button to force an update
+
+      actions.add(const IconButton(
+        icon: Icon(Icons.refresh),
+        onPressed: null, // TODO add refresh action
+      ));
       actions.add(IconButton(
         icon: const Icon(Icons.score),
         onPressed: () => Navigator.pushNamed(context, ROUTES.scoreTable),
