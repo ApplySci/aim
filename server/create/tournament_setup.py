@@ -66,8 +66,6 @@ def results_create():
             start_times=start_times,
         )
         tournament.id = sheet_id
-        db.session.add(tournament)
-            # current_user.live_tournament = tournament
 
         msg = messages_by_user.get(owner)
         if not msg:
@@ -110,6 +108,17 @@ def get_their_copy():
     return "none found", 204
 
 
+@blueprint.route('/create/select/<doc>', methods=['POST', 'GET', 'PUT'])
+@login_required
+def google_doc_selected(doc):
+    title = request.form.get('submit')
+    t = _add_to_db(doc, title)
+    #db.session.query(User).get(current)
+    current_user.live_tournament_id = doc
+    db.session.commit()
+    return redirect(url_for('run.run_tournament'))
+
+
 @blueprint.route('/create/select_sheet', methods=['GET', 'POST', 'PUT'])
 @login_required
 def select_sheet():
@@ -132,10 +141,17 @@ def select_tournament():
 
 
 def _add_to_db(id, title):
-    tournament = Tournament(id=id, title=title)
-    db.session.add(tournament)
+    tournament = db.session.query(Tournament).get(id)
+    if not tournament :
+        tournament = Tournament(id=id, title=title)
+        db.session.add(tournament)
 
-    access = Access(user=current_user, tournament=tournament, role=Role.admin)
-    db.session.add(access)
-
+    access = db.session.query(Access).filter_by(
+        user_email=current_user.email,
+        tournament_id=id,
+        ).first()
+    if not access:
+        access = Access(user=current_user, tournament=tournament, role=Role.admin)
+        db.session.add(access)
     db.session.commit()
+    return tournament

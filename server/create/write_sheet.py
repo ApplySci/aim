@@ -9,6 +9,7 @@ import re
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import pytz
 
 from oauth_setup import KEYFILE
 from config import TEMPLATE_ID, OUR_EMAILS
@@ -31,7 +32,13 @@ class GSP:
         return self.client.open_by_key(id)
 
     def get_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
-        return live.worksheet('schedule').get()[3:]
+        # get timezone, add it to each datetime
+        vals : list  = live.worksheet('schedule').get()[1:]
+        tz = pytz.timezone(vals[0][1])
+        vals = vals[2:]
+        for i in range(1, len(vals)):
+            vals[i][1] = tz.localize(vals[i][1])
+        return vals
 
 
     def get_seating(self, live : gspread.spreadsheet.Spreadsheet) -> list:

@@ -3,16 +3,28 @@
 pages and backend for the user running the tournament
 '''
 import json
+import os
 
 from firebase_admin import messaging
-from flask import Blueprint, redirect, url_for, render_template
+from flask import Blueprint, redirect, request, url_for, render_template
 from flask_login import login_required, current_user
 
 from create.write_sheet import googlesheet
-from oauth_setup import db, firestore_client
-from models import Access
+from oauth_setup import firestore_client
 
 blueprint = Blueprint('run', __name__)
+
+
+
+@login_required
+def publish_scores_on_web(roundDone, scores):
+    title = current_user.live_tournament.title
+    html = render_template('scores.html', title, roundDone, scores)
+    fn = os.path.join(
+        current_user.live_tournament.web_directory,
+        'scores.html')
+    with open(fn, 'rw', encoding='utf-8') as f:
+        f.write(html)
 
 
 @login_required
@@ -28,45 +40,41 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 @blueprint.route('/run/')
 @login_required
 def run_tournament():
-    if hasattr(current_user, 'tournament'):
+    if current_user.live_tournament:
         return render_template('run_tournament.html')
     return redirect(url_for('create.index'))
-
-
-@blueprint.route('/run/select_tournament', methods=['GET', 'POST',])
-@login_required
-def select_tournament():
-    # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(
-        user_email=current_user.email).all()
-    tournaments = [access.tournament for access in accesses]
-    return render_template('select_tournament.html', tournaments=tournaments)
 
 
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
-    players = _players_to_cloud()
-    scores = _scores_to_cloud()
-    seats = _seating_to_cloud()
-    # TODO get actual tournament doc, not this hardcoded id!
-    _send_topic_fcm('Y3sDqxajiXefmP9XBTvY', 'Scores have been updated', '')
+    # TODO use current_user.live_tournament_id
+    sheet_id = '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8' # current_user.live_tournament_id)
+    # TODO use current_user.live_tournament.firebase_doc
+    firebase_id = 'Y3sDqxajiXefmP9XBTvY'
+    sheet = googlesheet.get_sheet(sheet_id)
+
+    players = _players_to_cloud(sheet)
+    scores = _scores_to_cloud(sheet)
+    schedule = _schedule_to_cloud(sheet)
+    seats = _seating_to_cloud(sheet, schedule)
+
+    _send_topic_fcm(firebase_id, 'Scores have been updated', '')
     done = scores[0]['roundDone']
     for s in scores:
         name = players[s['id']]
         _send_topic_fcm(
-            f"Y3sDqxajiXefmP9XBTvY-{s['id']}",
+            f"{firebase_id}-{s['id']}",
             f"{name} is now in {s['r']} position",
             f"with {s['t']} points after {done} round(s)",
             )
 
-    return 'data has been stored in the cloud', 200
+    publish_scores_on_web()
 
+    return redirect(request.referrer)
 
 @login_required
-def _scores_to_cloud():
-    # TODO don't hardcode sheet id
-    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+def _scores_to_cloud(sheet):
     done, results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
@@ -97,9 +105,14 @@ def _scores_to_cloud():
 
 
 @login_required
-def _players_to_cloud():
-    # TODO don't hardcode sheet id
-    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+def _schedule_to_cloud(sheet):
+    schedule: list(list) = googlesheet.get_schedule(sheet)
+    _save_to_cloud('schedule', schedule)
+    return schedule
+
+
+@login_required
+def _players_to_cloud(sheet):
     raw : list(list) = googlesheet.get_players(sheet)
     players = {int(p[0]): p[2] for p in raw}
     out : str = json.dumps(players, ensure_ascii=False, indent=None)
@@ -108,11 +121,8 @@ def _players_to_cloud():
 
 
 @login_required
-def _seating_to_cloud():
-    # TODO don't hardcode sheet id
-    sheet = googlesheet.get_sheet('1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8') # current_user.live_tournament_id)
+def _seating_to_cloud(sheet, schedule):
     raw = googlesheet.get_seating(sheet)
-    schedules = googlesheet.get_schedule(sheet)
     seating = []
     previous_round = ''
     hanchan_number = 0
@@ -124,7 +134,7 @@ def _seating_to_cloud():
             previous_round = this_round
             seating.append({
                 'id': this_round,
-                'start': schedules[hanchan_number][1],
+                'start': schedule[hanchan_number][1],
                 'tables': {},
                 })
             hanchan_number = hanchan_number + 1

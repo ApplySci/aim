@@ -32,6 +32,10 @@ label {
     margin-left: 1em;
 }
 
+li {
+    margin-bottom: 0.5em;
+}
+
 input[type="text"], input[type="number"], input[type="email"] {
     padding: 10px;
     border: 1px solid #ddd;
@@ -60,4 +64,42 @@ input[type="submit"]:active {
 
 .error {
     color: red;
+}
+
+/*
+                    scoresheet
+*/
+
+#scoreHeader {
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+#scoreBody {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    overflow-x: auto;
+    display: grid;
+    grid-auto-flow: column;
+}
+
+.scorePlayer {
+    height: 1.5em;
+    border-right: 2px double #004;
+    padding-right: 5px;
+    margin-right: 5px;
+}
+
+.scoreRank {
+    width: 3em;
+}
+
+.scoreName {
+    width: 15em;
+}
+
+.scoreScore {
+    width: 4em;
 }

@@ -63,9 +63,11 @@ class _TournamentListState extends State<TournamentList> {
                   onTap: () {
                     if (store.state.tournament['id'] != null
                     && t.id != store.state.tournament['id']) {
+                      /*
                       unsubscribeFromTournament(store.state.tournament['id'],
                         store.state.players.length,
                       );
+                       */
                       store.dispatch({
                         'type': STORE.setPlayerId,
                         'playerId': -2,

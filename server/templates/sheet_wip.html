@@ -28,7 +28,10 @@ var sheetwip_timer;
 function list_sheets(docs) {
     out = '<ul>';
     docs.forEach((doc) => out +=
-        `<li><a href='/create/select/${doc["id"]}'>${doc['title']} (${doc["id"]})</a></li>`
+        `<li><form action='/create/select/${doc["id"]}' method=post>
+        <input type=submit name=submit value="${doc['title']}">
+        (${doc['id']})
+        </form></li>`
     );
     out += '</ul>';
     console.log(out);

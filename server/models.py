@@ -59,10 +59,9 @@ class Hanchan(Base):
 
 class Tournament(Base):
     __tablename__ = "tournament"
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    our_template_id: Mapped[Optional[str]]
+    id: Mapped[str] = mapped_column(String, primary_key=True) # google sheet id
     title: Mapped[str]
-    outdir: Mapped[Optional[str]]
+    web_directory: Mapped[Optional[str]]
     firebase_doc: Mapped[Optional[str]]
     users: Mapped[List[Access]] = relationship(back_populates="tournament")
     hanchans: Mapped[List[Hanchan]] = relationship(

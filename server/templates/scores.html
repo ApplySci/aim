@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <style>
+    </style>
+</head>
+<body>
+    <div id=scoreHeader>
+        <h1>{{ title }} - scores after {{ scores[0]['roundDone'] }} </h1>
+
+    </div>
+
+    <div id=scoreBody>
+        <div id=test class=scorePlayer>
+        <div class=scoreRank>=100</div>
+        <div class=scoreName>this is really a person's name</div>
+        <div class=scoreScore>-103.9</div>
+        <div>
+    </div>
+
+<script>
+window.onload = function() {
+    setSizes();
+}
+
+function setSizes() {
+    let h = document.getElementById('scoreHeader');
+    let t = document.getElementById('scoreBody');
+
+    // Set the top of divB to be the bottom of scoreHeader
+    // t.style.top = h.offsetHeight + 'px';
+
+    // Calculate the actual size of the player entry on screen
+    let player = document.getElementById('test');
+
+    let playerSize = player.getBoundingClientRect();
+    let h = playerSize.height;
+
+    t.style.gridTemplateRows = `repeat(auto-fill, minmax(${h}px, 1fr))`
+
+    // Calculate the height and width of the score table
+    let tSize = t.getBoundingClientRect();
+
+    // TODO work out how many columns we have, and whether we need to pan
+
+    // not sure what this calc was for any more:
+    // Math.floor(t.width / playerSize.width) * Math.floor(t.height / playerSize.height);
+}
+</script>
+</body>
+</html>

@@ -43,9 +43,8 @@ def config_db(app):
         if not db.session.query(Tournament).get(scoresheet_id):
             t = Tournament(
                 id=scoresheet_id,
-                our_template_id='',
                 title='Cork 2024',
-                outdir='',
+                web_directory='',
                 firebase_doc=firebase_doc,
                 )
             db.session.add(t)
