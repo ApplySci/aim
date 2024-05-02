@@ -129,16 +129,6 @@ def select_sheet():
         )
 
 
-@blueprint.route('/create/select_tournament', methods=['GET', 'POST',])
-@login_required
-def select_tournament():
-    # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(
-        user_email=current_user.email).all()
-    tournaments = [access.tournament for access in accesses]
-    return render_template('select_tournament.html', tournaments=tournaments)
-
-
 def _add_to_db(id, title):
     tournament = db.session.query(Tournament).get(id)
     if not tournament :

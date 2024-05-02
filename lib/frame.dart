@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
@@ -14,12 +13,12 @@ Widget navFrame(BuildContext context, Widget body) {
     builder: (BuildContext context, Map<String, dynamic> t) {
       final List<Widget> actions = [];
 
-// TODO add a refresh button to force an update
-
+/*
       actions.add(const IconButton(
         icon: Icon(Icons.refresh),
         onPressed: null, // TODO add refresh action
       ));
+ */
       actions.add(IconButton(
         icon: const Icon(Icons.score),
         onPressed: () => Navigator.pushNamed(context, ROUTES.scoreTable),
@@ -43,12 +42,10 @@ Widget navFrame(BuildContext context, Widget body) {
         icon: const Icon(Icons.settings),
         onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
       ));
-      if (kDebugMode) {
-        actions.add(IconButton(
-          icon: const Icon(Icons.home_filled),
-          onPressed: () => Navigator.pushNamed(context, ROUTES.home),
-        ));
-      }
+      actions.add(IconButton(
+        icon: const Icon(Icons.home_filled),
+        onPressed: () => Navigator.pushNamed(context, ROUTES.home),
+      ));
 
       return Scaffold(
         appBar: AppBar(

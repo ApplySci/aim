@@ -35,13 +35,15 @@ class GSP:
     def get_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
         # get timezone, add it to each datetime
         vals : list  = live.worksheet('schedule').get()[1:]
-        tz = pytz.timezone(vals[0][1])
+        timezone_string = vals[0][1]
+        tz = pytz.timezone(timezone_string)
         vals = vals[2:]
-        for i in range(1, len(vals)):
+        schedule : dict = {'timezone': timezone_string}
+        for i in range(0, len(vals)):
             thisDatetime = datetime.strptime(vals[i][1], "%A %d %B %Y, %H:%M")
-            dt = tz.localize(thisDatetime)
-            vals[i][1] = dt.strftime("%A %d %B %Y, %H:%M %z")
-        return vals
+            utc_dt = tz.localize(thisDatetime).astimezone(pytz.UTC)
+            schedule[vals[i][0]] = utc_dt.isoformat()
+        return schedule
 
 
     def get_seating(self, live : gspread.spreadsheet.Spreadsheet) -> list:

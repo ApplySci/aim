@@ -38,6 +38,7 @@ class AllState {
   int selected = -1;
   SeatingPlan theseSeats=[];
   SeatingPlan seating=[];
+  Map<String, dynamic> schedule={};
   String tournamentId = "Y3sDqxajiXefmP9XBTvY";  // google document id
   Map<String, dynamic> tournament = {
     'name': 'No tournament selected yet',
@@ -91,6 +92,10 @@ AllState stateReducer(AllState state, dynamic action) {
         state.players = incoming;
       }
       state.playerMap = {for (Player p in state.players) p.id: p.name};
+      break;
+
+    case STORE.setSchedule:
+      state.schedule = Map<String, String>.from(action['schedule']);
       break;
 
     case STORE.setScores:

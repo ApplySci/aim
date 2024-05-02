@@ -30,6 +30,7 @@ enum STORE {
   setPlayerId,
   setPlayerList,
   setScores,
+  setSchedule,
   setSeating,
   setTournament,
 }

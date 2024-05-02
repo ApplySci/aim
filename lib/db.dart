@@ -16,7 +16,6 @@ class DB {
 
   static final instance = DB._();
   final _db = FirebaseFirestore.instance;
-  final DateFormat _dateFormat = DateFormat("EEEE dd MMMM yyyy, HH:mm");
   final Map _listeners = {};
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
@@ -57,7 +56,6 @@ class DB {
   }
 
   void setAllAlarms() {
-    // TODO check behaviour with mixed timezones!
     DateTime now = DateTime.now().toUtc();
     int roundNumber = 1;
     String body;
@@ -67,16 +65,18 @@ class DB {
     // a deterministic way to generate a unique-ish int from the google doc id:
     int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
     bool targetPlayer = store.state.playerMap.containsKey(store.state.selected);
-    SeatingPlan seating = targetPlayer ? store.state.theseSeats
-        : store.state.seating;
+    SeatingPlan seating = targetPlayer ? List.from(store.state.theseSeats)
+        : List.from(store.state.seating);
     String playerName = targetPlayer
         ? store.state.playerMap[store.state.selected] ?? ''
         : '';
+    Map schedule = Map.from(store.state.schedule);
     // set one alarm for each round
     for (Map round in seating) {
-      Log.debug("Hanchan start time: ${round['start']}");
+      String name = round['id'];
+      String utcString = schedule[name];
       DateTime alarmTime =
-        _dateFormat.parse(round['start']).subtract(const Duration(minutes: 5));
+        DateTime.parse(schedule[name]).subtract(const Duration(minutes: 5));
       int alarmId = 10 * alarmIdBase + roundNumber;
       roundNumber += 1;
       if (now.isBefore(alarmTime)) {
@@ -120,9 +120,14 @@ class DB {
         <SeatingPlan>[],  // default value
       ],
       [
+        'schedule',
+        STORE.setSchedule,
+        <String,String>{},
+      ],
+      [
         'scores',
         STORE.setScores,
-        <List<Map<String,dynamic>>>[],
+        <Map<String,dynamic>>[],
       ],
       [
         'players',
@@ -140,7 +145,7 @@ class DB {
       _listeners[json[0]] = collection.doc(json[0]).snapshots().listen(
         (event) async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          bool inSeating = json[0] == "seating";
+          bool inSchedule = json[0] == "schedule";
           bool wantAlarms = prefs.getBool('alarm') ?? true;
           dynamic eventData = event.data();
           dynamic newValue;
@@ -153,7 +158,7 @@ class DB {
             'type': json[1],
             json[0]: newValue,
           });
-          if (inSeating && wantAlarms) {
+          if (inSchedule && wantAlarms && store.state.schedule.isNotEmpty) {
             setAllAlarms();
           }
           final ScaffoldMessengerState? state =

@@ -32,7 +32,7 @@ if (flutterVersionName == null) {
 android {
     namespace "ie.mahjong.tournament"
     compileSdk 34
-    ndkVersion "25.1.8937393"
+    ndkVersion '26.2.11394342'
 
     compileOptions {
         coreLibraryDesugaringEnabled true
@@ -55,7 +55,7 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        resConfigs "en"
+        resourceConfigurations += ['en']
     }
 
     signingConfigs {

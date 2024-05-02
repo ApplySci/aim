@@ -8,11 +8,12 @@ import threading
 
 from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
-    copy_current_request_context, current_app
+    copy_current_request_context, current_app, request
 from flask_login import login_required, current_user
 
 from create.write_sheet import googlesheet
-from oauth_setup import firestore_client
+from models import Access
+from oauth_setup import db, firestore_client
 
 blueprint = Blueprint('run', __name__)
 
@@ -25,6 +26,21 @@ def prettyScore(score: int):
     else:
         prefix = ''
     return f"{prefix} {(abs(round(score/10, 1)))}"
+
+
+@blueprint.route('/run/select_tournament', methods=['GET', 'POST',])
+@login_required
+def select_tournament():
+    new_id = request.form.get('id')
+    if new_id:
+        current_user.live_tournament_id = new_id
+        db.session.commit()
+        return url_for('run.run_tournament')
+    # Query the Access table for all records where the user_email is the current user's email
+    accesses = db.session.query(Access).filter_by(
+        user_email=current_user.email).all()
+    tournaments = [access.tournament for access in accesses]
+    return render_template('select_tournament.html', tournaments=tournaments)
 
 
 @login_required
@@ -66,16 +82,14 @@ def run_tournament():
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
-    # TODO use current_user.live_tournament_id
-    sheet_id = '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8' # current_user.live_tournament_id)
-    # TODO use current_user.live_tournament.firebase_doc
-    firebase_id = 'Y3sDqxajiXefmP9XBTvY'
+    sheet_id = current_user.live_tournament_id # '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8'
+    firebase_id = current_user.live_tournament.firebase_doc # 'Y3sDqxajiXefmP9XBTvY'
     sheet = googlesheet.get_sheet(sheet_id)
 
     players = _players_to_cloud(sheet)
     scores = _scores_to_cloud(sheet)
-    schedule = _schedule_to_cloud(sheet)
-    seats = _seating_to_cloud(sheet, schedule)
+    _schedule_to_cloud(sheet)
+    _seating_to_cloud(sheet)
 
     @copy_current_request_context
     def _send_messages():
@@ -96,7 +110,6 @@ def sheet_to_cloud():
     thread = threading.Thread(target=_send_messages)
     thread.start()
     return publish_scores_on_web(scores, players)
-    # return redirect(request.referrer)
 
 @login_required
 def _scores_to_cloud(sheet):
@@ -124,16 +137,16 @@ def _scores_to_cloud(sheet):
 
 
     all_scores[0]['roundDone'] = done
-    out : str = json.dumps(all_scores, ensure_ascii=False, indent=None)
-    _save_to_cloud('scores', out)
+    _save_to_cloud('scores', all_scores)
     return all_scores
 
 
 @login_required
 def _schedule_to_cloud(sheet):
+    # TODO we must write the timezone to the cloud
     schedule: list(list) = googlesheet.get_schedule(sheet)
     _save_to_cloud('schedule', schedule)
-    return schedule
+    # return schedule
 
 
 @login_required
@@ -145,7 +158,7 @@ def _players_to_cloud(sheet):
 
 
 @login_required
-def _seating_to_cloud(sheet, schedule):
+def _seating_to_cloud(sheet):
     raw = googlesheet.get_seating(sheet)
     seating = []
     previous_round = ''
@@ -158,14 +171,13 @@ def _seating_to_cloud(sheet, schedule):
             previous_round = this_round
             seating.append({
                 'id': this_round,
-                'start': schedule[hanchan_number][1],
                 'tables': {},
                 })
             hanchan_number = hanchan_number + 1
         seating[-1]['tables'][table] = players
 
     _save_to_cloud('seating', seating)
-    return seating
+    # return seating
 
 
 @login_required

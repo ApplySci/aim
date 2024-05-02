@@ -26,7 +26,6 @@ dependencies:
 
   alarm: ^3.1.0
   cloud_firestore: ^4.15.9
-  # TODO not sure we'll use dio
   firebase_core: any
   firebase_messaging: ^14.0.0
   flutter_local_notifications: ^17.0.0
