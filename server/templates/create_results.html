@@ -54,6 +54,11 @@
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
+        <p>{{ form.hanchan_name.label }} {{ form.hanchan_name() }}</p>
+        <p>{{ form.other_name.label }} {{ form.other_name() }} You must use ? (question mark) as the placeholder for the number of the round</p>
+        {% for error in form.other_name.errors %}
+            <span class=error>[{{ error }}]</span>
+        {% endfor %}
         <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
         <label>Enter the start date/time for each round, in the local time for
         the tournament (ie in the above timezone). You can change these later.
@@ -62,7 +67,10 @@
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
-     <script>
+<script>
+
+var hanchanField = document.getElementById('hanchan_name');
+var otherField = document.getElementById('other_name');
 
 function setDefaultDateTime(input, roundNumber) {
     if (input.value === '') {
@@ -87,7 +95,8 @@ function set_datetime_fields() {
   var datetimeInputs = document.getElementById('datetimeInputs');
   datetimeInputs.innerHTML = '';
   for(var i = 1; i <= hanchan_count; i++) {
-    datetimeInputs.innerHTML += `<label for=round${i}>Round ${i}: `
+    let label = getLabel(i);
+    datetimeInputs.innerHTML += `<label for=round${i}>${label}: `
        + `<input type="datetime-local" id=round${i} name=round${i} required`
        + ` onfocus="setDefaultDateTime(this, ${i})" ></label>`;
   }
@@ -96,8 +105,35 @@ function set_datetime_fields() {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('hanchan_count').addEventListener('change', set_datetime_fields);
   set_datetime_fields();
+  set_format_listener();
+  otherField.disabled = hanchanField.value !== 'other';
 });
 
-    </script>
+function getLabel(i) {
+    var template = hanchan_name.value === 'other'
+        ? otherField.value
+        : hanchanField.options[hanchanField.selectedIndex].text;
+    return template.replace('?', i);
+}
+
+function set_format_listener() {
+  var hanchanField = document.getElementById('hanchan_name');
+  var otherField = document.getElementById('other_name');
+  var datetimeInputs = document.getElementById('datetimeInputs').getElementsByTagName('label');
+
+  function updateLabels() {
+    otherField.disabled = hanchanField.value !== 'other';
+    for (var i = 0; i < datetimeInputs.length; i++) {
+        datetimeInputs[i].firstChild.nodeValue = getLabel(i + 1) + ': ';
+    }
+  }
+
+  hanchanField.addEventListener('change', updateLabels);
+  otherField.addEventListener('input', updateLabels);
+}
+</script>
+
+
+</script>
 </body>
 </html>

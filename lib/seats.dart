@@ -19,7 +19,7 @@ class _SeatingState extends State<Seating> {
 
   void toggleShowAll(bool yes) => setState(() => showAll = yes);
 
-  List<Widget> getHanchan(SeatingPlan seats, int roundDone) {
+  List<Widget> getHanchan(SeatingPlan seats, int roundDone, Map schedule) {
     List<Widget> allHanchan = [];
     int roundCount = 0;
     for (final Map round in seats) {
@@ -38,11 +38,13 @@ class _SeatingState extends State<Seating> {
           ),
         ),
       ));
+      String startTime;
+      startTime = schedule[round['id']];
       allHanchan.add(Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.watch_later_outlined),
-          Text(" ${round['id']} begins at ${round['start']}"),
+          Text(" ${round['id']} begins at $startTime"),
         ],
       ));
       allHanchan.add(const SizedBox(height: 5));
@@ -69,6 +71,7 @@ class _SeatingState extends State<Seating> {
         return {
           'roundDone': store.state.roundDone,
           'scores': store.state.scores,
+          'schedule': store.state.schedule,
           'seating': store.state.seating,
           'selected': store.state.selected,
           'thisSeating': store.state.theseSeats,
@@ -103,7 +106,7 @@ class _SeatingState extends State<Seating> {
             ),
           );
         }
-        rows.addAll(getHanchan(seats, s['roundDone']));
+        rows.addAll(getHanchan(seats, s['roundDone'], s['schedule']));
         return navFrame(
           context,
           Column(children: rows),

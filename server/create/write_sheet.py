@@ -245,13 +245,17 @@ class GSP:
 
 
     def _set_schedule(self, hanchan_count: int, timezone : str,
-                      start_times : list[str],
+                      start_times : list[str], template : str,
                       ):
+
         sheet: gspread.worksheet.Worksheet = self.live_sheet.worksheet(
             'schedule')
         sheet.update([[timezone]], range_name='B2', raw=True)
-        starts = [[start.replace('T', ' ')] for start in start_times]
-        sheet.update(f'B4:B{3+hanchan_count}', starts, raw=False)
+        starts : list[list[str]] =  [
+            [template.replace('?', f'{x+1}'),
+             start_times[x].replace('T', ' '),
+            ] for x in range(hanchan_count)]
+        sheet.update(f'A4:B{3+hanchan_count}', starts, raw=False)
         sheet.delete_rows(4 + hanchan_count, 3 + MAX_HANCHAN)
 
 
@@ -265,6 +269,7 @@ class GSP:
             notify: bool = False,
             timezone: str = 'Dublin/Europe',
             start_times: list[str] = [],
+            round_name_template: str = 'Round ?',
             ) -> str:
         '''
 
@@ -291,13 +296,16 @@ class GSP:
             raise ValueError(f'table_count must be between 1 and {MAX_TABLES}')
 
         if hanchan_count < 1 or hanchan_count > MAX_HANCHAN:
-            raise ValueError(f'hanchan_count must be between 1 and {MAX_HANCHAN}')
+            raise ValueError(
+                f'hanchan_count must be between 1 and {MAX_HANCHAN}')
 
         self.live_sheet : gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID, title=title, copy_comments=True,)
 
-        template : gspread.worksheet.Worksheet = self.live_sheet.worksheet('template')
-        results: gspread.worksheet.Worksheet = self.live_sheet.worksheet('results')
+        template : gspread.worksheet.Worksheet = self.live_sheet.worksheet(
+            'template')
+        results: gspread.worksheet.Worksheet = self.live_sheet.worksheet(
+            'results')
 
         if table_count < MAX_TABLES:
             self._reduce_players(table_count)
@@ -306,12 +314,12 @@ class GSP:
         if hanchan_count < MAX_HANCHAN:
             self._reduce_hanchan_count(results, hanchan_count)
 
-
         self._make_scoresheets(template, hanchan_count)
 
         self._set_seating(table_count, hanchan_count)
 
-        self._set_schedule(hanchan_count, timezone, start_times)
+        self._set_schedule(hanchan_count, timezone, start_times,
+                           round_name_template)
 
         self._set_permissions(owner, scorers, notify)
 

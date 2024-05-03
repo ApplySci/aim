@@ -49,6 +49,9 @@ def results_create():
 
     tournament : Tournament = Tournament(title=form.title.data)
     hanchan_count = int(form.hanchan_count.data)
+    round_name_template = form.other_name.data if \
+        form.hanchan_name.data == 'other' \
+        else form.hanchan_name.data
     start_times = [request.form.get(f'round{i}') for i in
                    range(1, 1 + hanchan_count)]
 
@@ -64,6 +67,7 @@ def results_create():
             notify=form.notify.data,
             timezone=form.timezone.data,
             start_times=start_times,
+            round_name_template=round_name_template,
         )
         tournament.id = sheet_id
 
