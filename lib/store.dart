@@ -3,12 +3,42 @@ library;
 
 import 'dart:convert';
 
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_10y.dart' as tz;
 import 'utils.dart';
 
 late SharedPreferences prefs;
+
+Future<void> setTimeZone(newSchedule) async {
+  tz.Location loc;
+  bool useEventTimeZone = prefs.getBool('tz') ?? true;
+  if (useEventTimeZone) {
+    dynamic test = newSchedule['timezone'];
+    loc = test is tz.Location ? test : tz.getLocation(test);
+  } else {
+    // using the device timezone
+    String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    loc = tz.getLocation(currentTimeZone);
+  }
+  tz.setLocalLocation(loc);
+  newSchedule.forEach((key, value) {
+    if (key != "timezone") {
+      dynamic thisStart = value['start'];
+      if (thisStart is String) {
+        // convert it to a UTC DateTime
+        thisStart = DateTime.parse(thisStart);
+      } // and if it's not a string, it's already a tz.TZDateTime
+      newSchedule[key]['start'] = tz.TZDateTime.from(thisStart, tz.local);
+    }
+  });
+  store.dispatch({
+    'type': STORE.setSchedule,
+    'schedule': newSchedule,
+  });
+}
 
 Future<void> initPrefs() async {
   prefs = await SharedPreferences.getInstance();
@@ -16,17 +46,8 @@ Future<void> initPrefs() async {
     'type': STORE.setPlayerId,
     'playerId': prefs.getInt('selected') ?? -2,
   });
+  tz.initializeTimeZones();
 }
-
-const Map<String, dynamic> DEFAULT_PREFERENCES = {
-  'backgroundColour': DEFAULT_COLOUR_KEY, // Colors.black,
-  'japaneseWinds': false,
-  'japaneseNumbers': false,
-  'serverUrl': 'https://tournaments.mahjong.ie/',
-  'todo': [],
-  'tournamentId': "Y3sDqxajiXefmP9XBTvY",
-  'playerId': -1, // id of player being focused on
-};
 
 
 class AllState {
@@ -95,7 +116,8 @@ AllState stateReducer(AllState state, dynamic action) {
       break;
 
     case STORE.setSchedule:
-      state.schedule = Map<String, String>.from(action['schedule']);
+      state.schedule = Map<String, dynamic>.from(action['schedule']);
+      state.schedule['timezone'] = tz.getLocation(state.schedule['timezone']);
       break;
 
     case STORE.setScores:

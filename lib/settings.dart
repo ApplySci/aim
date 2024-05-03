@@ -1,4 +1,6 @@
+import 'package:aim_tournaments/store.dart';
 import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'frame.dart';
@@ -14,6 +16,7 @@ class SettingsScreenState extends State<SettingsScreen> {
   bool _alarmValue = true;
   bool _scoreValue = true;
   bool _seatingValue = true;
+  bool _eventTzValue = true;
 
   @override
   void initState() {
@@ -27,12 +30,13 @@ class SettingsScreenState extends State<SettingsScreen> {
       _alarmValue = (prefs.getBool('alarm') ?? true);
       _scoreValue = (prefs.getBool('score') ?? true);
       _seatingValue = (prefs.getBool('seating') ?? true);
+      _eventTzValue = (prefs.getBool('tz') ?? true);
     });
   }
 
   _saveSettings(String key, bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool(key, value);
+    await prefs.setBool(key, value);
   }
 
   @override
@@ -52,6 +56,17 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
+            title: const Text('Use event timezone (rather than device timezone)'),
+            value: _eventTzValue,
+            onChanged: (bool value) {
+              setState(() async {
+                _eventTzValue = value;
+                await _saveSettings('tz', value);
+                setTimeZone(store.state.schedule);
+              });
+            },
+          ),
+          SwitchListTile(
             title: const Text('Notifications for updated scores'),
             value: _scoreValue,
             onChanged: (bool value) {
@@ -62,7 +77,7 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            title: const Text('Notifications for changes to seating'),
+            title: const Text('Notifications for changes to seating & schedule'),
             value: _seatingValue,
             onChanged: (bool value) {
               setState(() {

@@ -33,16 +33,22 @@ class GSP:
         return self.client.open_by_key(id)
 
     def get_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
-        # get timezone, add it to each datetime
+        '''
+        get the timezone, the local start times, and the names of all the rounds.
+        Convert all the datetimes to UTC, and standard ISO format
+        '''
         vals : list  = live.worksheet('schedule').get()[1:]
-        timezone_string = vals[0][1]
+        timezone_string = vals[0][2]
         tz = pytz.timezone(timezone_string)
-        vals = vals[2:]
+        vals = vals[2:] # throw away the headers
         schedule : dict = {'timezone': timezone_string}
         for i in range(0, len(vals)):
-            thisDatetime = datetime.strptime(vals[i][1], "%A %d %B %Y, %H:%M")
+            thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
             utc_dt = tz.localize(thisDatetime).astimezone(pytz.UTC)
-            schedule[vals[i][0]] = utc_dt.isoformat()
+            schedule[vals[i][0]] = {
+                'name': vals[i][1],
+                'start': utc_dt.isoformat(),
+                }
         return schedule
 
 
@@ -85,7 +91,7 @@ class GSP:
     def list_sheets(self, user_email : str) -> list[dict]:
         '''
         Return the list of sheets that the user has access to, with titles,
-        and a boolean flag to indicate whether WE are the owner.
+        and a boolean flag to indicate whether WE (server admin) are the owner.
 
         Args:
             user_email (str): gmail address of the user whose sheets we must list
@@ -240,23 +246,23 @@ class GSP:
             )
 
 
-    def delete_sheet(self, doc_id: str) -> None:
-        self.client.del_spreadsheet(doc_id)
-
-
     def _set_schedule(self, hanchan_count: int, timezone : str,
                       start_times : list[str], template : str,
                       ):
 
         sheet: gspread.worksheet.Worksheet = self.live_sheet.worksheet(
             'schedule')
-        sheet.update([[timezone]], range_name='B2', raw=True)
+        sheet.update([[timezone]], range_name='C2', raw=True)
         starts : list[list[str]] =  [
             [template.replace('?', f'{x+1}'),
              start_times[x].replace('T', ' '),
             ] for x in range(hanchan_count)]
-        sheet.update(f'A4:B{3+hanchan_count}', starts, raw=False)
+        sheet.update(f'B4:C{3+hanchan_count}', starts, raw=False)
         sheet.delete_rows(4 + hanchan_count, 3 + MAX_HANCHAN)
+
+
+    def delete_sheet(self, doc_id: str) -> None:
+        self.client.del_spreadsheet(doc_id)
 
 
     def create_new_results_googlesheet(

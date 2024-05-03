@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
@@ -12,11 +13,23 @@ class TournamentInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return StoreConnector<AllState, Map<String, dynamic>>(
       converter: (store) {
-        return store.state.tournament;
+        return {
+          't': store.state.tournament,
+          'sc': store.state.schedule,
+        };
       },
-      builder: (BuildContext context, Map<String, dynamic> t) {
+      builder: (BuildContext context, Map<String, dynamic> d) {
 
-        DataTable timings;
+        List<DataRow> rows = [];
+        d['sc'].forEach((key, value) {
+          if (key != "timezone") {
+            rows.add(DataRow(cells: [
+              DataCell(Text(value['name'])),
+              DataCell(Text(DateFormat('EEEE d MMMM HH:mm').format(
+                  value['start']))),
+            ]));
+          }
+        });
 
         return navFrame(
           context,
@@ -25,13 +38,13 @@ class TournamentInfo extends StatelessWidget {
             Row(children: [
               const SizedBox(width: 5),
               const Icon(Icons.location_on),
-              Text(t['address'] ?? ''),
+              Text(d['t']['address'] ?? ''),
             ]),
             const SizedBox(height: 20),
             Row(children: [
               const SizedBox(width: 5),
               const Icon(Icons.calendar_month),
-              Text(dateRange(t['start_date'], t['end_date'])),
+              Text(dateRange(d['t']['start_date'], d['t']['end_date'])),
             ]),
             const SizedBox(height: 20),
             const Row(children: [
@@ -40,7 +53,13 @@ class TournamentInfo extends StatelessWidget {
               Icon(Icons.watch_later_outlined),
               Text('Hanchan timings'),
             ]),
-            //timings,
+            DataTable(
+              columns: const [
+                DataColumn(label: Text('round'),),
+                DataColumn(label: Text('starts at'),)],
+              rows: rows,
+              columnSpacing: 10,
+            ),
           ]),
         );
       },

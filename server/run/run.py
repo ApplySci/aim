@@ -35,7 +35,7 @@ def select_tournament():
     if new_id:
         current_user.live_tournament_id = new_id
         db.session.commit()
-        return url_for('run.run_tournament')
+        return redirect(url_for('run.run_tournament'))
     # Query the Access table for all records where the user_email is the current user's email
     accesses = db.session.query(Access).filter_by(
         user_email=current_user.email).all()
@@ -88,8 +88,8 @@ def sheet_to_cloud():
 
     players = _players_to_cloud(sheet)
     scores = _scores_to_cloud(sheet)
-    _schedule_to_cloud(sheet)
-    _seating_to_cloud(sheet)
+    schedule = _schedule_to_cloud(sheet)
+    _seating_to_cloud(sheet, schedule)
 
     @copy_current_request_context
     def _send_messages():
@@ -146,7 +146,7 @@ def _schedule_to_cloud(sheet):
     # TODO we must write the timezone to the cloud
     schedule: list(list) = googlesheet.get_schedule(sheet)
     _save_to_cloud('schedule', schedule)
-    # return schedule
+    return schedule
 
 
 @login_required
@@ -158,7 +158,7 @@ def _players_to_cloud(sheet):
 
 
 @login_required
-def _seating_to_cloud(sheet):
+def _seating_to_cloud(sheet, schedule):
     raw = googlesheet.get_seating(sheet)
     seating = []
     previous_round = ''

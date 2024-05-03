@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import 'store.dart';
 import 'utils.dart';
@@ -55,7 +56,7 @@ class DB {
     return docs;
   }
 
-  void setAllAlarms() {
+  void setAllAlarms() async {
     DateTime now = DateTime.now().toUtc();
     int roundNumber = 1;
     String body;
@@ -74,14 +75,16 @@ class DB {
     // set one alarm for each round
     for (Map round in seating) {
       String name = round['id'];
-      String utcString = schedule[name];
-      DateTime alarmTime =
-        DateTime.parse(schedule[name]).subtract(const Duration(minutes: 5));
+      String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+      tz.Location loc = tz.getLocation(currentTimeZone);
+      DateTime alarmTime = tz.TZDateTime.from(schedule[name]['start'], loc)
+        .toLocal()
+        .subtract(const Duration(minutes: 5));
       int alarmId = 10 * alarmIdBase + roundNumber;
       roundNumber += 1;
       if (now.isBefore(alarmTime)) {
-        roundId = round['id'];
-        title = "Hanchan $roundId starts in 5 minutes";
+        roundId = schedule[name]['name'];
+        title = "$roundId starts in 5 minutes";
         if (targetPlayer) {
           tableName = round['tables'].keys.first;
           body = "$playerName is on table $tableName";
@@ -145,8 +148,6 @@ class DB {
       _listeners[json[0]] = collection.doc(json[0]).snapshots().listen(
         (event) async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          bool inSchedule = json[0] == "schedule";
-          bool wantAlarms = prefs.getBool('alarm') ?? true;
           dynamic eventData = event.data();
           dynamic newValue;
           if (eventData == null || ! eventData.containsKey('json')) {
@@ -154,12 +155,17 @@ class DB {
           } else {
             newValue = jsonDecode(eventData['json']);
           }
-          store.dispatch({
-            'type': json[1],
-            json[0]: newValue,
-          });
-          if (inSchedule && wantAlarms && store.state.schedule.isNotEmpty) {
-            setAllAlarms();
+          if (json[0] == "schedule") {
+            await setTimeZone(newValue);
+            bool wantAlarms = prefs.getBool('alarm') ?? true;
+            if (wantAlarms && store.state.schedule.isNotEmpty) {
+              setAllAlarms();
+            }
+          } else {
+            store.dispatch({
+              'type': json[1],
+              json[0]: newValue,
+            });
           }
           final ScaffoldMessengerState? state =
               scaffoldMessengerKey.currentState;

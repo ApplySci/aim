@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import 'frame.dart';
 import 'store.dart';
@@ -38,13 +40,14 @@ class _SeatingState extends State<Seating> {
           ),
         ),
       ));
-      String startTime;
-      startTime = schedule[round['id']];
+      String roundName = schedule[round['id']]['name'];
+      String startTime = DateFormat('EEEE d MMMM HH:mm').format(
+        schedule[round['id']]['start']);
       allHanchan.add(Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.watch_later_outlined),
-          Text(" ${round['id']} begins at $startTime"),
+          Text(" $roundName begins at $startTime"),
         ],
       ));
       allHanchan.add(const SizedBox(height: 5));
