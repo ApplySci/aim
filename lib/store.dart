@@ -70,30 +70,12 @@ class AllState {
 
 /// Sole arbiter of the contents of the Store after initialisation
 AllState stateReducer(AllState state, dynamic action) {
-  void fromJSON(String json) {
-    Map<String, dynamic> restoredValues = jsonDecode(json);
 
-    Log.logs = List<List<dynamic>>.from(restoredValues['log']);
-    state.scores = <Map<String, dynamic>>[];
-    (restoredValues['scores'] as Map<String, dynamic>)
-        .forEach((String key, dynamic values) {});
-  }
-
-  Log.debug(action.toString()); // for debugging all STORE actions
+  // Log.debug(action.toString()); // for debugging all STORE actions
 
   STORE toDo = action is STORE ? action : action['type'];
 
   switch (toDo) {
-
-    case STORE.restoreFromJSON:
-      try {
-        fromJSON(action['json']);
-        state.loadedOK = true;
-      } catch (e, stackTrace) {
-        Log.error('failed to restore game: $e , $stackTrace');
-        state.loadedOK = false;
-      }
-      break;
 
     case STORE.setPlayerId:
       state.selected = action['playerId'];

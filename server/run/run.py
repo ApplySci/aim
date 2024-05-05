@@ -78,38 +78,69 @@ def run_tournament():
         return render_template('run_tournament.html')
     return redirect(url_for('create.index'))
 
+@login_required
+def _get_sheet():
+    sheet_id = current_user.live_tournament_id
+    return googlesheet.get_sheet(sheet_id)
+
+@blueprint.route('/run/update_schedule')
+@login_required
+def update_schedule():
+    sheet = _get_sheet()
+    _schedule_to_cloud(sheet)
+    # TODO notifs
+
+
+@blueprint.route('/run/update_seating')
+@login_required
+def update_seating():
+    sheet = _get_sheet()
+    schedule = _schedule_to_cloud(sheet)
+    _seating_to_cloud(sheet, schedule)
+    # TODO notifs
+
+
+@blueprint.route('/run/update_players')
+@login_required
+def update_players():
+    sheet = _get_sheet()
+    _players_to_cloud(sheet)
+    # TODO notifs
+
+
+@copy_current_request_context
+@login_required
+def _send_messages():
+    '''
+    send all our firebase notifications out
+    do this in a separate thread so as not to hold up the main response
+    '''
+    firebase_id = current_user.live_tournament.firebase_doc # 'Y3sDqxajiXefmP9XBTvY'
+    _send_topic_fcm(firebase_id, 'Scores have been updated', '')
+    done = scores[0]['roundDone']
+    for s in scores:
+        name = players[s['id']]
+        _send_topic_fcm(
+            f"{firebase_id}-{s['id']}",
+            f"{name} is now in {s['r']} position",
+            f"with {s['t']} points after {done} round(s)",
+            )
+
 
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
-    sheet_id = current_user.live_tournament_id # '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8'
-    firebase_id = current_user.live_tournament.firebase_doc # 'Y3sDqxajiXefmP9XBTvY'
-    sheet = googlesheet.get_sheet(sheet_id)
+    sheet = _get_sheet()
 
     players = _players_to_cloud(sheet)
     scores = _scores_to_cloud(sheet)
     schedule = _schedule_to_cloud(sheet)
     _seating_to_cloud(sheet, schedule)
 
-    @copy_current_request_context
-    def _send_messages():
-        '''
-        send all our firebase notifications out
-        do this in a separate thread so as not to hold up the main response
-        '''
-        _send_topic_fcm(firebase_id, 'Scores have been updated', '')
-        done = scores[0]['roundDone']
-        for s in scores:
-            name = players[s['id']]
-            _send_topic_fcm(
-                f"{firebase_id}-{s['id']}",
-                f"{name} is now in {s['r']} position",
-                f"with {s['t']} points after {done} round(s)",
-                )
-
     thread = threading.Thread(target=_send_messages)
     thread.start()
     return publish_scores_on_web(scores, players)
+
 
 @login_required
 def _scores_to_cloud(sheet):

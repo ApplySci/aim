@@ -26,7 +26,6 @@ T enumFromString<T>(String key, List<T> values) {
 enum LOG { debug, info, score, unusual, warn, error }
 
 enum STORE {
-  restoreFromJSON,
   setPlayerId,
   setPlayerList,
   setScores,

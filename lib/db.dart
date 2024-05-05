@@ -34,7 +34,7 @@ class DB {
       assetAudioPath: 'assets/audio/notif.mp3',
       loopAudio: false,
       vibrate: true,
-      volume: 0.8,
+      volume: null,
       fadeDuration: 0.1,
       notificationTitle: title,
       notificationBody: body,
