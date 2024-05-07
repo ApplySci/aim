@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 import 'frame.dart';
 import 'store.dart';

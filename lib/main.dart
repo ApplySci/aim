@@ -1,4 +1,6 @@
 // native imports
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -26,7 +28,6 @@ Future main() async {
   await initPrefs();
   await setupFCM();
   await Alarm.init();
-
   DB.instance.getTournaments();
   DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -35,15 +36,20 @@ Future main() async {
     systemNavigationBarColor: Colors.black, //bottom bar color
     systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
   ));
-
-  runApp(const MyApp());
+  runApp(_MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<_MyApp> {
+
 
   @override
   Widget build(BuildContext context) {
+
     return StoreProvider<AllState>(
       store: store,
       child: MaterialApp(

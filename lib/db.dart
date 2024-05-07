@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -38,9 +39,20 @@ class DB {
       fadeDuration: 0.1,
       notificationTitle: title,
       notificationBody: body,
-      enableNotificationOnKill: true,
     );
     await Alarm.set(alarmSettings: alarmSettings);
+  }
+
+  Future<void> checkAlarms() async {
+    List<int> alarms = await getAlarmIds();
+    for (int id in alarms) {
+      if (await Alarm.isRinging(id)) {
+        // TODO add button to Frame to stop alarms, which also deletes itself
+        // and add the alarm notification text to the Frame too,
+        // and again delete it when the alarm is stopped
+        // Future.delayed(const Duration(minutes: 10), () => Alarm.stop(id));
+      }
+    }
   }
 
   Stream<QuerySnapshot> getTournaments() {
@@ -56,15 +68,23 @@ class DB {
     return docs;
   }
 
+  Future<List<int>> getAlarmIds() async {
+    List<int> alarms = [];
+    int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
+    int roundCount = store.state.seating.length;
+    for (int i=1; i <= roundCount; i++) {
+      // a deterministic way to generate a unique-ish int from the google doc id
+      alarms.add(10 * alarmIdBase + i);
+    }
+    return alarms;
+  }
+
   void setAllAlarms() async {
     DateTime now = DateTime.now().toUtc();
-    int roundNumber = 1;
     String body;
     String tableName;
     String roundId;
     String title;
-    // a deterministic way to generate a unique-ish int from the google doc id:
-    int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
     bool targetPlayer = store.state.playerMap.containsKey(store.state.selected);
     SeatingPlan seating = targetPlayer ? List.from(store.state.theseSeats)
         : List.from(store.state.seating);
@@ -72,6 +92,10 @@ class DB {
         ? store.state.playerMap[store.state.selected] ?? ''
         : '';
     Map schedule = Map.from(store.state.schedule);
+    List<int> alarmIds = await getAlarmIds();
+    int roundNumber = 0;
+
+
     // set one alarm for each round
     for (Map round in seating) {
       String name = round['id'];
@@ -80,8 +104,6 @@ class DB {
       DateTime alarmTime = tz.TZDateTime.from(schedule[name]['start'], loc)
         .toLocal()
         .subtract(const Duration(minutes: 5));
-      int alarmId = 10 * alarmIdBase + roundNumber;
-      roundNumber += 1;
       if (now.isBefore(alarmTime)) {
         roundId = schedule[name]['name'];
         title = "$roundId starts in 5 minutes";
@@ -91,8 +113,9 @@ class DB {
         } else {
           body = '';
         }
-        setAlarm(alarmTime, title, body, alarmId);
+        setAlarm(alarmTime, title, body, alarmIds[roundNumber]);
       }
+      roundNumber++;
     }
   }
 

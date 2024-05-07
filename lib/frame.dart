@@ -1,11 +1,33 @@
+import 'dart:async';
+
+import 'package:alarm/alarm.dart';
+import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
+import 'alarm.dart';
 import 'store.dart';
 import 'utils.dart';
 import 'venue.dart';
 
+StreamSubscription<AlarmSettings>? alarmListener;
+
 Widget navFrame(BuildContext context, Widget body) {
+
+  Future<void> alarmIsRinging(AlarmSettings settings) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => AlarmScreen(settings: settings),
+      ),
+    );
+  }
+
+  // TODO watch out for
+  //  throw StateError("Stream has already been listened to.")
+  // did the alarm package example use shared_preferences for this???
+  alarmListener ??= Alarm.ringStream.stream.listen(alarmIsRinging);
+
   return StoreConnector<AllState, Map<String, dynamic>>(
     converter: (store) {
       return store.state.tournament;

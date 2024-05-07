@@ -54,24 +54,15 @@ Future<void> requestPermissions() async { // tested, works
     sound: true,
   );
 
-  Log.debug('User response to request for messaging permission: '
-      '${settings.authorizationStatus}');
-  // authorized, denied, notDetermined, provisional
-
   bool? alarms = await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
       AndroidFlutterLocalNotificationsPlugin>()
       ?.requestExactAlarmsPermission();
 
-  Log.debug('User response to request for alarms permission: $alarms');
-
   final status = await Permission.scheduleExactAlarm.status;
-  Log.debug('Schedule exact alarm permission: $status.');
   if (status.isDenied) {
-    Log.debug('Requesting schedule exact alarm permission...');
     final res = await Permission.scheduleExactAlarm.request();
-    String granted = res.isGranted ? 'granted' : 'REFUSED';
-    Log.debug('Schedule exact alarm permission $granted');
+    // String granted = res.isGranted ? 'granted' : 'REFUSED';
   }
 }
 

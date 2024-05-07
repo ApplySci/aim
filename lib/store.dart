@@ -1,8 +1,6 @@
 /// Glues the whole thing together with variables shared app-wide, using redux
 library;
 
-import 'dart:convert';
-
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -78,17 +78,19 @@ def run_tournament():
         return render_template('run_tournament.html')
     return redirect(url_for('create.index'))
 
+
 @login_required
 def _get_sheet():
     sheet_id = current_user.live_tournament_id
     return googlesheet.get_sheet(sheet_id)
+
 
 @blueprint.route('/run/update_schedule')
 @login_required
 def update_schedule():
     sheet = _get_sheet()
     _schedule_to_cloud(sheet)
-    # TODO notifs
+    _send_messages('schedule updated')
 
 
 @blueprint.route('/run/update_seating')
@@ -97,7 +99,7 @@ def update_seating():
     sheet = _get_sheet()
     schedule = _schedule_to_cloud(sheet)
     _seating_to_cloud(sheet, schedule)
-    # TODO notifs
+    _send_messages('seating updated')
 
 
 @blueprint.route('/run/update_players')
@@ -105,18 +107,26 @@ def update_seating():
 def update_players():
     sheet = _get_sheet()
     _players_to_cloud(sheet)
-    # TODO notifs
+    _send_messages('player list updated')
 
 
 @copy_current_request_context
 @login_required
-def _send_messages():
+def _send_messages(msg: str):
     '''
-    send all our firebase notifications out
+    '''
+    firebase_id = current_user.live_tournament.firebase_doc
+    _send_topic_fcm(firebase_id, msg', '')
+
+
+@copy_current_request_context
+@login_required
+def _message_player_topics(scores, players):
+    '''
+    send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
     '''
-    firebase_id = current_user.live_tournament.firebase_doc # 'Y3sDqxajiXefmP9XBTvY'
-    _send_topic_fcm(firebase_id, 'Scores have been updated', '')
+    firebase_id = current_user.live_tournament.firebase_doc
     done = scores[0]['roundDone']
     for s in scores:
         name = players[s['id']]
@@ -174,7 +184,6 @@ def _scores_to_cloud(sheet):
 
 @login_required
 def _schedule_to_cloud(sheet):
-    # TODO we must write the timezone to the cloud
     schedule: list(list) = googlesheet.get_schedule(sheet)
     _save_to_cloud('schedule', schedule)
     return schedule
@@ -213,8 +222,7 @@ def _seating_to_cloud(sheet, schedule):
 
 @login_required
 def _save_to_cloud(key: str, data):
-    # TODO just for testing - stuff shouldn't be hardcoded here
-    firebase_id : str = 'Y3sDqxajiXefmP9XBTvY' # current_user.live_tournament.firebase_doc
+    firebase_id : str = current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments")
     out : str = json.dumps(data, ensure_ascii=False, indent=None)
     ref.document(f"{firebase_id}/json/{key}").set(document_data={
