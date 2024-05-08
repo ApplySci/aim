@@ -43,18 +43,6 @@ class DB {
     await Alarm.set(alarmSettings: alarmSettings);
   }
 
-  Future<void> checkAlarms() async {
-    List<int> alarms = await getAlarmIds();
-    for (int id in alarms) {
-      if (await Alarm.isRinging(id)) {
-        // TODO add button to Frame to stop alarms, which also deletes itself
-        // and add the alarm notification text to the Frame too,
-        // and again delete it when the alarm is stopped
-        // Future.delayed(const Duration(minutes: 10), () => Alarm.stop(id));
-      }
-    }
-  }
-
   Stream<QuerySnapshot> getTournaments() {
     Stream<QuerySnapshot> docs;
     if (kDebugMode) {

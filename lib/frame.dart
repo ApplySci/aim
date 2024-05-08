@@ -23,9 +23,6 @@ Widget navFrame(BuildContext context, Widget body) {
     );
   }
 
-  // TODO add a "cancel alarms" button somewhere useful, once an alarm has
-  // been triggered
-
   // TODO dip into the alarm package again. Where are body and title passed
   // to the core? Can we pass buttons with actions in there, instead of Text?
 

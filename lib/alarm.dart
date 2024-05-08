@@ -19,13 +19,39 @@ class _AlarmScreenState extends State<AlarmScreen> {
       child: Dialog(
         child: InkWell(
           onTap: () => Navigator.pop(context),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(widget.settings.notificationTitle),
-              Text(widget.settings.notificationBody),
-              const Text('tap to stop alarm'),
-            ],
+          child: Container(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(),
+                Text(
+                  widget.settings.notificationTitle,
+                  softWrap: true,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  widget.settings.notificationBody,
+                  softWrap: true,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                const Text(
+                  'tap to dismiss',
+                  textAlign: TextAlign.center,
+                ),
+                const Spacer(),
+              ],
+            ),
           ),
         ),
       ),

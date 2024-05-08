@@ -80,7 +80,7 @@ class _TournamentListState extends State<TournamentList> {
                       'tournament': tData,
                     });
                     DB.instance.listenToTournament(t.id);
-                    Navigator.popAndPushNamed(context, ROUTES.scoreTable);
+                    Navigator.popAndPushNamed(context, ROUTES.info);
                   },
                 );
               })
