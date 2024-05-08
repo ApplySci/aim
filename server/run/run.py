@@ -91,6 +91,7 @@ def update_schedule():
     sheet = _get_sheet()
     _schedule_to_cloud(sheet)
     _send_messages('schedule updated')
+    return redirect(url_for('run.run_tournament'))
 
 
 @blueprint.route('/run/update_seating')
@@ -100,6 +101,7 @@ def update_seating():
     schedule = _schedule_to_cloud(sheet)
     _seating_to_cloud(sheet, schedule)
     _send_messages('seating updated')
+    return redirect(url_for('run.run_tournament'))
 
 
 @blueprint.route('/run/update_players')
@@ -108,18 +110,17 @@ def update_players():
     sheet = _get_sheet()
     _players_to_cloud(sheet)
     _send_messages('player list updated')
+    return redirect(url_for('run.run_tournament'))
 
 
-@copy_current_request_context
 @login_required
 def _send_messages(msg: str):
     '''
     '''
     firebase_id = current_user.live_tournament.firebase_doc
-    _send_topic_fcm(firebase_id, msg', '')
+    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title)
 
 
-@copy_current_request_context
 @login_required
 def _message_player_topics(scores, players):
     '''
@@ -132,7 +133,7 @@ def _message_player_topics(scores, players):
         name = players[s['id']]
         _send_topic_fcm(
             f"{firebase_id}-{s['id']}",
-            f"{name} is now in {s['r']} position",
+            f"{name} is now in position {s['r']}",
             f"with {s['t']} points after {done} round(s)",
             )
 
@@ -147,7 +148,11 @@ def sheet_to_cloud():
     schedule = _schedule_to_cloud(sheet)
     _seating_to_cloud(sheet, schedule)
 
-    thread = threading.Thread(target=_send_messages)
+    @copy_current_request_context
+    def _fcm_all_players():
+        _message_player_topics(scores, players)
+
+    thread = threading.Thread(target=_fcm_all_players)
     thread.start()
     return publish_scores_on_web(scores, players)
 

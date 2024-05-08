@@ -16,9 +16,6 @@ Future<void> setupFCM() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    // handle message received when app is in foreground
-    // this works on Moto G 5G
-    notifyWhenFocused(message);
     _handleMessage(message);
   });
 }

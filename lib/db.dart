@@ -36,7 +36,7 @@ class DB {
       loopAudio: false,
       vibrate: true,
       volume: null,
-      fadeDuration: 0.1,
+      fadeDuration: 0,
       notificationTitle: title,
       notificationBody: body,
     );

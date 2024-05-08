@@ -23,12 +23,6 @@ Widget navFrame(BuildContext context, Widget body) {
     );
   }
 
-  // TODO dip into the alarm package again. Where are body and title passed
-  // to the core? Can we pass buttons with actions in there, instead of Text?
-
-  // TODO watch out for
-  //  throw StateError("Stream has already been listened to.")
-  // did the alarm package example use shared_preferences for this???
   alarmListener ??= Alarm.ringStream.stream.listen(alarmIsRinging);
 
   return StoreConnector<AllState, Map<String, dynamic>>(
@@ -38,39 +32,36 @@ Widget navFrame(BuildContext context, Widget body) {
     builder: (BuildContext context, Map<String, dynamic> t) {
       final List<Widget> actions = [];
 
-/*
-      actions.add(const IconButton(
-        icon: Icon(Icons.refresh),
-        onPressed: null, // TODO add refresh action
-      ));
- */
-      actions.add(IconButton(
-        icon: const Icon(Icons.score),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.scoreTable),
-      ));
-      actions.add(IconButton(
-        icon: const Icon(Icons.airline_seat_recline_normal_outlined),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.seating),
-      ));
-      actions.add(IconButton(
+      actions.addAll([
+        IconButton(
+          icon: const Icon(Icons.score),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.scoreTable),
+        ),
+        IconButton(
+          icon: const Icon(Icons.airline_seat_recline_normal_outlined),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.seating),
+        ),
+        IconButton(
           icon: const Icon(Icons.location_on),
-          onPressed: t['address'] == null ? null : () => openMap(t['address'])));
-      actions.add(IconButton(
-        icon: const Icon(Icons.info),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.info),
-      ));
-      actions.add(IconButton(
-        icon: const Icon(Icons.people),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.players),
-      ));
-      actions.add(IconButton(
-        icon: const Icon(Icons.settings),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
-      ));
-      actions.add(IconButton(
-        icon: const Icon(Icons.home_filled),
-        onPressed: () => Navigator.pushNamed(context, ROUTES.home),
-      ));
+          onPressed: t['address'] == null ? null : () => openMap(t['address']),
+        ),
+        IconButton(
+          icon: const Icon(Icons.info),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.info),
+        ),
+        IconButton(
+          icon: const Icon(Icons.people),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.players),
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+        ),
+        IconButton(
+          icon: const Icon(Icons.home_filled),
+          onPressed: () => Navigator.pushNamed(context, ROUTES.home),
+        ),
+      ]);
 
       return Scaffold(
         appBar: AppBar(
