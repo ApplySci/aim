@@ -13,15 +13,21 @@ import 'venue.dart';
 StreamSubscription<AlarmSettings>? alarmListener;
 
 Widget navFrame(BuildContext context, Widget body) {
-
+  // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
+  // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
   Future<void> alarmIsRinging(AlarmSettings settings) async {
-    await Navigator.push(
-      context,
+    await globalNavigatorKey.currentState?.push(
       MaterialPageRoute<void>(
         builder: (context) => AlarmScreen(settings: settings),
       ),
     );
   }
+
+  // TODO add a "cancel alarms" button somewhere useful, once an alarm has
+  // been triggered
+
+  // TODO dip into the alarm package again. Where are body and title passed
+  // to the core? Can we pass buttons with actions in there, instead of Text?
 
   // TODO watch out for
   //  throw StateError("Stream has already been listened to.")

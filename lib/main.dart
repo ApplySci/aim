@@ -54,6 +54,7 @@ class _MyAppState extends State<_MyApp> {
       store: store,
       child: MaterialApp(
         initialRoute: ROUTES.home,
+        navigatorKey: globalNavigatorKey,
         scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
         title: 'All-Ireland Mahjong Tournaments',
         theme: ThemeData(

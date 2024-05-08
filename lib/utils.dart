@@ -44,6 +44,8 @@ const Map<String, Color> BACKGROUND_COLOURS = {
   'deep purple': Color(0xFF220033),
 };
 
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 String dateRange(dynamic startDT, dynamic endDT) {
   if (startDT == null || endDT == null) return '';
   DateTime sd = startDT.toDate();

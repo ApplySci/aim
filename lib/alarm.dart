@@ -12,17 +12,15 @@ class AlarmScreen extends StatefulWidget {
 }
 
 class _AlarmScreenState extends State<AlarmScreen> {
-  Future<void> stopAlarm() async {
-    Alarm.stop(widget.settings.id).then((_) => Navigator.pop(context));
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: InkWell(
-        onTap: stopAlarm,
-        child: Center(
+    return PopScope(
+      onPopInvoked: (didPop) => Alarm.stop(widget.settings.id),
+      child: Dialog(
+        child: InkWell(
+          onTap: () => Navigator.pop(context),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(widget.settings.notificationTitle),
               Text(widget.settings.notificationBody),
