@@ -83,7 +83,7 @@ class DB {
     List<int> alarmIds = await getAlarmIds();
     int roundNumber = 0;
 
-
+    await Alarm.stopAll();
     // set one alarm for each round
     for (Map round in seating) {
       String name = round['id'];
@@ -101,7 +101,7 @@ class DB {
         } else {
           body = '';
         }
-        setAlarm(alarmTime, title, body, alarmIds[roundNumber]);
+        await setAlarm(alarmTime, title, body, alarmIds[roundNumber]);
       }
       roundNumber++;
     }
