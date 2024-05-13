@@ -3,7 +3,7 @@
 [All-Ireland Mahjong](https://mahjong.ie/) mobile app.
 This provides live information about tournaments.
 
-For tournament participants, it will give **live** info during tournament: current scores,
+For tournament participants, it gives **live** info during tournament: current scores,
 which table a given player is on next and when the round starts, etc
 
 Push notifications will let players know when the latest scores are available, and these scores will
@@ -15,26 +15,25 @@ information about which table they are on next, and who they'll be playing with.
 And they'll get tailored notifications if that information changes.
 
 A tournament admin will be able to do everything through a web interface.
-I envisage them needing 3 or 4 tabs in a browser:
+I envisage them using 3 browser tabs:
 
-- an admin interface
-- the google scoring sheet
-- the live web page, (IN PROGRESS); and
-- maybe a staging page that can be pushed live once the admin is happy. (not started)
+- the admin interface
+- the google scoring sheet; and
+- the live web page; and
 
 ## Programming platforms, frameworks & languages used
 
-The client-side written in Dart with the **Flutter** framework. It's being developed and
+The client-side written in Dart with the **Flutter** framework. It's developed and
 tested initially for **android**, in Android Studio.
 The intention is that it will work on **iPhone** too (not started yet), which is why I chose
 Flutter, because it works across platforms. But there's still some platform-specific
 configuration to do.
 
-The server-side (mostly done) is written in **Python**, with the **Flask** framework. I'm running it
+The server-side is written in **Python**, with the **Flask** framework. I'm running it
 on the server with **wsgi**. Note that the oauth2 authentication won't work on localhost: you need
 a google project that knows about the domain that the app is being served from, and must be given
 the post-authentication URL to redirect back to.  **GSPRead** is used to read the
-scoresheet, to create the live score web page (to be done), and to put the data into the
+scoresheet, to create the live score web page, and to put the data into the
 cloud, for onward transmission to the app
 
 App notifications are by **Firebase Cloud Messaging**.
@@ -43,8 +42,8 @@ Live tournament data is stored in **Google Cloud Firestore**.
 
 When the app has a connection, and is in foreground or background, any update to
 the firebase cloud data gets noticed by the listener.
-If the app is closed, then it won't know anything about it, so I plan to trigger
-a push notification from my server (in progress).
+If the app is closed, then it won't know anything about it, so the server sends FCM notificaions
+to all subscribed devices.
 
 The live scoring of a tournament is done in a **Google spreadsheet**,
 based on the one developed by David Bresnick for the World Riichi Championship.
@@ -73,7 +72,7 @@ Scores are expected to be received from the server in this form too.
 
 The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
-happens in [lib/score_cell.dart](lib/score_cell.dart#L16)
+happens in [lib/score_cell.dart](lib/score_cell.dart#L12) and [server/run/run.py](server/run/run.py#L28)
 
 
 ### In the app, all state is in a single global variable
@@ -85,7 +84,7 @@ as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/stor
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
-There are logins for tournament admin and server admin on the web,
+There *are* logins for tournament admin and server admin on the web,
 using Google oauth2 and Flask logins.
 
 And the Google Sheet that is used for scoring for any given tournament,

@@ -5,15 +5,18 @@
     <title>Run {{ current_user.live_tournament.title }}</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
 </head>
-<body>
+<body style='max-width: 500px;'>
 <h1>Run {{ current_user.live_tournament.title }}</h1>
 <h3>Available actions:</h3>
 <p><a href='{{ url_for('run.select_tournament') }}'>
-  Select which tournament you want to manage
+  Select which tournament you want to manage - currently managing {{ current_user.live_tournament.title }}
   </a></p>
-<p><a href='{{ url_for('run.sheet_to_cloud') }}'>
-  Update scores on web and app
-  </a></p>
+<p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament_id }}' target=_blank>Open the google sheet</a>
+</p>
+  <hr>
+  <form action='{{ url_for('run.sheet_to_cloud') }}'>
+      <input type=submit value="Update scores on web and app">
+  </form>
   <form action='{{ url_for('run.update_schedule') }}'>
       <input type=submit value="Update schedule">
   </form>
