@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <title>Run {{ current_user.live_tournament.title }}</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body style='max-width: 500px;'>
+<body>
 <h1>Run {{ current_user.live_tournament.title }}</h1>
 <h3>Available actions:</h3>
 <p><a href='{{ url_for('run.select_tournament') }}'>
@@ -13,18 +14,72 @@
   </a></p>
 <p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament_id }}' target=_blank>Open the google sheet</a>
 </p>
-  <hr>
-  <form action='{{ url_for('run.sheet_to_cloud') }}'>
-      <input type=submit value="Update scores on web and app">
-  </form>
-  <form action='{{ url_for('run.update_schedule') }}'>
-      <input type=submit value="Update schedule">
-  </form>
-  <form action='{{ url_for('run.update_seating') }}'>
-      <input type=submit value="Update seating">
-  </form>
-  <form action='{{ url_for('run.update_players') }}'>
-      <input type=submit value="Update list of players">
-  </form>
+<hr>
+<div id='runButtons'>
+
+  <button class="action" data-url="{{
+    url_for('run.sheet_to_cloud')
+    }}">Update scores on web and app</button>
+
+  <button class="action" data-url="{{
+    url_for('run.update_schedule')
+    }}">Update schedule</button>
+
+  <button class="action" data-url="{{
+    url_for('run.update_seating')
+    }}">Update seating plan</button>
+
+  <button class="action" data-url="{{
+    url_for('run.update_players')
+    }}">Update list of players & seat-number assignments</button>
+
+</div>
+<div><button id="clearButton">Clear log</button></div>
+<div id="logMessageBox"></div>
+
+<script>
+let buttons = document.querySelectorAll('button.action');
+let log = document.getElementById('logMessageBox');
+document.getElementById('clearButton').addEventListener('click', () =>
+    log.innerHTML = '');
+
+buttons.forEach(button => {
+    button.addEventListener('click', function() {
+        button.disabled = true;
+        let url = this.getAttribute('data-url');
+        url += '?t=' + new Date().getTime();
+        fetch(url)
+            .then(response => response.text())
+            .then(data => {
+                button.disabled = false;
+                let message = document.createElement('p');
+
+                let timestampSpan = document.createElement('span');
+                timestampSpan.className = 'dateTimeStamp';
+                timestampSpan.textContent = new Date().toLocaleString('se');
+
+                message.appendChild(timestampSpan);
+                message.appendChild(document.createTextNode(': ' + data));
+
+                log.insertBefore(message, log.firstChild);
+            })
+            .catch(error => {
+                button.disabled = false;
+                let message = document.createElement('p');
+
+                let timestampSpan = document.createElement('span');
+                timestampSpan.className = 'dateTimeStamp';
+                timestampSpan.textContent = new Date().toLocaleString('se') +
+                    'ERROR';
+
+                message.appendChild(timestampSpan);
+                message.appendChild(document.createTextNode(': ' + data));
+
+                log.insertBefore(message, log.firstChild);
+            });
+    });
+});
+</script>
+
 </body>
 </html>

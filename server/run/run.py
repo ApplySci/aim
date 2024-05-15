@@ -59,7 +59,7 @@ def publish_scores_on_web(scores, players):
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
 
-    return html, 200
+    return 'scores.html has been updated, notifications sent', 200
 
 
 @login_required
@@ -91,7 +91,7 @@ def update_schedule():
     sheet = _get_sheet()
     _schedule_to_cloud(sheet)
     _send_messages('schedule updated')
-    return redirect(url_for('run.run_tournament'))
+    return "SCHEDULE updated, notifications sent", 200
 
 
 @blueprint.route('/run/update_seating')
@@ -101,7 +101,7 @@ def update_seating():
     schedule = _schedule_to_cloud(sheet)
     _seating_to_cloud(sheet, schedule)
     _send_messages('seating updated')
-    return redirect(url_for('run.run_tournament'))
+    return "SEATING PLAN updated, notifications sent", 200
 
 
 @blueprint.route('/run/update_players')
@@ -110,7 +110,7 @@ def update_players():
     sheet = _get_sheet()
     _players_to_cloud(sheet)
     _send_messages('player list updated')
-    return redirect(url_for('run.run_tournament'))
+    return "PLAYERS updated, notifications sent", 200
 
 
 @login_required

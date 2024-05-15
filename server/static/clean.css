@@ -133,3 +133,31 @@ input[type="submit"]:active {
     text-align: right;
     vertical-align: middle;
 }
+
+#datetimeInputs label{
+    display: block;
+    margin-top: 0.5em;
+}
+
+#runButtons button {
+    display: block;
+    width: 80%;
+    margin-bottom: 1em;
+    padding: 0.25em;
+}
+
+#logMessageBox {
+    width: 80%;
+    min-height: 2em;
+    max-height: 20em;
+    overflow-y: scroll;
+    border: 1px solid black;
+}
+
+#logMessageBox p {
+  margin: 6px;
+}
+
+.dateTimeStamp {
+    font-weight: bold;
+}
