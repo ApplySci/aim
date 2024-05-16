@@ -12,7 +12,7 @@ publish_to: 'none'
 # In iOS, build name is used as CFBundleShortVersionString
 # build number is used as CFBundleVersion.
 
-version: 0.3.1+25
+version: 0.3.2+26
 
 environment:
   sdk: '>=3.2.5 <4.0.0'
@@ -40,13 +40,13 @@ dependencies:
   url_launcher: ^6.2.6
 
   # add Apple Cupertino Icons font:
-  # cupertino_icons: ^1.0.2
+  # cupertino_icons: ^1.0.8
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0
 
   flutter_launcher_icons: ^0.13.1
 
