@@ -60,7 +60,7 @@ class DB {
     List<int> alarms = [];
     int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
     int roundCount = store.state.seating.length;
-    for (int i=1; i <= roundCount; i++) {
+    for (int i = 1; i <= roundCount; i++) {
       // a deterministic way to generate a unique-ish int from the google doc id
       alarms.add(10 * alarmIdBase + i);
     }
@@ -68,35 +68,34 @@ class DB {
   }
 
   void setAllAlarms() async {
-    DateTime now = DateTime.now().toUtc();
+    final now = DateTime.now().toUtc();
     String body;
     String tableName;
     String roundId;
     String title;
-    bool targetPlayer = store.state.playerMap.containsKey(store.state.selected);
-    SeatingPlan seating = targetPlayer ? List.from(store.state.theseSeats)
-        : List.from(store.state.seating);
-    String playerName = targetPlayer
-        ? store.state.playerMap[store.state.selected] ?? ''
-        : '';
-    Map schedule = Map.from(store.state.schedule);
-    List<int> alarmIds = await getAlarmIds();
+    final targetPlayer =
+        store.state.playerMap.containsKey(store.state.selected);
+    final seating = targetPlayer ? store.state.theseSeats : store.state.seating;
+    final playerName =
+        targetPlayer ? store.state.playerMap[store.state.selected] ?? '' : '';
+    final schedule = store.state.schedule;
+    final alarmIds = await getAlarmIds();
     int roundNumber = 0;
 
     await Alarm.stopAll();
     // set one alarm for each round
-    for (Map round in seating) {
-      String name = round['id'];
-      String currentTimeZone = await FlutterTimezone.getLocalTimezone();
-      tz.Location loc = tz.getLocation(currentTimeZone);
-      DateTime alarmTime = tz.TZDateTime.from(schedule[name]['start'], loc)
-        .toLocal()
-        .subtract(const Duration(minutes: 5));
+    for (final round in seating) {
+      final name = round.id;
+      final currentTimeZone = await FlutterTimezone.getLocalTimezone();
+      final loc = tz.getLocation(currentTimeZone);
+      final alarmTime = tz.TZDateTime.from(schedule!.hanchan[name]!.start, loc)
+          .toLocal()
+          .subtract(const Duration(minutes: 5));
       if (now.isBefore(alarmTime)) {
-        roundId = schedule[name]['name'];
+        roundId = schedule.hanchan[name]!.name;
         title = "$roundId starts in 5 minutes";
         if (targetPlayer) {
-          tableName = round['tables'].keys.first;
+          tableName = round.tables.keys.first;
           body = "$playerName is on table $tableName";
         } else {
           body = '';
@@ -111,78 +110,66 @@ class DB {
     if (docId.length < 5) return;
     _db.collection('tournaments').doc(docId).snapshots().listen(
       (event) {
-        store.dispatch({
-          'type': STORE.setTournament,
-          'tournamentId': docId,
-          'tournament': event.data(),
-        });
+        store.dispatch(SetTournamentAction(
+          tournament: TournamentState.fromJson({
+            'id': docId,
+            ...event.data()!,
+          }),
+        ));
         listenToTournament(docId);
       },
       onError: (error) => Log.warn("Tournament-doc Listen failed: $error"),
     );
   }
 
-
   Future<void> listenToTournament(String docId) async {
-  CollectionReference collection = _db.collection('tournaments').doc(docId)
-        .collection('json');
+    CollectionReference collection =
+        _db.collection('tournaments').doc(docId).collection('json');
 
-    List jsons = [
-      [
-        'seating',        // field name
-        STORE.setSeating, // Store update type
-        <SeatingPlan>[],  // default value
-      ],
-      [
-        'schedule',
-        STORE.setSchedule,
-        <String,String>{},
-      ],
-      [
-        'scores',
-        STORE.setScores,
-        <Map<String,dynamic>>[],
-      ],
-      [
-        'players',
-        STORE.setPlayerList,
-        <Player>[],
-      ],
-    ];
-    for (List json in jsons) {
-      if (_listeners.containsKey(json[0])) {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final actions = {
+      'seating': const SetSeatingAction(seating: []),
+      'schedule': SetScheduleAction(
+        schedule: ScheduleState(timezone: tz.UTC, hanchan: {}),
+      ),
+      'scores': const SetScoresAction(scores: []),
+      'players': const SetPlayerListAction(players: []),
+    };
+    for (var MapEntry(key: type, value: action) in actions.entries) {
+      if (_listeners.containsKey(type)) {
         try {
-          _listeners[json[0]].cancel();
+          _listeners[type].cancel();
         } finally {}
       }
 
-      _listeners[json[0]] = collection.doc(json[0]).snapshots().listen(
+      _listeners[type] = collection.doc(type).snapshots().listen(
         (event) async {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          dynamic eventData = event.data();
-          dynamic newValue;
-          if (eventData == null || ! eventData.containsKey('json')) {
-            newValue = json[2];
-          } else {
-            newValue = jsonDecode(eventData['json']);
+          final eventData = event.data();
+          if (eventData case {'json': dynamic json}) {
+            final data = jsonDecode(json);
+            action = switch (action) {
+              SetSeatingAction() => SetSeatingAction.fromJson(data),
+              SetScheduleAction() => SetScheduleAction.fromJson(data),
+              SetScoresAction() => SetScoresAction.fromJson(data),
+              SetPlayerListAction() => SetPlayerListAction.fromJson(data),
+              _ => action,
+            };
           }
-          if (json[0] == "schedule") {
-            await setTimeZone(newValue);
+          if (action case SetScheduleAction(schedule: final schedule)) {
+            await setTimeZone(schedule);
             bool wantAlarms = prefs.getBool('alarm') ?? true;
-            if (wantAlarms && store.state.schedule.isNotEmpty) {
+            if (wantAlarms && store.state.schedule != null) {
               setAllAlarms();
             }
           } else {
-            store.dispatch({
-              'type': json[1],
-              json[0]: newValue,
-            });
+            store.dispatch(action);
           }
+
           final ScaffoldMessengerState? state =
               scaffoldMessengerKey.currentState;
-          state?.showSnackBar(SnackBar(content: Text('${json[0]} updated')));
+          state?.showSnackBar(SnackBar(content: Text('$type updated')));
         },
-        onError: (error) => Log.error("${json[0]} listener failed: $error"),
+        onError: (error) => Log.error("$type listener failed: $error"),
       );
     }
   }

@@ -1,6 +1,7 @@
 // native imports
 import 'dart:async';
 
+import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,20 +10,17 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 
 // app imports
+import 'alarm.dart';
 import 'db.dart';
 import 'fcm_client.dart';
 import 'home.dart';
-import 'info.dart';
-import 'player_list.dart';
-import 'score_table.dart';
-import 'seats.dart';
 import 'settings.dart';
 import 'store.dart';
+import 'tournament.dart';
 import 'tournaments.dart';
 import 'utils.dart';
 
 Future main() async {
-
   WidgetsFlutterBinding.ensureInitialized(); // do this before everything
 
   await initPrefs();
@@ -45,11 +43,27 @@ class _MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<_MyApp> {
+  late StreamSubscription<AlarmSettings> alarmListener;
 
+  @override
+  void initState() {
+    super.initState();
+
+    alarmListener = Alarm.ringStream.stream.listen(alarmIsRinging);
+  }
+
+  // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
+  // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
+  Future<void> alarmIsRinging(AlarmSettings settings) async {
+    await globalNavigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (context) => AlarmScreen(settings: settings),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return StoreProvider<AllState>(
       store: store,
       child: MaterialApp(
@@ -64,12 +78,9 @@ class _MyAppState extends State<_MyApp> {
         ),
         routes: {
           ROUTES.home: (context) => const MyHomePage(),
-          ROUTES.info: (context) => const TournamentInfo(),
-          ROUTES.seating: (context) => const Seating(),
-          ROUTES.players: (context) => const Players(),
           ROUTES.settings: (context) => const SettingsScreen(),
           ROUTES.tournaments: (context) => const Tournaments(),
-          ROUTES.scoreTable: (context) => const ScoreTable(),
+          ROUTES.tournament: (context) => const TournamentPage(),
         },
       ),
     );

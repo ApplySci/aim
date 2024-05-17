@@ -1,9 +1,6 @@
 import 'package:aim_tournaments/store.dart';
 import 'package:flutter/material.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'frame.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -41,9 +38,12 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return navFrame(
-      context,
-      Column(
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Settings'),
+      ),
+      body: Column(
         children: <Widget>[
           SwitchListTile(
             title: const Text('Alarms for start of hanchan'),
@@ -56,13 +56,14 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            title: const Text('Use event timezone (rather than device timezone)'),
+            title:
+                const Text('Use event timezone (rather than device timezone)'),
             value: _eventTzValue,
             onChanged: (bool value) {
               setState(() async {
                 _eventTzValue = value;
                 await _saveSettings('tz', value);
-                setTimeZone(store.state.schedule);
+                setTimeZone(store.state.schedule!);
               });
             },
           ),
@@ -77,7 +78,8 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            title: const Text('Notifications for changes to seating & schedule'),
+            title:
+                const Text('Notifications for changes to seating & schedule'),
             value: _seatingValue,
             onChanged: (bool value) {
               setState(() {
