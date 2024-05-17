@@ -1,12 +1,17 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:intl/intl.dart';
 
-import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
+
+typedef SeatingState = ({
+  List<RoundState> theseSeats,
+  List<RoundState> seating,
+  int? selected,
+  int roundDone,
+  ScheduleState schedule
+});
 
 class Seating extends StatefulWidget {
   const Seating({super.key});
@@ -20,16 +25,137 @@ class _SeatingState extends State<Seating> {
 
   void toggleShowAll(bool yes) => setState(() => showAll = yes);
 
-  List<Widget> getHanchan(SeatingPlan seats, int roundDone, Map schedule) {
-    List<Widget> allHanchan = [];
-    int roundCount = 0;
-    for (final Map round in seats) {
-      roundCount++;
-      if (roundCount <= roundDone) continue; // skip rounds if they're over
-      allHanchan.add(Container(
-        height: 10,
-        margin: const EdgeInsets.all(15.0),
-        padding: const EdgeInsets.all(10.0),
+  @override
+  Widget build(BuildContext context) {
+    return StoreConnector<AllState, SeatingState>(
+      converter: (store) => (
+        theseSeats: store.state.theseSeats,
+        seating: store.state.seating,
+        selected: store.state.selected,
+        roundDone: store.state.roundDone,
+        schedule: store.state.schedule!,
+      ),
+      builder: (context, state) {
+        final haveSelection = state.selected != null;
+        final seats =
+            haveSelection && !showAll ? state.theseSeats : state.seating;
+        if (seats.isEmpty) {
+          return const Center(child: Text('No seating schedule available'));
+        }
+
+        return Column(
+          children: [
+            if (haveSelection)
+              SwitchListTile(
+                title: const Text('Selected Player / All Players'),
+                value: showAll,
+                onChanged: toggleShowAll,
+              ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final round in seats)
+                    HanchanTable(
+                      round: round,
+                      schedule: state.schedule,
+                      roundDone: state.roundDone,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+typedef AssignedTableState = ({
+  int? selected,
+  Map playerMap,
+  bool japaneseWinds,
+});
+
+class AssignedTable extends StatelessWidget {
+  const AssignedTable(
+    this.seats, {
+    super.key,
+  });
+
+  final List<int> seats; // E,S,N,W player indices
+
+  @override
+  Widget build(BuildContext context) {
+    return StoreConnector<AllState, AssignedTableState>(
+      converter: (store) => (
+        selected: store.state.selected,
+        playerMap: store.state.playerMap,
+        japaneseWinds: prefs.getBool('japaneseWinds') ?? false,
+      ),
+      builder: (context, state) {
+        return Table(
+          border: TableBorder.all(
+            width: 2,
+            color: const Color(0x88888888),
+          ),
+          columnWidths: const {
+            0: IntrinsicColumnWidth(),
+            1: FlexColumnWidth(),
+          },
+          children: [
+            for (final wind in Winds.values)
+              TableRow(
+                decoration: BoxDecoration(
+                  color: seats[wind.index] == state.selected
+                      ? selectedHighlight
+                      : Colors.transparent,
+                ),
+                children: [
+                  //selected: seats[wind.index] == s.selected,
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      switch (state.japaneseWinds) {
+                        true => wind.japanese,
+                        false => wind.western,
+                      },
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(state.playerMap[seats[wind.index]]!),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class HanchanTable extends StatelessWidget {
+  const HanchanTable({
+    super.key,
+    required this.round,
+    required this.schedule,
+    required this.roundDone,
+  });
+
+  final RoundState round;
+  final ScheduleState schedule;
+  final int roundDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final roundName = schedule.hanchan[round.id]!.name;
+    final startTime = DateFormat('EEEE d MMMM HH:mm')
+        .format(schedule.hanchan[round.id]!.start);
+
+    return Column(children: [
+      Container(
+        margin: const EdgeInsets.all(8.0),
         decoration: const BoxDecoration(
           border: Border(
             top: BorderSide(
@@ -38,133 +164,26 @@ class _SeatingState extends State<Seating> {
             ),
           ),
         ),
-      ));
-      String roundName = schedule[round['id']]['name'];
-      String startTime = DateFormat('EEEE d MMMM HH:mm').format(
-        schedule[round['id']]['start']);
-      allHanchan.add(Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.watch_later_outlined),
-          Text(" $roundName begins at $startTime"),
-        ],
-      ));
-      allHanchan.add(const SizedBox(height: 5));
-      (round['tables'] as Map<String, dynamic>)
-          .forEach((String tableName, dynamic plan) {
-        allHanchan.add(Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.table_restaurant),
-            Text(' $tableName'),
-          ],
-        ));
-        allHanchan.add(AssignedTable(plan));
-        allHanchan.add(const SizedBox(height: 10));
-      });
-    }
-    return allHanchan;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AllState, Map<String, dynamic>>(
-      converter: (store) {
-        return {
-          'roundDone': store.state.roundDone,
-          'scores': store.state.scores,
-          'schedule': store.state.schedule,
-          'seating': store.state.seating,
-          'selected': store.state.selected,
-          'thisSeating': store.state.theseSeats,
-        };
-      },
-      builder: (BuildContext context, Map<String, dynamic> s) {
-        bool haveSelection = s['selected'] >= 0;
-        SeatingPlan seats =
-            s[haveSelection && !showAll ? 'thisSeating' : 'seating'];
-        if (seats.isEmpty) {
-          return navFrame(context,
-              const Center(child: Text('No seating schedule available')));
-        }
-
-        List<Widget> rows = [];
-        if (haveSelection) {
-          rows.add(
-              const Text('Show all seating, or just the selected player?'));
-
-          rows.add(
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Selected'),
-                Switch(
-                  value: showAll,
-                  activeColor: Colors.red,
-                  onChanged: haveSelection ? toggleShowAll : null,
-                ),
-                const Text('All'),
-              ],
-            ),
-          );
-        }
-        rows.addAll(getHanchan(seats, s['roundDone'], s['schedule']));
-        return navFrame(
-          context,
-          Column(children: rows),
-        );
-      },
-    );
-  }
-}
-
-class AssignedTable extends StatefulWidget {
-  final List seats; // E,S,N,W player indices
-  const AssignedTable(
-    this.seats, {
-    super.key,
-  });
-
-  @override
-  State<AssignedTable> createState() => _AssignedTableState();
-}
-
-class _AssignedTableState extends State<AssignedTable> {
-  @override
-  Widget build(BuildContext context) {
-    return StoreConnector<AllState, Map<String, dynamic>>(converter: (store) {
-      return {
-        'players': store.state.playerMap,
-        'selected': store.state.selected,
-        'winds': prefs.getBool('japaneseWinds') ?? false,
-      };
-    }, builder: (BuildContext context, Map<String, dynamic> s) {
-      List<DataRow> rows = <DataRow>[];
-      String winds = WINDS[s['winds'] ? 'japanese' : 'western'].toString();
-      for (int i = 0; i < min(4, widget.seats.length); i++) {
-        rows.add(DataRow(
-            color: MaterialStateProperty.all<Color>(
-                widget.seats[i] == s['selected']
-                    ? selectedHighlight
-                    : Colors.transparent),
-            cells: [
-              DataCell(Text(winds[i])),
-              DataCell(Text(s['players'][widget.seats[i]])),
-            ]));
-      }
-      return DataTable(
-        border: TableBorder.symmetric(
-          inside: BorderSide.none,
-          outside: const BorderSide(width: 2, color: Color(0x88888888)),
-        ),
-        headingRowHeight: 0,
-        columns: [
-          DataColumn(label: Container()),
-          DataColumn(label: Container()),
-        ],
-        rows: rows,
-        columnSpacing: 10,
-      );
-    });
+      ),
+      ListTile(
+        leading: const Icon(Icons.watch_later_outlined),
+        title: Text("$roundName begins at $startTime"),
+      ),
+      for (final MapEntry(:key, :value) in round.tables.entries)
+        Column(children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.table_restaurant),
+              Text(' $key'),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: AssignedTable(value),
+          ),
+          const SizedBox(height: 10),
+        ])
+    ]);
   }
 }

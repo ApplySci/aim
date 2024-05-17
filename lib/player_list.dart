@@ -1,127 +1,120 @@
 import 'package:aim_tournaments/fcm_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import 'db.dart';
-import 'frame.dart';
 import 'store.dart';
 import 'utils.dart';
 
-class Players extends StatelessWidget {
+typedef PlayersState = ({
+  List<Player> players,
+  int? selected,
+});
+
+class Players extends StatefulWidget {
   const Players({super.key});
 
   @override
+  State<Players> createState() => _PlayersState();
+}
+
+class _PlayersState extends State<Players> {
+  final textController = TextEditingController();
+
+  @override
   Widget build(BuildContext context) {
-    return StoreConnector<AllState, Map<String, dynamic>>(converter: (store) {
-      return {'selected': store.state.selected, 'players': store.state.players};
-    }, builder: (BuildContext context, Map<String, dynamic> incoming) {
-      return navFrame(
-        context,
-        Center(
-          child: Column(
-            children: <Widget>[
-              const Text('Select a player to follow. Tap below to search'),
-              PlayerList(
-                players: incoming['players'],
-                selected: incoming['selected'],
+    return StoreConnector<AllState, PlayersState>(
+      converter: (store) => (
+        players: store.state.players,
+        selected: store.state.selected,
+      ),
+      builder: (context, state) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextField(
+                controller: textController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: textController.text.isNotEmpty
+                      ? IconButton(
+                          onPressed: () =>
+                              setState(() => textController.clear()),
+                          icon: const Icon(Icons.clear),
+                        )
+                      : null,
+                  hintText: 'Player search',
+                ),
+                onChanged: (value) => setState(() {}),
               ),
-            ],
-          ),
-        ),
-      );
-    });
+            ),
+            Expanded(
+              child: PlayerList(
+                players: state.players
+                    .where((e) => e.name
+                        .toLowerCase()
+                        .contains(textController.text.toLowerCase()))
+                    .toList(),
+                selected: state.selected,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
-class PlayerList extends StatefulWidget {
+class PlayerList extends StatelessWidget {
+  const PlayerList({
+    required this.players,
+    required this.selected,
+    super.key,
+  });
+
   final List<Player> players;
-  final int selected;
+  final int? selected;
 
-  const PlayerList(
-      {super.key, this.players = const <Player>[], this.selected = -1});
-
-  @override
-  State<PlayerList> createState() => _PlayerListState();
-}
-
-class _PlayerListState extends State<PlayerList> {
-  final _controller = TextEditingController();
-  final _suggestionsController = SuggestionsController<Player>();
   @override
   Widget build(BuildContext context) {
-    _suggestionsController.open();
-    _suggestionsController.focusBox();
-    return TypeAheadField<Player>(
-      suggestionsController: _suggestionsController,
-      controller: _controller,
-      hideOnEmpty: false,
-      hideOnUnfocus: false,
-      hideOnLoading: false,
-      hideOnError: false,
-      hideKeyboardOnDrag: false,
-      hideOnSelect: false,
-      hideWithKeyboard: false,
-
-      itemBuilder: (context, player) => ListTile(
-        title: Container(
-          color: player.id == widget.selected ? selectedHighlight : null,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: player.id < 0
-                    ? Container()
-                    : const Icon(
-                        Icons.account_circle,
-                        color: Colors.green,
-                      ),
-              ),
-              Expanded(
-                flex: 9,
-                child: Text(
-                  player.name,
-                  style: TextStyle(
-                      color:
-                          player.id == widget.selected ? Colors.black : null),
-                ),
-              ),
-            ],
+    return ListView.builder(
+      itemCount: players.length,
+      itemBuilder: (context, index) {
+        final player = players[index];
+        return ListTile(
+          selected: player.id == selected,
+          selectedColor: Theme.of(context).textTheme.titleMedium?.color,
+          selectedTileColor: Theme.of(context).colorScheme.inversePrimary,
+          leading: const Icon(
+            Icons.account_circle,
+            color: Colors.green,
           ),
-        ),
-      ),
-      onSelected: (Player selection) async {
-        _controller.clear();
-        int previousSelection = store.state.selected;
-        store.dispatch({
-          'type': STORE.setPlayerId,
-          'playerId': selection.id,
-        });
-        DB.instance.setAllAlarms();
-        Navigator.pop(context);
-        final ScaffoldMessengerState? state = DB.instance.scaffoldMessengerKey.currentState;
-        state?.showSnackBar(SnackBar(content: Text(
-            '${selection.name} will be highlighted in seating & scores, and you will receive updates for them'
-        )));
-        subscribeToTopic(
-            '${store.state.tournamentId}-${selection.id}',
-            '${store.state.tournamentId}-$previousSelection'
+          title: Text(player.name),
+          onTap: () {
+            if (player.id == selected) {
+              store.dispatch(const SetPlayerIdAction(playerId: null));
+              DB.instance.setAllAlarms();
+
+              messaging.unsubscribeFromTopic(
+                '${store.state.tournamentId}-$selected',
+              );
+            } else {
+              store.dispatch(SetPlayerIdAction(playerId: player.id));
+              DB.instance.setAllAlarms();
+
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  '${player.name} will be highlighted in seating & scores, and you will receive updates for them',
+                ),
+              ));
+              subscribeToTopic(
+                '${store.state.tournamentId}-${player.id}',
+                '${store.state.tournamentId}-$selected',
+              );
+            }
+          },
         );
-      },
-      suggestionsCallback: (String needle) {
-        List<Player> filtered;
-        if (needle == '') {
-          filtered = widget.players;
-        } else {
-          final lowerText = needle.toLowerCase();
-          filtered = widget.players.where((Player option) {
-            return option.name.toLowerCase().contains(lowerText);
-          }).toList();
-        }
-        if (filtered.isNotEmpty && filtered[0].id != -1) {
-          filtered.insert(0, Player(-1, '(none)'));
-        }
-        return filtered;
       },
     );
   }

@@ -6,9 +6,8 @@
  This is to avoid circular dependencies.
 
  */
-import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -32,6 +31,7 @@ enum STORE {
   setSchedule,
   setSeating,
   setTournament,
+  setPageIndex,
 }
 
 const DEBUG = true;
@@ -44,7 +44,8 @@ const Map<String, Color> BACKGROUND_COLOURS = {
   'deep purple': Color(0xFF220033),
 };
 
-final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> globalNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 String dateRange(dynamic startDT, dynamic endDT) {
   if (startDT == null || endDT == null) return '';
@@ -64,24 +65,27 @@ String dateRange(dynamic startDT, dynamic endDT) {
   return "$start - $end";
 }
 
-
 class ROUTES {
   static const String home = '/home';
-  static const String info = '/info';
-  static const String players = '/players';
   static const String privacyPolicy = '/privacyPolicy';
-  static const String seating = '/seating';
-  static const String scoreTable = '/scoreTable';
   static const String settings = '/settings';
   static const String tournaments = '/tournaments';
+  static const String tournament = '/tournament';
 }
 
 const Color selectedHighlight = Color(0x88aaaaff);
 
-const Map<String, String> WINDS = {
-  'western': 'ESWN',
-  'japanese': '東南西北',
-};
+enum Winds {
+  east('E', '東'),
+  south('S', '西'),
+  west('W', '南'),
+  north('N', '北');
+
+  const Winds(this.western, this.japanese);
+
+  final String japanese;
+  final String western;
+}
 
 class Player implements Comparable<Player> {
   int id = -99;
@@ -96,25 +100,44 @@ class Player implements Comparable<Player> {
   toString() => '$name ($id)';
 }
 
-typedef SeatingPlan = List<Map<String, dynamic>>;
+typedef SeatingPlan = List<RoundState>;
+
+class RoundState {
+  const RoundState({
+    required this.id,
+    required this.tables,
+  });
+
+  factory RoundState.fromJson(Map<String, dynamic> data) => RoundState(
+        id: data['id'],
+        tables: (data['tables'] as Map).map(
+          (key, value) => MapEntry(
+            key,
+            (value as List).cast(),
+          ),
+        ),
+      );
+
+  final String id;
+  final Map<String, List<int>> tables;
+}
 
 /// Get the seating for an individual player
 /// [seating] is the seating plan for the whole tournament
 /// [selected] is the player id
 /// [getSeats] returns the SeatingPlan just for the player selected
-SeatingPlan getSeats(SeatingPlan seating, int selected) {
-  // deep-cloning this fairly simple object with JSON
-  SeatingPlan theseSeats = SeatingPlan.from(jsonDecode(jsonEncode(seating)));
-  for (int i=0; i < seating.length; i++) {
-    seating[i]['tables'].forEach((String tableName, dynamic table) {
-      if (!table.contains(selected)) {
-        theseSeats[i]['tables'].remove(tableName);
-      }
-    });
-  }
-  return theseSeats;
+SeatingPlan getSeats(SeatingPlan seating, int? selected) {
+  return [
+    for (final e in seating)
+      RoundState(
+        id: e.id,
+        tables: {
+          for (final MapEntry(:key, :value) in e.tables.entries)
+            if (value.contains(selected)) key: [...value]
+        },
+      )
+  ];
 }
-
 
 class Log {
   static List<List<dynamic>> logs = [];
@@ -143,5 +166,19 @@ class Log {
 
   static void info(String text) {
     _saveLog(LOG.info, text);
+  }
+}
+
+extension SeperatedBy<T> on Iterable<T> {
+  Iterable<T> seperatedBy(T seperator) sync* {
+    if (isEmpty) return;
+
+    final iterator = this.iterator;
+    iterator.moveNext();
+    yield iterator.current;
+    while (iterator.moveNext()) {
+      yield seperator;
+      yield iterator.current;
+    }
   }
 }
