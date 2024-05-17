@@ -6,6 +6,8 @@
  This is to avoid circular dependencies.
 
  */
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -179,6 +181,27 @@ extension SeperatedBy<T> on Iterable<T> {
     while (iterator.moveNext()) {
       yield seperator;
       yield iterator.current;
+    }
+  }
+}
+
+class RunOrQueue {
+  FutureOr<void> Function()? current;
+  FutureOr<void> Function()? next;
+
+  Future<void> call(FutureOr<void> Function() block) async {
+    if (current != null) {
+      next = block;
+      return;
+    }
+    current = block;
+    while (current != null) {
+      try {
+        await current!();
+      } finally {
+        current = next;
+        next = null;
+      }
     }
   }
 }

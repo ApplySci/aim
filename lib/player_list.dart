@@ -91,24 +91,26 @@ class PlayerList extends StatelessWidget {
             color: Colors.green,
           ),
           title: Text(player.name),
-          onTap: () {
+          onTap: () async {
             if (player.id == selected) {
               store.dispatch(const SetPlayerIdAction(playerId: null));
-              DB.instance.setAllAlarms();
+              await DB.instance.setAllAlarms();
 
-              messaging.unsubscribeFromTopic(
+              await messaging.unsubscribeFromTopic(
                 '${store.state.tournamentId}-$selected',
               );
             } else {
               store.dispatch(SetPlayerIdAction(playerId: player.id));
-              DB.instance.setAllAlarms();
+              await DB.instance.setAllAlarms();
 
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                  '${player.name} will be highlighted in seating & scores, and you will receive updates for them',
-                ),
-              ));
-              subscribeToTopic(
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                    '${player.name} will be highlighted in seating & scores, and you will receive updates for them',
+                  ),
+                ));
+              }
+              await subscribeToTopic(
                 '${store.state.tournamentId}-${player.id}',
                 '${store.state.tournamentId}-$selected',
               );

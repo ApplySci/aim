@@ -67,12 +67,13 @@ class DB {
     return alarms;
   }
 
-  void setAllAlarms() async {
+  final runOrQueue = RunOrQueue();
+  Future<void> setAllAlarms() async {
+    return runOrQueue(() => _setAllAlarms());
+  }
+
+  Future<void> _setAllAlarms() async {
     final now = DateTime.now().toUtc();
-    String body;
-    String tableName;
-    String roundId;
-    String title;
     final targetPlayer =
         store.state.playerMap.containsKey(store.state.selected);
     final seating = targetPlayer ? store.state.theseSeats : store.state.seating;
@@ -80,29 +81,28 @@ class DB {
         targetPlayer ? store.state.playerMap[store.state.selected] ?? '' : '';
     final schedule = store.state.schedule;
     final alarmIds = await getAlarmIds();
-    int roundNumber = 0;
+    final currentTimeZone = await FlutterTimezone.getLocalTimezone();
 
     await Alarm.stopAll();
+    await Future.delayed(const Duration(milliseconds: 100));
+
     // set one alarm for each round
-    for (final round in seating) {
+    for (final (index, round) in seating.indexed) {
       final name = round.id;
-      final currentTimeZone = await FlutterTimezone.getLocalTimezone();
       final loc = tz.getLocation(currentTimeZone);
       final alarmTime = tz.TZDateTime.from(schedule!.hanchan[name]!.start, loc)
           .toLocal()
           .subtract(const Duration(minutes: 5));
       if (now.isBefore(alarmTime)) {
-        roundId = schedule.hanchan[name]!.name;
-        title = "$roundId starts in 5 minutes";
-        if (targetPlayer) {
-          tableName = round.tables.keys.first;
-          body = "$playerName is on table $tableName";
-        } else {
-          body = '';
-        }
-        await setAlarm(alarmTime, title, body, alarmIds[roundNumber]);
+        final roundId = schedule.hanchan[name]!.name;
+        final title = "$roundId starts in 5 minutes";
+        final body = switch (targetPlayer) {
+          true => "$playerName is on table ${round.tables.keys.first}",
+          false => '',
+        };
+        await setAlarm(alarmTime, title, body, alarmIds[index]);
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-      roundNumber++;
     }
   }
 
@@ -159,15 +159,15 @@ class DB {
             await setTimeZone(schedule);
             bool wantAlarms = prefs.getBool('alarm') ?? true;
             if (wantAlarms && store.state.schedule != null) {
-              setAllAlarms();
+              await setAllAlarms();
             }
           } else {
             store.dispatch(action);
           }
 
-          final ScaffoldMessengerState? state =
-              scaffoldMessengerKey.currentState;
-          state?.showSnackBar(SnackBar(content: Text('$type updated')));
+          // final ScaffoldMessengerState? state =
+          //     scaffoldMessengerKey.currentState;
+          // state?.showSnackBar(SnackBar(content: Text('$type updated')));
         },
         onError: (error) => Log.error("$type listener failed: $error"),
       );
