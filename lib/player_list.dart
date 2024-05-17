@@ -31,22 +31,25 @@ class _PlayersState extends State<Players> {
       builder: (context, state) {
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: TextField(
-                controller: textController,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: textController.text.isNotEmpty
-                      ? IconButton(
-                          onPressed: () =>
-                              setState(() => textController.clear()),
-                          icon: const Icon(Icons.clear),
-                        )
-                      : null,
-                  hintText: 'Player search',
+            Material(
+              color: Theme.of(context).canvasColor,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: TextField(
+                  controller: textController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: textController.text.isNotEmpty
+                        ? IconButton(
+                            onPressed: () =>
+                                setState(() => textController.clear()),
+                            icon: const Icon(Icons.clear),
+                          )
+                        : null,
+                    hintText: 'Player search',
+                  ),
+                  onChanged: (value) => setState(() {}),
                 ),
-                onChanged: (value) => setState(() {}),
               ),
             ),
             Expanded(
@@ -91,26 +94,24 @@ class PlayerList extends StatelessWidget {
             color: Colors.green,
           ),
           title: Text(player.name),
-          onTap: () async {
+          onTap: () {
             if (player.id == selected) {
               store.dispatch(const SetPlayerIdAction(playerId: null));
-              await DB.instance.setAllAlarms();
+              DB.instance.setAllAlarms();
 
-              await messaging.unsubscribeFromTopic(
+              messaging.unsubscribeFromTopic(
                 '${store.state.tournamentId}-$selected',
               );
             } else {
               store.dispatch(SetPlayerIdAction(playerId: player.id));
-              await DB.instance.setAllAlarms();
+              DB.instance.setAllAlarms();
 
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                    '${player.name} will be highlighted in seating & scores, and you will receive updates for them',
-                  ),
-                ));
-              }
-              await subscribeToTopic(
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  '${player.name} will be highlighted in seating & scores, and you will receive updates for them',
+                ),
+              ));
+              subscribeToTopic(
                 '${store.state.tournamentId}-${player.id}',
                 '${store.state.tournamentId}-$selected',
               );
