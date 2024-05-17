@@ -51,6 +51,9 @@ Future<void> unsubscribeFromTournament(String topic, int playerCount) async {
 }
 
 Future<void> getFCMToken() async {
+  // TODO maybe put a try around this.
+  // Also,is it needed for Mac?
+  // TODO test APN notifications on actual iphone
   final String fcmToken = await messaging.getToken() ?? '';
 
   messaging.onTokenRefresh.listen((fcmToken) {
