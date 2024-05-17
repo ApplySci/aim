@@ -53,6 +53,7 @@ class _MyAppState extends State<_MyApp> {
     return StoreProvider<AllState>(
       store: store,
       child: MaterialApp(
+        debugShowCheckedModeBanner:false,
         initialRoute: ROUTES.home,
         navigatorKey: globalNavigatorKey,
         scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
