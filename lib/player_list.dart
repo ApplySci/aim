@@ -24,6 +24,7 @@ class _PlayersState extends State<Players> {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AllState, PlayersState>(
+      distinct: true,
       converter: (store) => (
         players: store.state.players,
         selected: store.state.selected,
@@ -100,7 +101,7 @@ class PlayerList extends StatelessWidget {
               DB.instance.setAllAlarms();
 
               messaging.unsubscribeFromTopic(
-                '${store.state.tournamentId}-$selected',
+                '${store.state.tournament?.id}-$selected',
               );
             } else {
               store.dispatch(SetPlayerIdAction(playerId: player.id));
@@ -112,8 +113,8 @@ class PlayerList extends StatelessWidget {
                 ),
               ));
               subscribeToTopic(
-                '${store.state.tournamentId}-${player.id}',
-                '${store.state.tournamentId}-$selected',
+                '${store.state.tournament?.id}-${player.id}',
+                '${store.state.tournament?.id}-$selected',
               );
             }
           },

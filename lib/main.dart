@@ -27,7 +27,7 @@ Future main() async {
   await setupFCM();
   await Alarm.init();
   DB.instance.getTournaments();
-  DB.instance.getTournamentFromId(prefs.getString('tournamentId') ?? '');
+  DB.instance.getTournamentFromId(prefs.getString('tournamentId'));
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black, //top bar color
     statusBarIconBrightness: Brightness.light, //top bar icons
@@ -54,22 +54,20 @@ class _MyAppState extends State<_MyApp> {
 
   // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
   // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
-  Future<void> alarmIsRinging(AlarmSettings settings) async {
-    await globalNavigatorKey.currentState?.push(
-      MaterialPageRoute<void>(
-        builder: (context) => AlarmScreen(settings: settings),
-      ),
-    );
-  }
+  Future<void> alarmIsRinging(AlarmSettings settings) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => AlarmScreen(settings: settings),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     return StoreProvider<AllState>(
       store: store,
       child: MaterialApp(
-        debugShowCheckedModeBanner:false,
+        debugShowCheckedModeBanner: false,
         initialRoute: ROUTES.home,
-        navigatorKey: globalNavigatorKey,
         scaffoldMessengerKey: DB.instance.scaffoldMessengerKey,
         title: 'All-Ireland Mahjong Tournaments',
         theme: ThemeData(

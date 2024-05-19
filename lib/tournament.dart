@@ -8,26 +8,30 @@ import 'seats.dart';
 import 'store.dart';
 import 'utils.dart';
 
-typedef TournamentPageState = ({
-  TournamentState tournament,
-  int pageIndex,
-});
-
-class TournamentPage extends StatelessWidget {
+class TournamentPage extends StatefulWidget {
   const TournamentPage({super.key});
 
   @override
+  State<TournamentPage> createState() => _TournamentPageState();
+}
+
+class _TournamentPageState extends State<TournamentPage> {
+  int pageIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
-    return StoreConnector<AllState, TournamentPageState>(
-      converter: (store) => (
-        tournament: store.state.tournament!,
-        pageIndex: store.state.pageIndex,
-      ),
-      builder: (context, state) {
+    return StoreConnector<AllState, TournamentState?>(
+      distinct: true,
+      converter: (store) => store.state.tournament,
+      builder: (context, tournament) {
+        if (tournament == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-            title: Text(state.tournament.name),
+            title: Text(tournament.name),
             actions: [
               IconButton(
                 icon: const Icon(Icons.settings),
@@ -36,7 +40,7 @@ class TournamentPage extends StatelessWidget {
             ],
           ),
           body: IndexedStack(
-            index: state.pageIndex,
+            index: pageIndex,
             children: const [
               Seating(),
               Players(),
@@ -46,10 +50,8 @@ class TournamentPage extends StatelessWidget {
           ),
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
-            currentIndex: state.pageIndex,
-            onTap: (index) => store.dispatch(
-              SetPageIndexAction(pageIndex: index),
-            ),
+            currentIndex: pageIndex,
+            onTap: (index) => setState(() => pageIndex = index),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.airline_seat_recline_normal_outlined),

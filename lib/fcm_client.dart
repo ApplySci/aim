@@ -7,7 +7,6 @@ import 'utils.dart';
 /// https://console.firebase.google.com/project/ie-mahjong-tournament/notification/compose
 /// in foreground mode, background mode and when app is closed!
 Future<void> setupFCM() async {
-
   await setNotifierEvents();
   // notifications work when app is closed, on Moto G54, Moto G 5G, and emulated
   await getFCMToken();
@@ -29,7 +28,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 // TODO offer the user a notification-reset option, by forcing fcm token refresh
-
 Future<void> subscribeToTopic(String topic, String? previous) async {
   // this subscription persists through app restarts and changes of token
   if (previous != null) {
@@ -51,7 +49,7 @@ Future<void> unsubscribeFromTournament(String topic, int playerCount) async {
 }
 
 Future<void> getFCMToken() async {
-  final String fcmToken = await messaging.getToken() ?? '';
+  //final String fcmToken = await messaging.getToken() ?? '';
 
   messaging.onTokenRefresh.listen((fcmToken) {
     Log.debug('FCM token refreshed: $fcmToken');
@@ -59,7 +57,8 @@ Future<void> getFCMToken() async {
     // Note: This callback is fired at each app startup and whenever a new
     // token is generated.
   }).onError((err) {
-    Log.error('Failed to set listener for fcmToken in onTokenRefresh: ${err.message}');
+    Log.error(
+        'Failed to set listener for fcmToken in onTokenRefresh: ${err.message}');
     // Error getting token.
   });
 }
