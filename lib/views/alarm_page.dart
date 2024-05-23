@@ -1,21 +1,16 @@
-import 'package:alarm/model/alarm_settings.dart';
 import 'package:alarm/alarm.dart';
+import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 
-class AlarmScreen extends StatefulWidget {
-  const AlarmScreen({super.key, required this.settings});
+class AlarmPage extends StatelessWidget {
+  const AlarmPage({super.key, required this.settings});
 
   final AlarmSettings settings;
 
   @override
-  State<AlarmScreen> createState() => _AlarmScreenState();
-}
-
-class _AlarmScreenState extends State<AlarmScreen> {
-  @override
   Widget build(BuildContext context) {
     return PopScope(
-      onPopInvoked: (didPop) => Alarm.stop(widget.settings.id),
+      onPopInvoked: (didPop) => Alarm.stop(settings.id),
       child: Dialog(
         child: InkWell(
           onTap: () => Navigator.pop(context),
@@ -26,7 +21,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
               children: [
                 const Spacer(),
                 Text(
-                  widget.settings.notificationTitle,
+                  settings.notificationTitle,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -36,7 +31,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  widget.settings.notificationBody,
+                  settings.notificationBody,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
