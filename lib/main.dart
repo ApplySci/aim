@@ -74,6 +74,8 @@ class _MyAppState extends State<_MyApp> {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
+        darkTheme: ThemeData.dark(),
+        themeMode: ThemeMode.system,
         routes: {
           ROUTES.home: (context) => const MyHomePage(),
           ROUTES.settings: (context) => const SettingsScreen(),
