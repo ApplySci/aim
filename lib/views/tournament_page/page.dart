@@ -63,7 +63,7 @@ class TournamentPage extends ConsumerWidget {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.airline_seat_recline_normal_outlined),
-              label: 'Seatings',
+              label: 'Seating',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.score),

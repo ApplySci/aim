@@ -80,7 +80,10 @@ class Seating extends ConsumerWidget {
         ),
         if (selectedPlayerId != null)
           SwitchListTile(
-            title: const Text('All Players'),
+            title: const Text(
+              'Show seating for all players',
+              textAlign: TextAlign.right,
+            ),
             value: showAll,
             onChanged: (value) => ref
                 .read(showAllProvider.notifier) //

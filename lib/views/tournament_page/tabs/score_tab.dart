@@ -32,6 +32,7 @@ class ScoreTable extends ConsumerWidget {
           (e) => e.id == selectedPlayerId,
         );
         return DataTable2(
+          minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
           columns: [
             const DataColumn2(
@@ -46,9 +47,9 @@ class ScoreTable extends ConsumerWidget {
             const DataColumn2(
               label: Text('Total'),
               numeric: true,
-              fixedWidth: 60,
+              fixedWidth: 70,
             ),
-            for (int i = rounds - 1; i >= 0; i--)
+            for (int i = rounds; i >= 1; i--)
               DataColumn2(
                 label: Text('R$i'),
                 numeric: true,
@@ -139,8 +140,8 @@ class Score extends StatelessWidget {
         style: TextStyle(
           color: Color(switch (score) {
             > 0 => 0xff00bb00,
-            < 0 => 0xff660000,
-            _ => 0xffbbbbbb,
+            < 0 => 0xff990000,
+            _ => 0xff999999,
           }),
           fontWeight: FontWeight.bold,
           fontSize: 16,
