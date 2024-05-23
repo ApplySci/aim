@@ -24,6 +24,7 @@ class _PlayersState extends State<Players> {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AllState, PlayersState>(
+      distinct: true,
       converter: (store) => (
         players: store.state.players,
         selected: store.state.selected,
@@ -31,22 +32,25 @@ class _PlayersState extends State<Players> {
       builder: (context, state) {
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: TextField(
-                controller: textController,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: textController.text.isNotEmpty
-                      ? IconButton(
-                          onPressed: () =>
-                              setState(() => textController.clear()),
-                          icon: const Icon(Icons.clear),
-                        )
-                      : null,
-                  hintText: 'Player search',
+            Material(
+              color: Theme.of(context).canvasColor,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: TextField(
+                  controller: textController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: textController.text.isNotEmpty
+                        ? IconButton(
+                            onPressed: () =>
+                                setState(() => textController.clear()),
+                            icon: const Icon(Icons.clear),
+                          )
+                        : null,
+                    hintText: 'Player search',
+                  ),
+                  onChanged: (value) => setState(() {}),
                 ),
-                onChanged: (value) => setState(() {}),
               ),
             ),
             Expanded(
@@ -97,7 +101,7 @@ class PlayerList extends StatelessWidget {
               DB.instance.setAllAlarms();
 
               messaging.unsubscribeFromTopic(
-                '${store.state.tournamentId}-$selected',
+                '${store.state.tournament?.id}-$selected',
               );
             } else {
               store.dispatch(SetPlayerIdAction(playerId: player.id));
@@ -109,8 +113,8 @@ class PlayerList extends StatelessWidget {
                 ),
               ));
               subscribeToTopic(
-                '${store.state.tournamentId}-${player.id}',
-                '${store.state.tournamentId}-$selected',
+                '${store.state.tournament?.id}-${player.id}',
+                '${store.state.tournament?.id}-$selected',
               );
             }
           },

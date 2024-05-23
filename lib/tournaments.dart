@@ -1,8 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'db.dart';
-import 'fcm_client.dart';
 import 'store.dart';
 import 'utils.dart';
 
@@ -16,57 +14,65 @@ class Tournaments extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Tournaments'),
       ),
-      body: TournamentList(),
+      body: const TournamentList(),
     );
   }
 }
 
-class TournamentList extends StatelessWidget {
-  TournamentList({super.key});
+class TournamentList extends StatefulWidget {
+  const TournamentList({super.key});
 
-  final Stream<QuerySnapshot> _tournaments = DB.instance.getTournaments();
+  @override
+  State<TournamentList> createState() => _TournamentListState();
+}
+
+class _TournamentListState extends State<TournamentList> {
+  final tournament = DB.instance.getTournaments().map(
+        (event) => event.docs.map(
+          (e) => TournamentState.fromJson({
+            'id': e.id,
+            'address': '',
+            ...(e.data() as Map).cast(),
+          }),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _tournaments,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          Log.error('snapshot failed to build tournament list');
+    return StreamBuilder(
+      stream: tournament,
+      builder: (context, snapshot) {
+        if (snapshot.error case Object error) {
+          Log.error(error.toString());
           return const Text('Failed to get list of tournaments');
-        }
+        } else if (snapshot.data case Iterable<TournamentState> data) {
+          if (data.isEmpty) {
+            return const Center(child: Text('No Tournaments Found'));
+          }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Text("Now loading the list of tournaments");
+          return ListView(
+            padding: const EdgeInsets.all(8),
+            children: data.map((t) {
+              String dates = dateRange(
+                t.startDate,
+                t.endDate,
+              );
+              return Card(
+                child: ListTile(
+                  title: Text(t.name),
+                  subtitle: Text("$dates\n${t.country}"),
+                  onTap: () {
+                    store.dispatch(SetTournamentAction(
+                      tournament: t,
+                    ));
+                    Navigator.of(context).pushNamed(ROUTES.tournament);
+                  },
+                ),
+              );
+            }).toList(),
+          );
         }
-        return ListView(
-          padding: const EdgeInsets.all(8),
-          children: snapshot.data!.docs.map((DocumentSnapshot t) {
-            final tData = TournamentState.fromJson({
-              'id': t.id,
-              'address': '',
-              ...(t.data() as Map).cast(),
-            });
-            String dates = dateRange(
-              tData.startDate,
-              tData.endDate,
-            );
-            return Card(
-              child: ListTile(
-                title: Text(tData.name),
-                subtitle: Text("$dates\n${tData.country}"),
-                onTap: () {
-                  subscribeToTopic(t.id, tData.id);
-                  store.dispatch(SetTournamentAction(
-                    tournament: tData,
-                  ));
-                  DB.instance.listenToTournament(t.id);
-                  Navigator.pushNamed(context, ROUTES.tournament);
-                },
-              ),
-            );
-          }).toList(),
-        );
+        return const Center(child: CircularProgressIndicator());
       },
     );
   }

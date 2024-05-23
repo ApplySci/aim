@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
@@ -6,10 +7,49 @@ import 'package:intl/intl.dart';
 import 'store.dart';
 import 'utils.dart';
 
+class PlayerScore extends ScoreState {
+  const PlayerScore({
+    required super.id,
+    required this.name,
+    required super.rank,
+    required super.total,
+    required super.penalty,
+    required super.roundScores,
+    required super.roundDone,
+  });
+
+  final String name;
+
+  @override
+  List<Object?> get props => [
+        ...super.props,
+        name,
+      ];
+}
+
+List<PlayerScore> toPlayerScoreList(
+  List<ScoreState> scores,
+  List<Player> players,
+) {
+  final Map<int, String> playerNames =
+      Map.fromEntries(players.map((e) => MapEntry(e.id, e.name)));
+
+  return scores
+      .map((e) => PlayerScore(
+            id: e.id,
+            name: playerNames[e.id]!,
+            rank: e.rank,
+            total: e.total,
+            penalty: e.penalty,
+            roundScores: e.roundScores,
+            roundDone: e.roundDone,
+          ))
+      .toList();
+}
+
 typedef ScoreTableState = ({
   String negSign,
-  List<ScoreState> scores,
-  Map<int, String> playerMap,
+  List<PlayerScore> scores,
   int rounds,
   int? selected,
 });
@@ -20,12 +60,12 @@ class ScoreTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AllState, ScoreTableState>(
+      distinct: true,
       converter: (store) {
-        bool japaneseNumbers = prefs.getBool('japaneseNumbers') ?? false;
+        final japaneseNumbers = prefs.getBool('japaneseNumbers') ?? false;
         return (
           negSign: japaneseNumbers ? '▲' : '-',
-          scores: store.state.scores,
-          playerMap: store.state.playerMap,
+          scores: toPlayerScoreList(store.state.scores, store.state.players),
           rounds: store.state.roundDone,
           selected: store.state.selected,
         );
@@ -49,13 +89,15 @@ class ScoreDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedScore =
+        state.scores.firstWhereOrNull((e) => e.id == state.selected);
     return DataTable2(
-      minWidth: double.infinity,
+      fixedTopRows: selectedScore != null ? 2 : 1,
       columns: [
         const DataColumn2(
           label: Text(''),
           numeric: true,
-          fixedWidth: 28,
+          fixedWidth: 24,
         ),
         const DataColumn2(
           label: Text('Player'),
@@ -79,17 +121,26 @@ class ScoreDataTable extends StatelessWidget {
         ),
       ],
       rows: [
+        if (selectedScore case PlayerScore score)
+          ScoreRow(
+            selected: true,
+            score: score,
+            negSign: state.negSign,
+            rounds: state.rounds,
+            onTap: onTap,
+            color: WidgetStateProperty.all<Color>(selectedHighlight),
+          ),
         for (final (index, score) in state.scores.indexed)
           ScoreRow(
+            selected: state.selected == score.id,
             score: score,
-            player: state.playerMap[score.id]!,
             negSign: state.negSign,
             rounds: state.rounds,
             onTap: onTap,
             color: state.selected == score.id
-                ? MaterialStateProperty.all<Color>(selectedHighlight)
+                ? WidgetStateProperty.all<Color>(selectedHighlight)
                 : index.isEven
-                    ? MaterialStateProperty.all<Color>(const Color(0x22ffffcc))
+                    ? WidgetStateProperty.all<Color>(const Color(0x22ffffcc))
                     : null,
           ),
       ],
@@ -98,34 +149,34 @@ class ScoreDataTable extends StatelessWidget {
   }
 }
 
-class ScoreRow extends DataRow {
+class ScoreRow extends DataRow2 {
   ScoreRow({
-    required ScoreState score,
-    required String player,
+    required PlayerScore score,
     required String negSign,
     required int rounds,
     required void Function() onTap,
     super.color,
+    super.selected,
   }) : super(cells: [
-          DataCell(Text(score.r)),
+          DataCell(Text(score.rank)),
           DataCell(Text(
-            player,
+            score.name,
             softWrap: false,
             overflow: TextOverflow.ellipsis,
           )),
           DataCell(Score(
-            score: score.t,
+            score: score.total,
             negSign: negSign,
             onTap: onTap,
           )),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(Score(
-              score: score.s[i],
+              score: score.roundScores[i],
               negSign: negSign,
               onTap: onTap,
             )),
           DataCell(Score(
-            score: score.p,
+            score: score.penalty,
             negSign: negSign,
             onTap: null,
           )),

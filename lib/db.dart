@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -43,76 +43,63 @@ class DB {
     await Alarm.set(alarmSettings: alarmSettings);
   }
 
-  Stream<QuerySnapshot> getTournaments() {
-    Stream<QuerySnapshot> docs;
+  Stream<QuerySnapshot<Map<String, dynamic>>> getTournaments() {
     if (kDebugMode) {
-      docs = _db.collection('tournaments').snapshots();
+      return _db.collection('tournaments').snapshots();
     } else {
-      docs = _db
+      return _db
           .collection('tournaments')
           .where('status', isEqualTo: 'live')
           .snapshots();
     }
-    return docs;
   }
 
-  Future<List<int>> getAlarmIds() async {
-    List<int> alarms = [];
-    int alarmIdBase = store.state.tournament.hashCode.abs() % 1000000;
-    int roundCount = store.state.seating.length;
-    for (int i = 1; i <= roundCount; i++) {
-      // a deterministic way to generate a unique-ish int from the google doc id
-      alarms.add(10 * alarmIdBase + i);
-    }
-    return alarms;
+  final runOrQueue = RunOrQueue();
+  Future<void> setAllAlarms() async {
+    return runOrQueue(() => _setAllAlarms());
   }
 
-  void setAllAlarms() async {
+  Future<void> _setAllAlarms() async {
     final now = DateTime.now().toUtc();
-    String body;
-    String tableName;
-    String roundId;
-    String title;
-    final targetPlayer =
-        store.state.playerMap.containsKey(store.state.selected);
-    final seating = targetPlayer ? store.state.theseSeats : store.state.seating;
-    final playerName =
-        targetPlayer ? store.state.playerMap[store.state.selected] ?? '' : '';
+    final players = store.state.players;
+    final selected = store.state.selected;
+    final selectedPlayer = selected != null ? players.byId(selected) : null;
+    final seating = store.state.seating.withPlayerId(selected);
     final schedule = store.state.schedule;
-    final alarmIds = await getAlarmIds();
-    int roundNumber = 0;
+    final currentTimeZone = await FlutterTimezone.getLocalTimezone();
 
     await Alarm.stopAll();
+    await Future.delayed(const Duration(milliseconds: 100));
+
     // set one alarm for each round
-    for (final round in seating) {
-      final name = round.id;
-      final currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    for (final (index, round) in seating.indexed) {
+      final roundId = round.id;
       final loc = tz.getLocation(currentTimeZone);
-      final alarmTime = tz.TZDateTime.from(schedule!.hanchan[name]!.start, loc)
-          .toLocal()
-          .subtract(const Duration(minutes: 5));
+      final alarmTime =
+          tz.TZDateTime.from(schedule!.rounds[roundId]!.start, loc)
+              .toLocal()
+              .subtract(const Duration(minutes: 5));
       if (now.isBefore(alarmTime)) {
-        roundId = schedule.hanchan[name]!.name;
-        title = "$roundId starts in 5 minutes";
-        if (targetPlayer) {
-          tableName = round.tables.keys.first;
-          body = "$playerName is on table $tableName";
-        } else {
-          body = '';
-        }
-        await setAlarm(alarmTime, title, body, alarmIds[roundNumber]);
+        final roundName = schedule.rounds[roundId]!.name;
+        final title = "$roundName starts in 5 minutes";
+        final body = selectedPlayer != null
+            ? "${selectedPlayer.name} is at table ${round.tableNameForPlayerId(selectedPlayer.id)}"
+            : '';
+        await setAlarm(alarmTime, title, body, index);
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-      roundNumber++;
     }
   }
 
-  void getTournamentFromId(String docId) {
-    if (docId.length < 5) return;
+  void getTournamentFromId(String? docId) {
+    if (docId == null || docId.length < 5) return;
+
     _db.collection('tournaments').doc(docId).snapshots().listen(
       (event) {
         store.dispatch(SetTournamentAction(
           tournament: TournamentState.fromJson({
             'id': docId,
+            'address': '',
             ...event.data()!,
           }),
         ));
@@ -130,7 +117,7 @@ class DB {
     final actions = {
       'seating': const SetSeatingAction(seating: []),
       'schedule': SetScheduleAction(
-        schedule: ScheduleState(timezone: tz.UTC, hanchan: {}),
+        schedule: ScheduleState(timezone: tz.UTC, rounds: const {}),
       ),
       'scores': const SetScoresAction(scores: []),
       'players': const SetPlayerListAction(players: []),
@@ -157,17 +144,17 @@ class DB {
           }
           if (action case SetScheduleAction(schedule: final schedule)) {
             await setTimeZone(schedule);
-            bool wantAlarms = prefs.getBool('alarm') ?? true;
+            final wantAlarms = prefs.getBool('alarm') ?? true;
             if (wantAlarms && store.state.schedule != null) {
-              setAllAlarms();
+              await setAllAlarms();
             }
           } else {
             store.dispatch(action);
           }
 
-          final ScaffoldMessengerState? state =
-              scaffoldMessengerKey.currentState;
-          state?.showSnackBar(SnackBar(content: Text('$type updated')));
+          // final ScaffoldMessengerState? state =
+          //     scaffoldMessengerKey.currentState;
+          // state?.showSnackBar(SnackBar(content: Text('$type updated')));
         },
         onError: (error) => Log.error("$type listener failed: $error"),
       );

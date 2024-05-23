@@ -16,12 +16,20 @@ class TournamentInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StoreConnector<AllState, TournamentInfoState>(
-      converter: (store) => (
-        tournament: store.state.tournament!,
-        schedule: store.state.schedule!,
-      ),
+    return StoreConnector<AllState, TournamentInfoState?>(
+      distinct: true,
+      converter: (store) =>
+          store.state.tournament != null && store.state.schedule != null
+              ? (
+                  tournament: store.state.tournament!,
+                  schedule: store.state.schedule!,
+                )
+              : null,
       builder: (context, state) {
+        if (state == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         return ListView(
           children: [
             ListTile(
@@ -72,7 +80,7 @@ class TournamentInfo extends StatelessWidget {
                       ),
                     ),
                   ]),
-                  for (final schedule in state.schedule.hanchan.values)
+                  for (final schedule in state.schedule.rounds.values)
                     TableRow(children: [
                       Padding(
                         padding: const EdgeInsets.all(8),

@@ -6,6 +6,9 @@
  This is to avoid circular dependencies.
 
  */
+import 'dart:async';
+
+import 'package:equatable/equatable.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -43,9 +46,6 @@ const Map<String, Color> BACKGROUND_COLOURS = {
   'fireball red': Color(0xFF330000),
   'deep purple': Color(0xFF220033),
 };
-
-final GlobalKey<NavigatorState> globalNavigatorKey =
-    GlobalKey<NavigatorState>();
 
 String dateRange(dynamic startDT, dynamic endDT) {
   if (startDT == null || endDT == null) return '';
@@ -87,22 +87,50 @@ enum Winds {
   final String western;
 }
 
-class Player implements Comparable<Player> {
-  int id = -99;
-  String name = '';
+class Player extends Equatable implements Comparable<Player> {
+  const Player(this.id, this.name);
 
-  Player(this.id, this.name);
+  final int id;
+  final String name;
 
   @override
   int compareTo(Player other) => name.compareTo(other.name);
 
   @override
   toString() => '$name ($id)';
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+      ];
+}
+
+extension PlayerList on List<Player> {
+  Player? byId(int id) {
+    try {
+      return firstWhere((player) => player.id == id);
+    } on StateError {
+      return null;
+    }
+  }
 }
 
 typedef SeatingPlan = List<RoundState>;
 
-class RoundState {
+extension RoundList on List<RoundState> {
+  Iterable<RoundState> withPlayerId(int? playerId) => playerId == null
+      ? this
+      : map((round) => RoundState(
+            id: round.id,
+            tables: {
+              for (final MapEntry(:key, :value) in round.tables.entries)
+                if (value.contains(playerId)) key: value,
+            },
+          ));
+}
+
+class RoundState extends Equatable {
   const RoundState({
     required this.id,
     required this.tables,
@@ -120,6 +148,15 @@ class RoundState {
 
   final String id;
   final Map<String, List<int>> tables;
+
+  String tableNameForPlayerId(int playerId) =>
+      tables.entries.firstWhere((e) => e.value.contains(playerId)).key;
+
+  @override
+  List<Object?> get props => [
+        id,
+        tables,
+      ];
 }
 
 /// Get the seating for an individual player
@@ -179,6 +216,27 @@ extension SeperatedBy<T> on Iterable<T> {
     while (iterator.moveNext()) {
       yield seperator;
       yield iterator.current;
+    }
+  }
+}
+
+class RunOrQueue {
+  FutureOr<void> Function()? current;
+  FutureOr<void> Function()? next;
+
+  Future<void> call(FutureOr<void> Function() block) async {
+    if (current != null) {
+      next = block;
+      return;
+    }
+    current = block;
+    while (current != null) {
+      try {
+        await current!();
+      } finally {
+        current = next;
+        next = null;
+      }
     }
   }
 }

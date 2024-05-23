@@ -2,6 +2,7 @@
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:redux/redux.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,21 +10,18 @@ import 'package:timezone/data/latest_10y.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/timezone.dart';
 
+import 'db.dart';
+import 'fcm_client.dart';
 import 'utils.dart';
 
 late SharedPreferences prefs;
 
 Future<void> setTimeZone(ScheduleState newSchedule) async {
-  tz.Location loc;
-  bool useEventTimeZone = prefs.getBool('tz') ?? true;
-  if (useEventTimeZone) {
-    dynamic test = newSchedule.timezone;
-    loc = test is tz.Location ? test : tz.getLocation(test);
-  } else {
-    // using the device timezone
-    String currentTimeZone = await FlutterTimezone.getLocalTimezone();
-    loc = tz.getLocation(currentTimeZone);
-  }
+  final useEventTimeZone = prefs.getBool('tz') ?? true;
+  final loc = switch (useEventTimeZone) {
+    true => newSchedule.timezone,
+    false => tz.getLocation(await FlutterTimezone.getLocalTimezone()),
+  };
   tz.setLocalLocation(loc);
   store.dispatch(SetScheduleAction(schedule: newSchedule));
 }
@@ -36,84 +34,121 @@ Future<void> initPrefs() async {
   tz.initializeTimeZones();
 }
 
-class AllState {
-  bool loadedOK = false;
-  List<ScoreState> scores = [];
-  List<Player> players = [];
-  Map<int, String> playerMap = {};
-  int roundDone = 0;
-  int? selected;
-  SeatingPlan theseSeats = [];
-  SeatingPlan seating = [];
-  ScheduleState? schedule;
-  String tournamentId = "Y3sDqxajiXefmP9XBTvY"; // google document id
-  TournamentState? tournament;
-  int pageIndex = 0;
+class AllState extends Equatable {
+  const AllState({
+    required this.tournament,
+    required this.schedule,
+    required this.players,
+    required this.scores,
+    required this.seating,
+    required this.roundDone,
+    required this.selected,
+  });
+
+  final TournamentState? tournament;
+  final ScheduleState? schedule;
+  final List<Player> players;
+  final List<ScoreState> scores;
+  final SeatingPlan seating;
+  final int roundDone;
+  final int? selected;
+
+  @override
+  List<Object?> get props => [
+        tournament,
+        schedule,
+        players,
+        scores,
+        seating,
+        roundDone,
+        selected,
+      ];
 }
 
-class ScoreState {
+class ScoreState extends Equatable {
   const ScoreState({
     required this.id,
-    required this.r,
-    required this.t,
-    required this.p,
-    required this.s,
+    required this.rank,
+    required this.total,
+    required this.penalty,
+    required this.roundScores,
     required this.roundDone,
   });
 
   factory ScoreState.fromJson(Map<String, dynamic> data) => ScoreState(
         id: data['id'],
-        r: data['r'],
-        t: data['t'],
-        p: data['p'],
-        s: (data['s'] as List).cast(),
+        rank: data['r'],
+        total: data['t'],
+        penalty: data['p'],
+        roundScores: (data['s'] as List).cast(),
         roundDone: data['roundDone'] ?? 0,
       );
 
   final int id;
-  final String r;
-  final int t;
-  final int p;
-  final List<int> s;
+  final String rank;
+  final int total;
+  final int penalty;
+  final List<int> roundScores;
   final int roundDone;
+
+  @override
+  List<Object?> get props => [
+        id,
+        rank,
+        total,
+        penalty,
+        roundScores,
+        roundDone,
+      ];
 }
 
-class ScheduleState {
+class ScheduleState extends Equatable {
   const ScheduleState({
     required this.timezone,
-    required this.hanchan,
+    required this.rounds,
   });
 
   factory ScheduleState.fromJson(Map<String, dynamic> data) => ScheduleState(
         timezone: tz.getLocation(data['timezone']),
-        hanchan: {
+        rounds: {
           for (final MapEntry(:key, :value) in data.entries)
-            if (key != 'timezone') key: HanchanSchedule.fromJson(value),
+            if (key != 'timezone') key: RoundSchedule.fromJson(value),
         },
       );
 
   final Location timezone;
-  final Map<String, HanchanSchedule> hanchan;
+  final Map<String, RoundSchedule> rounds;
+
+  @override
+  List<Object?> get props => [
+        timezone,
+        rounds,
+      ];
 }
 
-class HanchanSchedule {
-  HanchanSchedule({
+class RoundSchedule extends Equatable {
+  const RoundSchedule({
     required this.name,
     required this.start,
   });
 
-  factory HanchanSchedule.fromJson(Map<String, dynamic> data) =>
-      HanchanSchedule(
+  factory RoundSchedule.fromJson(Map<String, dynamic> data) => RoundSchedule(
         name: data['name'],
         start: tz.TZDateTime.from(DateTime.parse(data['start']), tz.local),
       );
 
   final String name;
   final DateTime start;
+
+  @override
+  List<Object?> get props => [
+        name,
+        start,
+      ];
 }
 
-class TournamentState {
-  TournamentState({
+class TournamentState extends Equatable {
+  const TournamentState({
     required this.id,
     required this.name,
     required this.address,
@@ -144,56 +179,100 @@ class TournamentState {
   final Timestamp endDate;
   final String status;
   final String rules;
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        address,
+        country,
+        startDate,
+        endDate,
+        status,
+        rules,
+      ];
 }
 
 /// Sole arbiter of the contents of the Store after initialisation
-AllState stateReducer(AllState state, StateAction action) {
+AllState stateReducer(AllState state, dynamic action) {
   // Log.debug(action.toString()); // for debugging all STORE actions
 
   switch (action) {
     case SetPlayerIdAction():
-      state.selected = action.playerId;
-      state.theseSeats = getSeats(state.seating, state.selected);
-      if (state.selected case int selected) {
+      if (action.playerId case int selected) {
         prefs.setInt('selected', selected);
       } else {
         prefs.remove('selected');
       }
-      break;
+
+      return AllState(
+        tournament: state.tournament,
+        schedule: state.schedule,
+        players: state.players,
+        scores: state.scores,
+        seating: state.seating,
+        roundDone: state.roundDone,
+        selected: action.playerId,
+      );
 
     case SetPlayerListAction():
-      state.players = action.players;
-      state.playerMap = {for (Player p in state.players) p.id: p.name};
-      break;
+      return AllState(
+        tournament: state.tournament,
+        schedule: state.schedule,
+        players: action.players,
+        scores: state.scores,
+        seating: state.seating,
+        roundDone: state.roundDone,
+        selected: state.selected,
+      );
 
     case SetScheduleAction():
-      state.schedule = action.schedule;
-      break;
+      return AllState(
+        tournament: state.tournament,
+        schedule: action.schedule,
+        players: state.players,
+        scores: state.scores,
+        seating: state.seating,
+        roundDone: state.roundDone,
+        selected: state.selected,
+      );
 
     case SetScoresAction():
-      state.scores = action.scores;
-      if (state.scores.isNotEmpty) {
-        state.roundDone = state.scores[0].roundDone;
-      } else {
-        state.roundDone = 0;
-      }
-      break;
+      return AllState(
+        tournament: state.tournament,
+        schedule: state.schedule,
+        players: state.players,
+        scores: action.scores,
+        seating: state.seating,
+        roundDone: state.roundDone,
+        selected: state.selected,
+      );
 
     case SetSeatingAction():
-      state.seating = action.seating;
-      if (state.selected case int selected) {
-        state.theseSeats = getSeats(state.seating, selected);
-      }
-      break;
+      return AllState(
+        tournament: state.tournament,
+        schedule: state.schedule,
+        players: state.players,
+        scores: state.scores,
+        seating: action.seating,
+        roundDone: state.roundDone,
+        selected: state.selected,
+      );
 
     case SetTournamentAction():
-      state.tournament = action.tournament;
+      subscribeToTopic(action.tournament.id, action.tournament.id);
+      DB.instance.listenToTournament(action.tournament.id);
       prefs.setString('tournamentId', action.tournament.id);
-      break;
 
-    case SetPageIndexAction():
-      state.pageIndex = action.pageIndex;
-      break;
+      return AllState(
+        tournament: action.tournament,
+        schedule: state.schedule,
+        players: state.players,
+        scores: state.scores,
+        seating: state.seating,
+        roundDone: state.roundDone,
+        selected: state.selected,
+      );
   }
 
   return state;
@@ -269,16 +348,16 @@ class SetTournamentAction extends StateAction {
   final TournamentState tournament;
 }
 
-class SetPageIndexAction extends StateAction {
-  const SetPageIndexAction({
-    required this.pageIndex,
-  });
-
-  final int pageIndex;
-}
-
 /// global variables are bad. But incredibly useful here.
 final store = Store<AllState>(
-  (state, action) => stateReducer(state, action),
-  initialState: AllState(),
+  stateReducer,
+  initialState: const AllState(
+    tournament: null,
+    schedule: null,
+    players: [],
+    scores: [],
+    seating: [],
+    roundDone: 0,
+    selected: null,
+  ),
 );
