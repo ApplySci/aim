@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,7 +13,8 @@ final searchPlayerList = StreamProvider((ref) async* {
       .where(
         (player) => player.name.toLowerCase().contains(search),
       )
-      .toList();
+      .toList()
+      .sortedBy((player) => player.name);
 });
 
 class Players extends ConsumerStatefulWidget {
