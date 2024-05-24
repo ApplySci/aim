@@ -138,6 +138,38 @@ def _message_player_topics(scores, players):
             )
 
 
+
+@blueprint.route('/run/test')
+@login_required
+def get_game_results():
+    sheet = _get_sheet()
+    vals = googlesheet.get_table_results(1, sheet)
+
+    row : int = 4
+    tables = {}
+    while row + 3 < len(vals):
+        # Get the table number from column 1
+        table = vals[row][0]
+        tables[table] = []
+        if not table:
+            # end of score page
+            break
+        # For each table, get the player ID & scores
+        for i in range(4):
+            tables[table].append([
+                vals[row + i][1], # player_id
+                round(10 * vals[row + i][3] or 0), # chombo
+                round(10* vals[row + i][4]), # game score
+                vals[row + i][5], # placement
+                round(10 * vals[row + i][6]), # final score
+                ])
+
+        # Move to the next table
+        row += 7
+
+    return f"{vals[0][1]} : {tables}", 200
+
+
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():

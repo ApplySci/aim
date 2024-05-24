@@ -73,6 +73,16 @@ class GSP:
             value_render_option=gspread.utils.ValueRenderOption.unformatted)
 
 
+    def get_table_results(
+            self,
+            round: int,
+            live : gspread.spreadsheet.Spreadsheet) -> list:
+
+        vals = live.worksheet(f'R{round}').get(value_render_option=
+            gspread.utils.ValueRenderOption.unformatted)
+        return vals
+
+
     def _reduce_table_count(self, results, template, table_count: int) -> None:
         # delete unnecessary rows in the results sheet
         results.delete_rows(2 + table_count * 4, 1 + MAX_TABLES * 4)
