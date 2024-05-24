@@ -1,6 +1,6 @@
-# aim
+# AIM Tournaments
 
-[All-Ireland Mahjong](https://mahjong.ie/) mobile app.
+This is the [All-Ireland Mahjong](https://mahjong.ie/) mobile app.
 This provides live information about tournaments.
 
 For tournament participants, it gives **live** info during tournament: current scores,
@@ -14,7 +14,7 @@ themselves (but there are no constraints on this). If they do, then they'll rece
 information about which table they are on next, and who they'll be playing with.
 And they'll get tailored notifications if that information changes.
 
-A tournament admin will be able to do everything through a web interface.
+A tournament admin is able to do everything through a web interface.
 I envisage them using 3 browser tabs:
 
 - the admin interface
@@ -24,10 +24,7 @@ I envisage them using 3 browser tabs:
 ## Programming platforms, frameworks & languages used
 
 The client-side written in Dart with the **Flutter** framework. It's developed and
-tested initially for **android**, in Android Studio.
-The intention is that it will work on **iPhone** too (not started yet), which is why I chose
-Flutter, because it works across platforms. But there's still some platform-specific
-configuration to do.
+tested for **android**, in Android Studio, and for iPhone & iPad(Mini) on xCode.
 
 The server-side is written in **Python**, with the **Flask** framework. I'm running it
 on the server with **wsgi**. Note that the oauth2 authentication won't work on localhost: you need
@@ -37,7 +34,7 @@ scoresheet, to create the live score web page, and to put the data into the
 cloud, for onward transmission to the app
 
 App notifications are by **Firebase Cloud Messaging**.
-And via **APN**, for IOS (not started yet).
+And via **APN**, for IOS (not tested yet).
 Live tournament data is stored in **Google Cloud Firestore**.
 
 When the app has a connection, and is in foreground or background, any update to
@@ -47,6 +44,12 @@ to all subscribed devices.
 
 The live scoring of a tournament is done in a **Google spreadsheet**,
 based on the one developed by David Bresnick for the World Riichi Championship.
+
+### In the app, all state is managed by Riverpod
+
+Thanks to fantastic work by [@North101](https://github.com/North101),
+all of the state is now managed by [Riverpod](https://riverpod.dev/) providers & listeners
+
 
 ## Coding decisions that might be unexpected (and might be unsound):
 
@@ -74,12 +77,6 @@ The **only** place
 where the conversion is done back to decimal, in the app, is at the final point of display. This
 happens in [lib/score_cell.dart](lib/score_cell.dart#L12) and [server/run/run.py](server/run/run.py#L28)
 
-
-### In the app, all state is in a single global variable
-
-All of the state is stored in a single global state variable, of class AllState. I have no idea
-as to whether that's a good way or a bad way to do it. [lib/store.dart](lib/store.dart#L53)
-
 ### There's no login for the app.
 
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
@@ -95,7 +92,7 @@ will be the tournament scorers. We don't release the scores for a round, until
 all games in that round have finished. This is important. It removes an incentive
 to bad behaviour among players.
 
-### App screenshots
+### App screenshots (TODO - UPDATE)
 
 <img src='https://github.com/applysci/aim/blob/main/pix/1p-seats.png?raw=true' width=200>
 <img src='https://github.com/applysci/aim/blob/main/pix/all-seats.png?raw=true' width=200>
