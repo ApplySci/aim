@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -22,6 +23,8 @@ enum LOG {
   warn,
   error,
 }
+
+const enableAlarm = kReleaseMode || false;
 
 const String defaultColourKey = 'black knight';
 

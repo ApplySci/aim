@@ -65,7 +65,7 @@ Future<void> main() async {
   await initFirebase();
   await initFirebaseMessaging();
   await initPermissions();
-  await Alarm.init();
+  if (enableAlarm) await Alarm.init();
 
   runApp(ProviderScope(
     overrides: [
@@ -99,6 +99,8 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
+        if (!enableAlarm) return;
+
         final now = DateTime.now().toUtc();
         await Alarm.stopAll();
         await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -110,7 +112,7 @@ class _MyApp extends ConsumerWidget {
             final body = player != null
                 ? '${player.name} is at table ${player.table}'
                 : '';
-            await setAlarm(alarm, title, body, index);
+            await setAlarm(alarm, title, body, index + 1);
             await Future<void>.delayed(const Duration(milliseconds: 100));
           }
         }
