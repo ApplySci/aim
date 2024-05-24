@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:timezone/timezone.dart';
 
@@ -17,6 +16,8 @@ enum Wind {
   final String western;
 }
 
+typedef TournamentId = String;
+
 class TournamentData extends Equatable {
   const TournamentData({
     required this.id,
@@ -30,7 +31,7 @@ class TournamentData extends Equatable {
   });
 
   factory TournamentData.fromJson(Map<String, dynamic> data) => TournamentData(
-        id: data['id'] as String,
+        id: data['id'] as TournamentId,
         name: data['name'] as String,
         address: data['address'] as String,
         country: data['country'] as String,
@@ -40,7 +41,7 @@ class TournamentData extends Equatable {
         rules: data['rules'] as String,
       );
 
-  final String id;
+  final TournamentId id;
   final String name;
   final String address;
   final String country;
@@ -64,10 +65,12 @@ class TournamentData extends Equatable {
       ];
 }
 
+typedef PlayerId = int;
+
 class PlayerData extends Equatable implements Comparable<PlayerData> {
   const PlayerData(this.id, this.name);
 
-  final int id;
+  final PlayerId id;
   final String name;
 
   @override
@@ -81,7 +84,7 @@ class PlayerData extends Equatable implements Comparable<PlayerData> {
 }
 
 extension PlayerList on List<PlayerData> {
-  PlayerData? byId(int id) {
+  PlayerData? byId(PlayerId id) {
     try {
       return firstWhere((player) => player.id == id);
     } on StateError {
@@ -90,6 +93,8 @@ extension PlayerList on List<PlayerData> {
   }
 }
 
+typedef RoundId = String;
+
 class ScheduleData extends Equatable {
   const ScheduleData({
     required this.timezone,
@@ -97,17 +102,17 @@ class ScheduleData extends Equatable {
   });
 
   factory ScheduleData.fromJson(Map<String, dynamic> data) {
-    final location = getLocation(data['timezone'] as String);
-    final roundScheduleList = data.entries
-        .where((e) => e.key != 'timezone')
-        .sortedByCompare((e) => int.parse(e.key), (a, b) => a.compareTo(b))
-        .map((e) => e.value);
+    final location = getLocation(data.remove('timezone') as String);
+    final roundScheduleList = data.entries.map((e) => {
+          'id': e.key,
+          ...e.value,
+        });
     return ScheduleData(
       timezone: location,
       rounds: [
         for (final roundSchedule in roundScheduleList)
           RoundScheduleData.fromJson(
-            (roundSchedule as Map).cast(),
+            roundSchedule.cast(),
             location,
           ),
       ],
@@ -126,6 +131,7 @@ class ScheduleData extends Equatable {
 
 class RoundScheduleData extends Equatable {
   const RoundScheduleData({
+    required this.id,
     required this.name,
     required this.start,
   });
@@ -135,6 +141,7 @@ class RoundScheduleData extends Equatable {
     Location location,
   ) =>
       RoundScheduleData(
+        id: data['id'] as RoundId,
         name: data['name'] as String,
         start: TZDateTime.from(
           DateTime.parse(data['start'] as String),
@@ -142,6 +149,7 @@ class RoundScheduleData extends Equatable {
         ),
       );
 
+  final RoundId id;
   final String name;
   final DateTime start;
 
@@ -171,7 +179,7 @@ class ScoreData extends Equatable {
         roundDone: (data['roundDone'] as int?) ?? 0,
       );
 
-  final int id;
+  final PlayerId id;
   final String rank;
   final int total;
   final int penalty;
@@ -189,10 +197,10 @@ class ScoreData extends Equatable {
       ];
 }
 
-extension RoundList on List<RoundState> {
-  Iterable<RoundState> withPlayerId(int? playerId) => playerId == null
+extension RoundDataList on List<RoundData> {
+  Iterable<RoundData> withPlayerId(PlayerId? playerId) => playerId == null
       ? this
-      : map((round) => RoundState(
+      : map((round) => RoundData(
             id: round.id,
             tables: {
               for (final MapEntry(:key, :value) in round.tables.entries)
@@ -201,13 +209,13 @@ extension RoundList on List<RoundState> {
           ));
 }
 
-class RoundState extends Equatable {
-  const RoundState({
+class RoundData extends Equatable {
+  const RoundData({
     required this.id,
     required this.tables,
   });
 
-  factory RoundState.fromJson(Map<String, dynamic> data) => RoundState(
+  factory RoundData.fromJson(Map<String, dynamic> data) => RoundData(
         id: data['id'] as String,
         tables: (data['tables'] as Map).map(
           (key, value) => MapEntry(
@@ -218,9 +226,9 @@ class RoundState extends Equatable {
       );
 
   final String id;
-  final Map<String, List<int>> tables;
+  final Map<String, List<PlayerId>> tables;
 
-  String tableNameForPlayerId(int playerId) =>
+  String tableNameForPlayerId(PlayerId playerId) =>
       tables.entries.firstWhere((e) => e.value.contains(playerId)).key;
 
   @override

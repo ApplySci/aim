@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_10y.dart';
 
 import 'firebase_options.dart';
+import 'models.dart';
 import 'providers.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
@@ -123,10 +124,10 @@ class _MyApp extends ConsumerWidget {
     ref.listen(
       tournamentIdProvider,
       (prev, next) {
-        if (prev case String tournamentId) {
+        if (prev case TournamentId tournamentId) {
           fcm.unsubscribeFromTopic(tournamentId);
         }
-        if (next case String tournamentId) {
+        if (next case TournamentId tournamentId) {
           fcm.subscribeToTopic(tournamentId);
         }
       },
@@ -136,10 +137,10 @@ class _MyApp extends ConsumerWidget {
     ref.listen(
       tournamentPlayerIdProvider,
       (prev, next) {
-        if (prev case (:String tournamentId, :int playerId)) {
+        if (prev case (:TournamentId tournamentId, :PlayerId playerId)) {
           fcm.unsubscribeFromTopic('$tournamentId-$playerId');
         }
-        if (next case (:String tournamentId, :int playerId)) {
+        if (next case (:TournamentId tournamentId, :PlayerId playerId)) {
           fcm.subscribeToTopic('$tournamentId-$playerId');
         }
       },

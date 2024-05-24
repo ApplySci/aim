@@ -70,9 +70,9 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
       .doc('players')
       .snapshots()
       .map(snapshotData<Map<String, dynamic>>)
+      .map((e) => e ?? const {})
       .map((data) => [
-            for (final MapEntry(:String key, :String value)
-                in (data ?? const {}).entries)
+            for (final MapEntry(:String key, :String value) in data.entries)
               PlayerData(int.parse(key), value),
           ]);
 });
@@ -94,13 +94,13 @@ final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
       .doc('scores') //
       .snapshots()
       .map(snapshotData<List<dynamic>>)
+      .map((e) => e ?? const [])
       .map((data) => [
-            for (final score in data ?? const [])
-              ScoreData.fromJson((score as Map).cast()),
+            for (final score in data) ScoreData.fromJson((score as Map).cast()),
           ]);
 });
 
-final seatingProvider = StreamProvider<List<RoundState>>((ref) async* {
+final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -108,9 +108,9 @@ final seatingProvider = StreamProvider<List<RoundState>>((ref) async* {
       .doc('seating') //
       .snapshots()
       .map(snapshotData<List<dynamic>>)
+      .map((e) => e ?? const {})
       .map((data) => [
-            for (final round in data ?? const [])
-              RoundState.fromJson((round as Map).cast()),
+            for (final round in data) RoundData.fromJson((round as Map).cast()),
           ]);
 });
 
@@ -142,7 +142,7 @@ typedef RoundScore = ({
 });
 
 typedef PlayerScore = ({
-  int id,
+  PlayerId id,
   String name,
   String rank,
   int total,
@@ -156,7 +156,7 @@ final playerScoreListProvider = StreamProvider((ref) async* {
   final playerList = await ref.watch(playerListProvider.future);
   final schedule = await ref.watch(scheduleProvider.future);
 
-  final Map<int, String> playerNames =
+  final playerNames =
       Map.fromEntries(playerList.map((e) => MapEntry(e.id, e.name)));
 
   yield [

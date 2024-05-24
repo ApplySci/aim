@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 
@@ -14,11 +13,17 @@ export 'providers/shared_preferences.dart';
 final alarmScheduleProvider = StreamProvider((ref) async* {
   final location = await ref.watch(locationProvider.future);
   final seating = await ref.watch(seatingProvider.future);
-  final schedule = await ref.watch(scheduleProvider.future);
+  final scheduleRounds = await ref.watch(
+    scheduleProvider.selectAsync((schedule) {
+      return {
+        for (final round in schedule.rounds) round.id: round,
+      };
+    }),
+  );
   final selectedPlayer = ref.watch(selectedPlayerProvider);
 
-  yield seating.mapIndexed((index, round) {
-    final roundSchedule = schedule.rounds[index];
+  yield seating.map((round) {
+    final roundSchedule = scheduleRounds[round.id]!;
     return (
       id: round.id,
       name: roundSchedule.name,
