@@ -62,14 +62,18 @@ class GSP:
             gspread.utils.ValueRenderOption.unformatted)[3:]
 
 
-    def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+    def count_completed_hanchan(self, live : gspread.spreadsheet.Spreadsheet) -> int:
         triggers = live.worksheet('reference').get('PublicationTriggers')
         done : int = 0 # number of completed hanchan
         for i in range(1, len(triggers)):
             if len(triggers[i]) < 3 or triggers[i][2] == '':
                 break
             done = i
-        return done, live.worksheet('results').get(
+        return done
+
+
+    def get_results(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+        return live.worksheet('results').get(
             value_render_option=gspread.utils.ValueRenderOption.unformatted)
 
 

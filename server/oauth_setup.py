@@ -63,6 +63,18 @@ def config_db(app):
             db.session.commit()
 
 
+def config_jinja(app):
+    def prettyScore(score: int):
+        if score < 0:
+            prefix = '-'
+        elif score > 0:
+            prefix = '+'
+        else:
+            prefix = ''
+        return f"{prefix} {(abs(round(score/10, 1)))}"
+    env = app.jinja_env
+    env.filters['prettyScore'] = prettyScore
+
 def config_login_manager(app):
     login_manager.init_app(app)
     login_manager.login_view = '/login'

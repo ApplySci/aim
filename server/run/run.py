@@ -8,7 +8,7 @@ import threading
 
 from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
-    copy_current_request_context, current_app, request
+    copy_current_request_context, request
 from flask_login import login_required, current_user
 
 from create.write_sheet import googlesheet
@@ -16,17 +16,6 @@ from models import Access
 from oauth_setup import db, firestore_client
 
 blueprint = Blueprint('run', __name__)
-
-
-def prettyScore(score: int):
-    if score < 0:
-        prefix = '-'
-    elif score > 0:
-        prefix = '+'
-    else:
-        prefix = ''
-    return f"{prefix} {(abs(round(score/10, 1)))}"
-
 
 @blueprint.route('/run/select_tournament', methods=['GET', 'POST',])
 @login_required
@@ -44,9 +33,7 @@ def select_tournament():
 
 
 @login_required
-def publish_scores_on_web(scores, players):
-    env = current_app.jinja_env
-    env.filters['prettyScore'] = prettyScore
+def _publish_scores_on_web(scores, players):
     title = current_user.live_tournament.title
     html = render_template('scores.html',
                            title=title,
@@ -137,14 +124,9 @@ def _message_player_topics(scores, players):
             f"with {s['t']} points after {done} round(s)",
             )
 
-
-
-@blueprint.route('/run/test')
 @login_required
-def get_game_results():
-    sheet = _get_sheet()
-    vals = googlesheet.get_table_results(1, sheet)
-
+def _get_one_game_results(sheet, rnd: int):
+    vals = googlesheet.get_table_results(rnd, sheet)
     row : int = 4
     tables = {}
     while row + 3 < len(vals):
@@ -157,41 +139,57 @@ def get_game_results():
         # For each table, get the player ID & scores
         for i in range(4):
             tables[table].append([
-                vals[row + i][1], # player_id
+                vals[row + i][1],                  # player_id
                 round(10 * vals[row + i][3] or 0), # chombo
-                round(10* vals[row + i][4]), # game score
-                vals[row + i][5], # placement
-                round(10 * vals[row + i][6]), # final score
+                round(10* vals[row + i][4]),       # game score
+                vals[row + i][5],                  # placement
+                round(10 * vals[row + i][6]),      # final score
                 ])
 
         # Move to the next table
         row += 7
+    return vals[0][1], tables
 
-    return f"{vals[0][1]} : {tables}", 200
+
+@login_required
+def _games_to_cloud(sheet, done : int):
+    all_games = {}
+    for i in range(1, done):
+        name, results = _get_one_game_results(sheet, i)
+        all_games[name] = results
+    _save_to_cloud('games', all_games)
+    return all_games
+
+
+@login_required
+def _publish_games_on_web(games, players): # TODO
+    return f"{games}", 200
 
 
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
     sheet = _get_sheet()
-
+    done = googlesheet.count_completed_hanchan(sheet)
+    scores = _scores_to_cloud(sheet, done)
     players = _players_to_cloud(sheet)
-    scores = _scores_to_cloud(sheet)
-    schedule = _schedule_to_cloud(sheet)
-    _seating_to_cloud(sheet, schedule)
 
     @copy_current_request_context
-    def _fcm_all_players():
+    def _finish_sheet_to_cloud():
+        schedule = _schedule_to_cloud(sheet)
+        _seating_to_cloud(sheet, schedule)
+        games = _games_to_cloud(sheet, done)
+        _publish_games_on_web(games, players)
         _message_player_topics(scores, players)
 
-    thread = threading.Thread(target=_fcm_all_players)
+    thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
-    return publish_scores_on_web(scores, players)
+    return _publish_scores_on_web(scores, players)
 
 
 @login_required
-def _scores_to_cloud(sheet):
-    done, results = googlesheet.get_results(sheet)
+def _scores_to_cloud(sheet, done : int):
+    results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
     all_scores = []
@@ -212,7 +210,6 @@ def _scores_to_cloud(sheet):
             "p": round(body[i][4] * 10),
             "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             })
-
 
     all_scores[0]['roundDone'] = done
     _save_to_cloud('scores', all_scores)
