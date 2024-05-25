@@ -114,6 +114,20 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
           ]);
 });
 
+final gamesProvider = StreamProvider<List<GameData>>((ref) async* {
+  final collection = ref.watch(tournamentCollectionProvider);
+  if (collection == null) return;
+
+  yield* collection
+      .doc('games') //
+      .snapshots()
+      .map(snapshotData<List<dynamic>>)
+      .map((e) => e ?? const {})
+      .map((data) => [
+            for (final round in data) GameData.fromCloud((round as Map).cast()),
+          ]);
+});
+
 final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;

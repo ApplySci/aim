@@ -30,7 +30,8 @@ class TournamentData extends Equatable {
     required this.rules,
   });
 
-  factory TournamentData.fromJson(Map<String, dynamic> data) => TournamentData(
+  factory TournamentData.fromJson(Map<String, dynamic> data) =>
+      TournamentData(
         id: data['id'] as TournamentId,
         name: data['name'] as String,
         address: data['address'] as String,
@@ -53,7 +54,8 @@ class TournamentData extends Equatable {
   String get when => dateRange(startDate, endDate);
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         id,
         name,
         address,
@@ -77,7 +79,8 @@ class PlayerData extends Equatable implements Comparable<PlayerData> {
   int compareTo(PlayerData other) => name.compareTo(other.name);
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         id,
         name,
       ];
@@ -103,10 +106,11 @@ class ScheduleData extends Equatable {
 
   factory ScheduleData.fromJson(Map<String, dynamic> data) {
     final location = getLocation(data.remove('timezone') as String);
-    final roundScheduleList = data.entries.map((e) => {
-          'id': e.key,
-          ...e.value,
-        });
+    final roundScheduleList = data.entries.map((e) =>
+    {
+      'id': e.key,
+      ...e.value,
+    });
     return ScheduleData(
       timezone: location,
       rounds: [
@@ -123,7 +127,8 @@ class ScheduleData extends Equatable {
   final List<RoundScheduleData> rounds;
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         timezone,
         rounds,
       ];
@@ -136,10 +141,8 @@ class RoundScheduleData extends Equatable {
     required this.start,
   });
 
-  factory RoundScheduleData.fromJson(
-    Map<String, dynamic> data,
-    Location location,
-  ) =>
+  factory RoundScheduleData.fromJson(Map<String, dynamic> data,
+      Location location,) =>
       RoundScheduleData(
         id: data['id'] as RoundId,
         name: data['name'] as String,
@@ -154,13 +157,15 @@ class RoundScheduleData extends Equatable {
   final DateTime start;
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         name,
         start,
       ];
 }
 
 class ScoreData extends Equatable {
+  // one player's score
   const ScoreData({
     required this.id,
     required this.rank,
@@ -170,7 +175,8 @@ class ScoreData extends Equatable {
     required this.roundDone,
   });
 
-  factory ScoreData.fromJson(Map<String, dynamic> data) => ScoreData(
+  factory ScoreData.fromJson(Map<String, dynamic> data) =>
+      ScoreData(
         id: data['id'] as int,
         rank: data['r'] as String,
         total: data['t'] as int,
@@ -187,7 +193,8 @@ class ScoreData extends Equatable {
   final int roundDone;
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         id,
         rank,
         total,
@@ -198,9 +205,12 @@ class ScoreData extends Equatable {
 }
 
 extension RoundDataList on List<RoundData> {
-  Iterable<RoundData> withPlayerId(PlayerId? playerId) => playerId == null
-      ? this
-      : map((round) => RoundData(
+  // seating
+  Iterable<RoundData> withPlayerId(PlayerId? playerId) =>
+      playerId == null
+          ? this
+          : map((round) =>
+          RoundData(
             id: round.id,
             tables: {
               for (final MapEntry(:key, :value) in round.tables.entries)
@@ -210,18 +220,21 @@ extension RoundDataList on List<RoundData> {
 }
 
 class RoundData extends Equatable {
+  // seating
   const RoundData({
     required this.id,
     required this.tables,
   });
 
-  factory RoundData.fromJson(Map<String, dynamic> data) => RoundData(
+  factory RoundData.fromJson(Map<String, dynamic> data) =>
+      RoundData(
         id: data['id'] as String,
         tables: (data['tables'] as Map).map(
-          (key, value) => MapEntry(
-            key as String,
-            (value as List).cast(),
-          ),
+              (key, value) =>
+              MapEntry(
+                key as String,
+                (value as List).cast(),
+              ),
         ),
       );
 
@@ -229,11 +242,79 @@ class RoundData extends Equatable {
   final Map<String, List<PlayerId>> tables;
 
   String tableNameForPlayerId(PlayerId playerId) =>
-      tables.entries.firstWhere((e) => e.value.contains(playerId)).key;
+      tables.entries
+          .firstWhere((e) => e.value.contains(playerId))
+          .key;
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>
+      [
         id,
         tables,
       ];
+}
+
+/*
+extension HanchanList on List<Hanchan> { // TODO
+  // List of detailed results for a given player
+  Iterable<Hanchan> withPlayerId(PlayerId? playerId) =>
+      playerId == null
+          ? this
+          : map((round) =>
+          GameData();
+}}
+*/
+
+class HanchanScore { // detailed score for one player at one table in one round
+    final List<int> initScores;
+    HanchanScore(this.initScores);
+    late PlayerId playerId = initScores[0];
+    late int penalties = initScores[1];
+    late int gameScore = initScores[2];
+    late int placement = initScores[3];
+    late int finalScore = initScores[4];
+    late int uma = finalScore - gameScore;
+}
+
+class Hanchan { // the scores for all four players at one table in one round
+    final RoundId roundId;
+    final int tableId;
+    final List<List<int>> initScores;
+    late List<HanchanScore> scores;    // length 4 - one HanchanScore for each player
+
+    Hanchan({
+      required this.roundId,
+      required this.tableId,
+      required this.initScores,
+    }) {
+      scores = initScores.map((score) => HanchanScore(score)).toList();
+    }
+}
+
+class GameData { // detailed scores for all hanchans in a round
+
+  GameData({
+    required this.roundId,
+    required this.tables,
+  });
+
+  final RoundId roundId;
+  final Map<String, Hanchan> tables;
+
+  factory GameData.fromCloud(Map<String, dynamic> data) =>
+      GameData(
+        roundId: data['id'] as String,
+        tables: (data['games'] as Map).map(
+              (tableId, scoresList) =>
+              MapEntry(
+                tableId as String,
+                Hanchan(
+                  roundId: data['id'],
+                  tableId: int.parse(tableId),
+                  initScores: scoresList,
+                )
+              ),
+        ),
+      );
+
 }
