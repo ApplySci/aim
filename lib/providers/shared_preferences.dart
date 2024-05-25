@@ -189,6 +189,11 @@ final japaneseWindsProvider =
   () => SharedPreferencesBoolNotifier(key: 'japaneseWinds', fallback: false),
 );
 
+final negSignProvider = Provider((ref) {
+  final japaneseNumbers = ref.watch(japaneseNumbersProvider);
+  return japaneseNumbers ? '▲' : '-';
+});
+
 final tournamentPlayerIdProvider = Provider((ref) {
   final tournamentId = ref.watch(tournamentIdProvider);
   final playerId = ref.watch(selectedPlayerIdProvider);

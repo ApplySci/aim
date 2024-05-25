@@ -4,21 +4,13 @@ import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' hide TextDirection;
 
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/score_text.dart';
 
 const columnMargin = 18;
-
-final negSignProvider = Provider((ref) {
-  final japaneseNumbers = ref.watch(japaneseNumbersProvider);
-  return japaneseNumbers ? '▲' : '-';
-});
-
-String scoreText(int score, String negSign) =>
-    NumberFormat('+#0.0;$negSign#0.0').format(score / 10);
 
 const scoreStyle = TextStyle(
   fontWeight: FontWeight.bold,
@@ -36,7 +28,7 @@ Size textSize(String text, {TextStyle? style}) {
 
 Size scoreSize(int score, String negSign) => textSize(
       // Display score with 1 decimal point
-      scoreText(score, negSign),
+      scoreFormat(score, negSign),
       style: scoreStyle,
     );
 
@@ -76,11 +68,11 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 class ScoreTable extends ConsumerWidget {
   const ScoreTable({super.key});
 
-  void onTap(BuildContext context, PlayerId playerId) {}
+  void onTap(BuildContext context, PlayerId playerId) =>
+      Navigator.of(context).pushNamed(ROUTES.player, arguments: playerId);
 
   @override
   Widget build(context, ref) {
-    final negSign = ref.watch(negSignProvider);
     final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
     final playerScores = ref.watch(scoreWidthProvider);
     final rounds = ref.watch(roundsProvider);
@@ -127,7 +119,6 @@ class ScoreTable extends ConsumerWidget {
               ScoreRow(
                 selected: true,
                 score: score,
-                negSign: negSign,
                 rounds: rounds,
                 onTap: () => onTap(context, selectedScore.id),
                 color: WidgetStateProperty.all<Color>(selectedHighlight),
@@ -136,7 +127,6 @@ class ScoreTable extends ConsumerWidget {
               ScoreRow(
                 selected: selectedPlayerId == score.id,
                 score: score,
-                negSign: negSign,
                 rounds: rounds,
                 onTap: () => onTap(context, score.id),
                 color: selectedPlayerId == score.id
@@ -154,7 +144,6 @@ class ScoreTable extends ConsumerWidget {
 class ScoreRow extends DataRow2 {
   ScoreRow({
     required PlayerScore score,
-    required String negSign,
     required int rounds,
     required super.onTap,
     super.color,
@@ -169,47 +158,11 @@ class ScoreRow extends DataRow2 {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           )),
-          DataCell(Score(
-            score: score.total,
-            negSign: negSign,
-          )),
+          DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
-            DataCell(Score(
-              score: score.roundScores.elementAtOrNull(i)?.score ?? 0,
-              negSign: negSign,
-            )),
-          DataCell(Score(
-            score: score.penalty,
-            negSign: negSign,
-          )),
+            DataCell(
+              ScoreText(score.roundScores.elementAtOrNull(i)?.score ?? 0),
+            ),
+          DataCell(ScoreText(score.penalty)),
         ]);
-}
-
-class Score extends StatelessWidget {
-  const Score({
-    super.key,
-    required this.score,
-    required this.negSign,
-  });
-
-  final int score;
-  final String negSign;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      child: Text(
-        // Display score with 1 decimal point
-        scoreText(score, negSign),
-        maxLines: 1,
-        style: scoreStyle.copyWith(
-          color: switch (score) {
-            > 0 => Colors.green,
-            < 0 => Colors.red,
-            _ => null,
-          },
-        ),
-      ),
-    );
-  }
 }

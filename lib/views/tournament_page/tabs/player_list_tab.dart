@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/providers.dart';
+import '/utils.dart';
 
 final searchProvider = StateProvider((_) => '');
 
@@ -125,7 +126,8 @@ class PlayerTile extends ConsumerWidget {
             ? const Icon(Icons.favorite)
             : const Icon(Icons.favorite_border),
       ),
-      onTap: () {},
+      onTap: () =>
+          Navigator.of(context).pushNamed(ROUTES.player, arguments: player.id),
     );
   }
 }
