@@ -110,7 +110,7 @@ class ScoreTable extends ConsumerWidget {
               numeric: true,
               fixedWidth: playerScores.maxScoreWidth + columnMargin,
             ),
-            for (int i = rounds; i >= 1; i--)
+            for (int i = rounds - 1; i >= 0; i--)
               DataColumn2(
                 label: Text('R${i + 1}', maxLines: 1),
                 numeric: true,
