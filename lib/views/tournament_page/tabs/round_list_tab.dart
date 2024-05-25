@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -20,7 +21,7 @@ typedef RoundTable = ({
 });
 
 extension on RoundTable {
-  bool hasPlayerId(int? playerId) =>
+  bool hasPlayerId(PlayerId? playerId) =>
       players.values.any((e) => e.id == playerId);
 }
 
@@ -34,28 +35,32 @@ final roundListProvider = StreamProvider((ref) async* {
   final playerById = Map.fromEntries(
     playerList.map((e) => MapEntry(e.id, e.name)),
   );
-  yield [
-    for (final (index, round) in roundList.indexed)
-      (
-        id: round.id,
-        name: schedule.rounds[index].name,
-        start: schedule.rounds[index].start,
-        tables: [
-          for (final MapEntry(key: tableName, value: playerIds)
-              in round.tables.entries)
-            (
-              name: tableName,
-              players: {
-                for (final wind in Wind.values)
-                  wind: PlayerData(
-                    playerIds[wind.index],
-                    playerById[playerIds[wind.index]]!,
-                  ),
-              },
-            )
-        ],
-      ),
-  ];
+  final roundById = Map.fromEntries(
+    (schedule.rounds.map((e) => MapEntry(e.id, e))),
+  );
+  yield roundList
+      .map(
+        (round) => (
+          id: round.id,
+          name: roundById[round.id]!.name,
+          start: roundById[round.id]!.start,
+          tables: [
+            for (final MapEntry(key: tableName, value: playerIds)
+                in round.tables.entries)
+              (
+                name: tableName,
+                players: {
+                  for (final wind in Wind.values)
+                    wind: PlayerData(
+                      playerIds[wind.index],
+                      playerById[playerIds[wind.index]]!,
+                    ),
+                },
+              )
+          ],
+        ),
+      )
+      .sortedBy((round) => round.start);
 });
 
 class Seating extends ConsumerWidget {
@@ -198,7 +203,7 @@ class AssignedTable extends ConsumerWidget {
 
   final Map<Wind, PlayerData> players;
 
-  void onTap(BuildContext context, int playerId) {}
+  void onTap(BuildContext context, PlayerId playerId) {}
 
   @override
   Widget build(context, ref) {

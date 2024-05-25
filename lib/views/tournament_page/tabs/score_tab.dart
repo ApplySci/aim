@@ -1,64 +1,125 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
+import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+
+const columnMargin = 18;
 
 final negSignProvider = Provider((ref) {
   final japaneseNumbers = ref.watch(japaneseNumbersProvider);
   return japaneseNumbers ? '▲' : '-';
 });
 
+String scoreText(int score, String negSign) =>
+    NumberFormat('+#0.0;$negSign#0.0').format(score / 10);
+
+const scoreStyle = TextStyle(
+  fontWeight: FontWeight.bold,
+  fontSize: 16,
+);
+
+Size textSize(String text, {TextStyle? style}) {
+  return (TextPainter(
+    text: TextSpan(text: text, style: style),
+    maxLines: 1,
+    textDirection: TextDirection.ltr,
+  )..layout())
+      .size;
+}
+
+Size scoreSize(int score, String negSign) => textSize(
+      // Display score with 1 decimal point
+      scoreText(score, negSign),
+      style: scoreStyle,
+    );
+
+final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
+  final negSign = ref.watch(negSignProvider);
+  final playerScores = await ref.watch(playerScoreListProvider.future);
+  final maxRankWidth = playerScores
+      .map((playerScore) => playerScore.rank)
+      .map((rank) => textSize(rank).width)
+      .max;
+  final maxNameWidth = playerScores
+      .map((playerScore) => playerScore.name)
+      .map((name) => textSize(name).width)
+      .max;
+  final maxScoreWidth = playerScores
+      .map((playerScore) => playerScore.roundScores.map((e) => e.score))
+      .flattened
+      .map((score) => scoreSize(score, negSign).width)
+      .max;
+  final maxTotalWidth = playerScores
+      .map((playerScore) => playerScore.total)
+      .map((score) => scoreSize(score, negSign).width)
+      .max;
+  final maxPenaltyWidth = playerScores
+      .map((playerScore) => playerScore.penalty)
+      .map((score) => scoreSize(score, negSign).width)
+      .max;
+
+  yield (
+    playerScores: playerScores,
+    maxRankWidth: maxRankWidth,
+    maxNameWidth: maxNameWidth,
+    maxScoreWidth: max(max(maxScoreWidth, maxTotalWidth), maxPenaltyWidth),
+  );
+});
+
 class ScoreTable extends ConsumerWidget {
   const ScoreTable({super.key});
 
-  void onTap(BuildContext context, int playerId) {}
+  void onTap(BuildContext context, PlayerId playerId) {}
 
   @override
   Widget build(context, ref) {
     final negSign = ref.watch(negSignProvider);
     final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
-    final playerScores = ref.watch(playerScoreListProvider);
+    final playerScores = ref.watch(scoreWidthProvider);
     final rounds = ref.watch(roundsProvider);
     return playerScores.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Center(child: Text('$error')),
       data: (playerScores) {
-        final selectedScore = playerScores.firstWhereOrNull(
+        final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,
         );
         return DataTable2(
           minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
           columns: [
-            const DataColumn2(
-              label: Text(''),
+            DataColumn2(
+              label: const Text('#', maxLines: 1),
               numeric: true,
-              fixedWidth: 24,
+              fixedWidth: playerScores.maxRankWidth + columnMargin,
             ),
-            const DataColumn2(
-              label: Text('Player'),
-              fixedWidth: 200,
+            DataColumn2(
+              label: const Text('Player', maxLines: 1),
+              fixedWidth: playerScores.maxNameWidth + columnMargin,
             ),
-            const DataColumn2(
-              label: Text('Total'),
+            DataColumn2(
+              label: const Text('Total', maxLines: 1),
               numeric: true,
-              fixedWidth: 70,
+              fixedWidth: playerScores.maxScoreWidth + columnMargin,
             ),
             for (int i = rounds; i >= 1; i--)
               DataColumn2(
-                label: Text('R$i'),
+                label: Text('R${i + 1}', maxLines: 1),
                 numeric: true,
-                fixedWidth: 60,
+                fixedWidth: playerScores.maxScoreWidth + columnMargin,
               ),
-            const DataColumn2(
-              label: Text('Pen.'),
+            DataColumn2(
+              label: const Text('Pen.', maxLines: 1),
               numeric: true,
-              fixedWidth: 60,
+              fixedWidth: playerScores.maxScoreWidth + columnMargin,
             ),
           ],
           rows: [
@@ -71,7 +132,7 @@ class ScoreTable extends ConsumerWidget {
                 onTap: () => onTap(context, selectedScore.id),
                 color: WidgetStateProperty.all<Color>(selectedHighlight),
               ),
-            for (final score in playerScores)
+            for (final score in playerScores.playerScores)
               ScoreRow(
                 selected: selectedPlayerId == score.id,
                 score: score,
@@ -99,10 +160,13 @@ class ScoreRow extends DataRow2 {
     super.color,
     super.selected,
   }) : super(cells: [
-          DataCell(Text(score.rank)),
+          DataCell(Text(
+            score.rank,
+            maxLines: 1,
+          )),
           DataCell(Text(
             score.name,
-            softWrap: false,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           )),
           DataCell(Score(
@@ -135,16 +199,15 @@ class Score extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       child: Text(
-        NumberFormat('+#0.0;$negSign#0.0').format(score / 10),
         // Display score with 1 decimal point
-        style: TextStyle(
-          color: Color(switch (score) {
-            > 0 => 0xff00bb00,
-            < 0 => 0xff990000,
-            _ => 0xff999999,
-          }),
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
+        scoreText(score, negSign),
+        maxLines: 1,
+        style: scoreStyle.copyWith(
+          color: switch (score) {
+            > 0 => Colors.green,
+            < 0 => Colors.red,
+            _ => null,
+          },
         ),
       ),
     );
