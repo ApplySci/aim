@@ -58,6 +58,7 @@ class ROUTES {
   static const String settings = '/settings';
   static const String tournaments = '/tournaments';
   static const String tournament = '/tournament';
+  static const String player = '/player';
 }
 
 const Color selectedHighlight = Color(0x88aaaaff);
