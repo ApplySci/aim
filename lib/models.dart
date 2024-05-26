@@ -273,6 +273,8 @@ class HanchanScore { // detailed score for one player at one table in one round
     late int gameScore = initScores[2];
     late int placement = initScores[3];
     late int finalScore = initScores[4];
+    late int rank = initScores[5];
+    late bool tied = initScores[6] != 0;
     late int uma = finalScore - gameScore - penalties;
 }
 
