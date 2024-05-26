@@ -33,11 +33,14 @@ def select_tournament():
 
 
 @login_required
-def _publish_scores_on_web(scores, players):
+def _publish_scores_on_web(scores, players, done: int):
+    items = list(scores.items())
+    sorted_scores = sorted(items, key=lambda item: item[1]['rank']) # sort by rank
     title = current_user.live_tournament.title
     html = render_template('scores.html',
                            title=title,
-                           scores=scores,
+                           scores=sorted_scores,
+                           done=done,
                            players=players,
                            )
     fn = os.path.join(
@@ -109,23 +112,22 @@ def _send_messages(msg: str):
 
 
 @login_required
-def _message_player_topics(scores, players):
+def _message_player_topics(scores: dict, done: int, players):
     '''
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
     '''
     firebase_id = current_user.live_tournament.firebase_doc
-    done = scores[0]['roundDone']
-    for s in scores:
-        name = players[s['id']]
+    for k,v in scores.items():
+        name = players[k]
         _send_topic_fcm(
-            f"{firebase_id}-{s['id']}",
-            f"{name} is now in position {s['r']}",
-            f"with {s['t']} points after {done} round(s)",
+            f"{firebase_id}-{k}",
+            f"{name} is now in position {('','=')[v['tied']]}{v['rank']}",
+            f"with {v['total']} points after {done} round(s)",
             )
 
 @login_required
-def _get_one_game_results(sheet, rnd: int):
+def _get_one_game_results(sheet, scores: dict, rnd: int):
     vals = googlesheet.get_table_results(rnd, sheet)
     row : int = 4
     tables = {}
@@ -138,12 +140,15 @@ def _get_one_game_results(sheet, rnd: int):
             break
         # For each table, get the player ID & scores
         for i in range(4):
+            player_id = vals[row + i][1]
             tables[table].append([
-                vals[row + i][1],                  # player_id
-                round(10 * vals[row + i][3] or 0), # chombo
-                round(10* vals[row + i][4]),       # game score
-                vals[row + i][5],                  # placement
-                round(10 * vals[row + i][6]),      # final score
+                player_id,                         # player_id: int
+                round(10 * vals[row + i][3] or 0), # chombo: int
+                round(10* vals[row + i][4]),       # game score: int
+                vals[row + i][5],                  # placement: int
+                round(10 * vals[row + i][6]),      # final score: int
+                scores[player_id]['rank'],         # rank: int
+                scores[player_id]['tied'],         # tied: int 0/1 pseudobool
                 ])
 
         # Move to the next table
@@ -152,10 +157,10 @@ def _get_one_game_results(sheet, rnd: int):
 
 
 @login_required
-def _games_to_cloud(sheet, done : int):
+def _games_to_cloud(sheet, scores : dict, done : int):
     all_games = []
     for i in range(1, done):
-        name, results = _get_one_game_results(sheet, i)
+        name, results = _get_one_game_results(sheet, scores, i)
         all_games.append({'roundIndex': name, 'games': results})
     _save_to_cloud('games', all_games)
     return all_games
@@ -171,48 +176,46 @@ def _publish_games_on_web(games, players): # TODO
 def sheet_to_cloud():
     sheet = _get_sheet()
     done = googlesheet.count_completed_hanchan(sheet)
-    scores = _scores_to_cloud(sheet, done)
+    scores = _scores_at_end_of_round(sheet, done)
     players = _players_to_cloud(sheet)
 
     @copy_current_request_context
     def _finish_sheet_to_cloud():
         schedule = _schedule_to_cloud(sheet)
         _seating_to_cloud(sheet, schedule)
-        games = _games_to_cloud(sheet, done)
+        games = _games_to_cloud(sheet, scores, done)
         _publish_games_on_web(games, players)
-        _message_player_topics(scores, players)
+        _message_player_topics(scores, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
-    return _publish_scores_on_web(scores, players)
+    return _publish_scores_on_web(scores, players, done)
 
 
 @login_required
-def _scores_to_cloud(sheet, done : int):
+def _scores_at_end_of_round(sheet, done : int) -> dict:
     results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
-    all_scores = []
+    all_scores = {}
     previous_score = -99999
     for i in range(len(body)):
         total = round(10 * body[i][3])
         if previous_score == total:
-            prefix = '='
+            tied = 1
         else:
             previous_score = total
             rank = i + 1
-            prefix = ''
+            tied = 0
 
-        all_scores.append({
-            "id": body[i][0],
-            "t": total,
-            "r": f'{prefix}{rank}',
-            "p": round(body[i][4] * 10),
-            "s": [round(10 * s) for s in body[i][5 : 5 + done]],
-            })
+        all_scores[body[i][0]] = {
+            "total": total,
+            "penalties": round(body[i][4] * 10),
+            "scores": [round(10 * s) for s in body[i][5 : 5 + done]],
+            "rank": rank,
+            "tied": tied,
+            }
 
-    all_scores[0]['roundDone'] = done
-    _save_to_cloud('scores', all_scores)
     return all_scores
 
 

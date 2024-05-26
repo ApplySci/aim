@@ -71,7 +71,7 @@ def config_jinja(app):
             prefix = '+'
         else:
             prefix = ''
-        return f"{prefix} {(abs(round(score/10, 1)))}"
+        return f"{prefix}{(abs(round(score/10, 1)))}"
     env = app.jinja_env
     env.filters['prettyScore'] = prettyScore
 
