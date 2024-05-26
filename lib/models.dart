@@ -309,7 +309,7 @@ class GameData { // detailed scores for all hanchans in a round
               MapEntry(
                 tableId as String,
                 Hanchan(
-                  roundId: data['id'],
+                  roundId: data['id'] as String,
                   tableId: int.parse(tableId),
                   initScores: scoresList,
                 )
