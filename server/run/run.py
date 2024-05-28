@@ -35,7 +35,7 @@ def select_tournament():
 @login_required
 def _publish_scores_on_web(scores, players, done: int):
     items = list(scores.items())
-    sorted_scores = sorted(items, key=lambda item: item[1]['rank']) # sort by rank
+    sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
     html = render_template('scores.html',
                            title=title,
@@ -122,12 +122,12 @@ def _message_player_topics(scores: dict, done: int, players):
         name = players[k]
         _send_topic_fcm(
             f"{firebase_id}-{k}",
-            f"{name} is now in position {('','=')[v['tied']]}{v['rank']}",
+            f"{name} is now in position {('','=')[v['t']]}{v['r']}",
             f"with {v['total']} points after {done} round(s)",
             )
 
 @login_required
-def _get_one_game_results(sheet, scores: dict, rnd: int):
+def _get_one_game_results(sheet, rnd: int):
     vals = googlesheet.get_table_results(rnd, sheet)
     row : int = 4
     tables = {}
@@ -147,23 +147,11 @@ def _get_one_game_results(sheet, scores: dict, rnd: int):
                 round(10* vals[row + i][4]),       # game score: int
                 vals[row + i][5],                  # placement: int
                 round(10 * vals[row + i][6]),      # final score: int
-                scores[player_id]['rank'],         # rank: int
-                scores[player_id]['tied'],         # tied: int 0/1 pseudobool
                 ])
 
         # Move to the next table
         row += 7
     return vals[0][1], tables
-
-
-@login_required
-def _games_to_cloud(sheet, scores : dict, done : int):
-    all_games = []
-    for i in range(1, done):
-        name, results = _get_one_game_results(sheet, scores, i)
-        all_games.append({'roundIndex': name, 'games': results})
-    _save_to_cloud('games', all_games)
-    return all_games
 
 
 @login_required
@@ -174,26 +162,37 @@ def _publish_games_on_web(games, players): # TODO
 @blueprint.route('/run/get_results')
 @login_required
 def sheet_to_cloud():
-    sheet = _get_sheet()
-    done = googlesheet.count_completed_hanchan(sheet)
-    scores = _scores_at_end_of_round(sheet, done)
-    players = _players_to_cloud(sheet)
 
     @copy_current_request_context
     def _finish_sheet_to_cloud():
+        sheet = _get_sheet()
+        done = googlesheet.count_completed_hanchan(sheet)
+        scores = _total_scores_to_cloud(sheet, done)
+        players = _players_to_cloud(sheet)
         schedule = _schedule_to_cloud(sheet)
         _seating_to_cloud(sheet, schedule)
-        games = _games_to_cloud(sheet, scores, done)
+        games = _games_to_cloud(sheet, done)
         _publish_games_on_web(games, players)
+        _publish_scores_on_web(scores, players, done)
         _message_player_topics(scores, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
-    return _publish_scores_on_web(scores, players, done)
+    return "SCORES are being updated, and notifications sent, now", 200
 
 
 @login_required
-def _scores_at_end_of_round(sheet, done : int) -> dict:
+def _games_to_cloud(sheet, done : int):
+    all_games = []
+    for i in range(1, done):
+        name, results = _get_one_game_results(sheet, i)
+        all_games.append({'roundIndex': name, 'games': results})
+    _save_to_cloud('games', all_games)
+    return all_games
+
+
+@login_required
+def _total_scores_to_cloud(sheet, done : int) -> dict:
     results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
@@ -210,12 +209,20 @@ def _scores_at_end_of_round(sheet, done : int) -> dict:
 
         all_scores[body[i][0]] = {
             "total": total,
-            "penalties": round(body[i][4] * 10),
-            "scores": [round(10 * s) for s in body[i][5 : 5 + done]],
-            "rank": rank,
-            "tied": tied,
+            "p": round(body[i][4] * 10),
+            "s": [round(10 * s) for s in body[i][5 : 5 + done]],
+            "r": rank,
+            "t": tied,
             }
 
+    _save_to_cloud(
+        'scores',
+        {
+            f"{done}": all_scores,
+            'roundDone': done,
+        },
+        None,
+        )
     return all_scores
 
 
@@ -229,9 +236,10 @@ def _schedule_to_cloud(sheet):
 @login_required
 def _players_to_cloud(sheet):
     raw : list(list) = googlesheet.get_players(sheet)
-    players = {int(p[0]): p[2] for p in raw}
+    players = [{'id': p[0], 'name': p[2]} for p in raw]
     _save_to_cloud('players', players)
-    return players
+    player_map = {p[0]: p[2] for p in raw}
+    return player_map
 
 
 @login_required
@@ -258,9 +266,21 @@ def _seating_to_cloud(sheet, schedule):
 
 
 @login_required
-def _save_to_cloud(key: str, data):
+def _save_to_cloud(document: str, data, key='json'):
     firebase_id : str = current_user.live_tournament.firebase_doc
-    ref = firestore_client.collection("tournaments")
-    out : str = json.dumps(data, ensure_ascii=False, indent=None)
-    ref.document(f"{firebase_id}/json/{key}").set(document_data={
-        'json': out})
+    ref = firestore_client.collection("tournaments").document(
+        f"{firebase_id}/json/{document}")
+
+    if key == None:
+        field = {k: json.dumps(v, ensure_ascii=False, indent=None) \
+                 for k, v in data.items()}
+    else:
+        value = json.dumps(data, ensure_ascii=False, indent=None)
+        field : dict = {key: value}
+    doc = ref.get()
+    if doc.exists:
+        # If the document exists, update the field
+        ref.update(field)
+    else:
+        # If the document does not exist, create it with the field
+        ref.set(field)

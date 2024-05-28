@@ -41,14 +41,15 @@ class GSP:
         timezone_string = vals[0][2]
         tz = pytz.timezone(timezone_string)
         vals = vals[2:] # throw away the headers
-        schedule : dict = {'timezone': timezone_string}
+        schedule : dict = {'timezone': timezone_string, 'rounds': []}
         for i in range(0, len(vals)):
             thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
             utc_dt = tz.localize(thisDatetime).astimezone(pytz.UTC)
-            schedule[vals[i][0]] = {
+            schedule['rounds'].append({
+                'id': vals[i][0],
                 'name': vals[i][1],
                 'start': utc_dt.isoformat(),
-                }
+                })
         return schedule
 
 
@@ -66,7 +67,7 @@ class GSP:
         triggers = live.worksheet('reference').get('PublicationTriggers')
         done : int = 0 # number of completed hanchan
         for i in range(1, len(triggers)):
-            if len(triggers[i]) < 3 or triggers[i][2] == '':
+            if len(triggers[i]) < 3 or triggers[i][1] == '':
                 break
             done = i
         return done
