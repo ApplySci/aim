@@ -70,10 +70,11 @@ class TournamentData extends Equatable {
 typedef PlayerId = int;
 
 class PlayerData extends Equatable implements Comparable<PlayerData> {
-  const PlayerData(this.id, this.name);
-
   final PlayerId id;
   final String name;
+  PlayerData(Map<String, dynamic> playerMap)
+      : id = playerMap['id'],
+        name = playerMap['name'];
 
   @override
   int compareTo(PlayerData other) => name.compareTo(other.name);
@@ -105,12 +106,8 @@ class ScheduleData extends Equatable {
   });
 
   factory ScheduleData.fromJson(Map<String, dynamic> data) {
-    final location = getLocation(data.remove('timezone') as String);
-    final roundScheduleList = data.entries.map((e) =>
-    {
-      'id': e.key,
-      ...e.value,
-    });
+    final location = getLocation(data['timezone'] as String);
+    final roundScheduleList = data['rounds'];
     return ScheduleData(
       timezone: location,
       rounds: [

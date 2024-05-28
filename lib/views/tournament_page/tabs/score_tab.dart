@@ -162,6 +162,9 @@ class ScoreRow extends DataRow2 {
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
               ScoreText(score.roundScores.elementAtOrNull(i)?.score ?? 0),
+              // TODO decide: do we want a user to tap on a single score
+              //      to go to the score for that hanchan?
+              // onTap: () => showHanchanModel(score.id, i),
             ),
           DataCell(ScoreText(score.penalty)),
         ]);

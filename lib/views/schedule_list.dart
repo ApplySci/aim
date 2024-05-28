@@ -57,10 +57,10 @@ final roundListProvider = StreamProvider((ref) async* {
                   name: tableName,
                   players: {
                     for (final wind in Wind.values)
-                      wind: PlayerData(
-                        playerIds[wind.index],
-                        playerById[playerIds[wind.index]]!,
-                      ),
+                      wind: PlayerData({
+                        'id': playerIds[wind.index],
+                        'name': playerById[playerIds[wind.index]]!,
+                      }),
                   },
                 )
           ],

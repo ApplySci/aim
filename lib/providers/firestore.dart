@@ -69,12 +69,12 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
   yield* collection
       .doc('players')
       .snapshots()
-      .map(snapshotData<Map<String, dynamic>>)
-      .map((e) => e ?? const {})
+      .map(snapshotData<List<Map<String, dynamic>>>)
+      .map((e) => e ?? const [])
       .map((data) => [
-            for (final MapEntry(:String key, :String value) in data.entries)
-              PlayerData(int.parse(key), value),
-          ]);
+        for (final Map<String, dynamic> player in data)
+          PlayerData(player),
+      ]);
 });
 
 final selectedPlayerProvider = Provider((ref) {
