@@ -69,11 +69,10 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
   yield* collection
       .doc('players')
       .snapshots()
-      .map(snapshotData<List<Map<String, dynamic>>>)
+      .map(snapshotData<List<dynamic>>)
       .map((e) => e ?? const [])
       .map((data) => [
-        for (final Map<String, dynamic> player in data)
-          PlayerData(player),
+        for (final player in data) PlayerData((player as Map).cast()),
       ]);
 });
 
@@ -86,19 +85,36 @@ final selectedPlayerProvider = Provider((ref) {
       ?.firstWhereOrNull((player) => player.id == selectedPlayerId);
 });
 
-final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
+
+final scoresBaseProvider = StreamProvider<Map>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
   yield* collection
       .doc('scores') //
       .snapshots()
-      .map(snapshotData<List<dynamic>>)
-      .map((e) => e ?? const [])
-      .map((data) => [
-            for (final score in data) ScoreData.fromJson((score as Map).cast()),
-          ]);
+      .map(snapshotData<Map>)
+      .map((e) => e ?? const {});
 });
+
+
+final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
+  final scoresBase = ref.watch(scoresBaseProvider);
+
+  yield* scoresBase.when(
+    data: (data) {
+      final int done = data['roundDone'];
+      List<ScoreData> out = [
+        for (final score in data[done])
+          ScoreData.fromJson((score as Map).cast())
+      ];
+      return Stream.value(out);
+    },
+    loading: () => const Stream.empty(),
+    error: (_, __) => const Stream.empty(),
+  );
+});
+
 
 final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
@@ -142,10 +158,12 @@ final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
 });
 
 final roundsProvider = Provider((ref) {
-  final scores = ref.watch(scoresProvider);
+  final scores = ref.watch(scoresBaseProvider);
   return scores.maybeWhen(
-    data: (scores) => scores.map((score) => score.roundDone).max,
-    orElse: () => 0,
+    data: (data) {
+      return data['roundDone'] ?? 0;
+    },
+      orElse: () => 0,
   );
 });
 
@@ -162,7 +180,6 @@ typedef PlayerScore = ({
   int total,
   int penalty,
   List<RoundScore> roundScores,
-  int roundDone,
 });
 
 final playerScoreListProvider = StreamProvider((ref) async* {
@@ -188,7 +205,6 @@ final playerScoreListProvider = StreamProvider((ref) async* {
                   score: score.$2,
                 ))
             .toList(),
-        roundDone: score.roundDone,
       )
   ];
 });

@@ -169,7 +169,6 @@ class ScoreData extends Equatable {
     required this.total,
     required this.penalty,
     required this.roundScores,
-    required this.roundDone,
   });
 
   factory ScoreData.fromJson(Map<String, dynamic> data) =>
@@ -179,7 +178,6 @@ class ScoreData extends Equatable {
         total: data['t'] as int,
         penalty: data['p'] as int,
         roundScores: (data['s'] as List).cast(),
-        roundDone: (data['roundDone'] as int?) ?? 0,
       );
 
   final PlayerId id;
@@ -187,7 +185,6 @@ class ScoreData extends Equatable {
   final int total;
   final int penalty;
   final List<int> roundScores;
-  final int roundDone;
 
   @override
   List<Object?> get props =>
@@ -197,7 +194,6 @@ class ScoreData extends Equatable {
         total,
         penalty,
         roundScores,
-        roundDone,
       ];
 }
 
