@@ -171,11 +171,11 @@ class ScoreData extends Equatable {
     required this.roundScores,
   });
 
-  factory ScoreData.fromJson(Map<String, dynamic> data) =>
+  factory ScoreData.fromJson(int id, Map<String, dynamic> data) =>
       ScoreData(
-        id: data['id'] as int,
-        rank: data['r'] as String,
-        total: data['t'] as int,
+        id: id,
+        rank: "${['','='][data['t']]}${data['r']}",
+        total: data['total'] as int,
         penalty: data['p'] as int,
         roundScores: (data['s'] as List).cast(),
       );

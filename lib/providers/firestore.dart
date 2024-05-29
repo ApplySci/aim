@@ -72,8 +72,8 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
       .map(snapshotData<List<dynamic>>)
       .map((e) => e ?? const [])
       .map((data) => [
-        for (final player in data) PlayerData((player as Map).cast()),
-      ]);
+            for (final player in data) PlayerData((player as Map).cast()),
+          ]);
 });
 
 final selectedPlayerProvider = Provider((ref) {
@@ -85,33 +85,30 @@ final selectedPlayerProvider = Provider((ref) {
       ?.firstWhereOrNull((player) => player.id == selectedPlayerId);
 });
 
-
 final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
-  yield* collection
-      .doc('scores')
-      .snapshots()
-      .map((snapshot) {
-          Map? data = snapshot.data();
-          if (data == null ) return [];
-          if (data case {'roundDone': int done}) {
-              if (data.containsKey(done)) {
-                  List<ScoreData> scores = [
-                      for (final score in data[done])
-                          ScoreData.fromJson((score as Map).cast())
-                  ];
-                return scores;
-              } else {
-                return [];
-              }
-          } else {
-            return [];
-          }
-      });
+  yield* collection.doc('scores').snapshots().map((snapshot) {
+    Map? data = snapshot.data();
+    if (data == null) return [];
+    if (data.containsKey('roundDone')) {
+      String done = data['roundDone'];
+      if (data.containsKey(done)) {
+        List<ScoreData> scores = [];
+        Map<String, dynamic> scoreList = jsonDecode(data[done]);
+        for (final s in scoreList.entries) {
+          scores.add(ScoreData.fromJson(int.parse(s.key), s.value));
+        }
+        return scores;
+      } else {
+        return [];
+      }
+    } else {
+      return [];
+    }
+  });
 });
-
 
 final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
