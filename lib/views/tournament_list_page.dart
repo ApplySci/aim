@@ -28,7 +28,7 @@ class TournamentList extends ConsumerWidget {
     return tournamentList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('$error')),
+      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
       data: (tournamentList) {
         if (tournamentList.isEmpty) {
           return const Center(child: Text('No Tournaments Found'));

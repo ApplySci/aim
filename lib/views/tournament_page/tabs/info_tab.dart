@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '/providers.dart';
+import '/utils.dart';
 import '/venue.dart';
 
 class TournamentInfo extends ConsumerWidget {
@@ -15,7 +16,7 @@ class TournamentInfo extends ConsumerWidget {
     return tournament.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('$error')),
+      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
       data: (tournament) => ListView(
         children: [
           ListTile(
@@ -63,7 +64,7 @@ class ScheduleTable extends ConsumerWidget {
     return rounds.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ListTile(title: Text('$error')),
+      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
       data: (rounds) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Table(

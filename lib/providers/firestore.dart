@@ -86,33 +86,30 @@ final selectedPlayerProvider = Provider((ref) {
 });
 
 
-final scoresBaseProvider = StreamProvider<Map>((ref) async* {
+final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
   yield* collection
-      .doc('scores') //
+      .doc('scores')
       .snapshots()
-      .map(snapshotData<Map>)
-      .map((e) => e ?? const {});
-});
-
-
-final scoresProvider = StreamProvider<List<ScoreData>>((ref) async* {
-  final scoresBase = ref.watch(scoresBaseProvider);
-
-  yield* scoresBase.when(
-    data: (data) {
-      final int done = data['roundDone'];
-      List<ScoreData> out = [
-        for (final score in data[done])
-          ScoreData.fromJson((score as Map).cast())
-      ];
-      return Stream.value(out);
-    },
-    loading: () => const Stream.empty(),
-    error: (_, __) => const Stream.empty(),
-  );
+      .map((snapshot) {
+          Map? data = snapshot.data();
+          if (data == null ) return [];
+          if (data case {'roundDone': int done}) {
+              if (data.containsKey(done)) {
+                  List<ScoreData> scores = [
+                      for (final score in data[done])
+                          ScoreData.fromJson((score as Map).cast())
+                  ];
+                return scores;
+              } else {
+                return [];
+              }
+          } else {
+            return [];
+          }
+      });
 });
 
 
@@ -157,19 +154,9 @@ final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
           : ScheduleData(timezone: UTC, rounds: const []));
 });
 
-final roundsProvider = Provider((ref) {
-  final scores = ref.watch(scoresBaseProvider);
-  return scores.maybeWhen(
-    data: (data) {
-      return data['roundDone'] ?? 0;
-    },
-      orElse: () => 0,
-  );
-});
-
 typedef RoundScore = ({
   String name,
-  DateTime start,
+  DateTime start, // TODO do we use this anywhere? What's the rationale for having this here?
   int score,
 });
 
@@ -201,7 +188,7 @@ final playerScoreListProvider = StreamProvider((ref) async* {
         roundScores: score.roundScores.indexed
             .map((score) => (
                   name: schedule.rounds[score.$1].name,
-                  start: DateTime.now(),
+                  start: DateTime.now(), // TODO ???
                   score: score.$2,
                 ))
             .toList(),

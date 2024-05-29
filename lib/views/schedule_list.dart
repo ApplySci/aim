@@ -121,7 +121,7 @@ class ScheduleList extends ConsumerWidget {
     return roundList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('$error')),
+      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
       data: (roundList) {
         if (roundList.isEmpty) {
           return const Center(child: Text('No seating schedule available'));

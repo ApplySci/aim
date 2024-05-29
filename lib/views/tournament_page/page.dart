@@ -27,12 +27,12 @@ class TournamentPage extends ConsumerWidget {
         ),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, stackTrace) => Scaffold(
+      error: (error, stackTrace) => Scaffold( // uses ErrorScreen
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Text('Tournament'),
         ),
-        body: Center(child: Text('$error')),
+        body: ErrorScreen(error: error, stackTrace: stackTrace),
       ),
       data: (tournament) => Scaffold(
         appBar: AppBar(

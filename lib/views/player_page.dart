@@ -7,6 +7,7 @@ import '/models.dart';
 import '/providers.dart';
 import 'schedule_list.dart';
 import 'score_text.dart';
+import '/utils.dart';
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerScore, PlayerId>((ref, playerId) async* {
@@ -38,12 +39,12 @@ class PlayerPage extends ConsumerWidget {
         ),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, stackTrace) => Scaffold(
+      error: (error, stackTrace) => Scaffold( // uses ErrorScreen
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Text('Player'),
         ),
-        body: Center(child: Text('$error')),
+        body: ErrorScreen(error: error, stackTrace: stackTrace),
       ),
       data: (player) => DefaultTabController(
         length: 3,

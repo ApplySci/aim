@@ -75,15 +75,15 @@ class ScoreTable extends ConsumerWidget {
   Widget build(context, ref) {
     final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
     final playerScores = ref.watch(scoreWidthProvider);
-    final rounds = ref.watch(roundsProvider);
     return playerScores.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('$error')),
+      error: (error, stackTrace) =>ErrorScreen(error: error, stackTrace: stackTrace),
       data: (playerScores) {
         final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,
         );
+        final int rounds = playerScores.playerScores[0].roundScores.length;
         return DataTable2(
           minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
@@ -144,8 +144,8 @@ class ScoreTable extends ConsumerWidget {
 class ScoreRow extends DataRow2 {
   ScoreRow({
     required PlayerScore score,
-    required int rounds,
     required super.onTap,
+    required int rounds,
     super.color,
     super.selected,
   }) : super(cells: [
@@ -161,9 +161,8 @@ class ScoreRow extends DataRow2 {
           DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
-              ScoreText(score.roundScores.elementAtOrNull(i)?.score ?? 0),
-              // TODO decide: do we want a user to tap on a single score
-              //      to go to the score for that hanchan?
+              ScoreText(score.roundScores[i].score),
+              // TODO decide: do we want a user to tap on a single score to go to the whole hanchan score? Maybe in a modal popup?
               // onTap: () => showHanchanModel(score.id, i),
             ),
           DataCell(ScoreText(score.penalty)),

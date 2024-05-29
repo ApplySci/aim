@@ -179,3 +179,30 @@ extension SeperatedBy<T> on Iterable<T> {
     }
   }
 }
+
+class ErrorScreen extends StatelessWidget {
+  final dynamic error;
+  final StackTrace stackTrace;
+
+  const ErrorScreen({super.key, required this.error, required this.stackTrace});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('$error'),
+          ExpansionTile(
+            title: const Text('tap for details'),
+            children: [
+              SingleChildScrollView(
+                child: Text('$stackTrace'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

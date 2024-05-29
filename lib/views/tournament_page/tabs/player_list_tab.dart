@@ -80,7 +80,7 @@ class PlayerList extends ConsumerWidget {
     return playerList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('$error')),
+      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
       data: (playerList) => ListView.builder(
         itemCount: playerList.length,
         itemBuilder: (context, index) => PlayerTile(player: playerList[index]),

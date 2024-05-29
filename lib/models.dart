@@ -275,7 +275,7 @@ class Hanchan { // the scores for all four players at one table in one round
     final RoundId roundId;
     final int tableId;
     final List<List<int>> initScores;
-    late List<HanchanScore> scores;    // length 4 - one HanchanScore for each player
+    late List<HanchanScore> scores;    // length 4: one HanchanScore for each player
 
     Hanchan({
       required this.roundId,
