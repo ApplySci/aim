@@ -112,26 +112,13 @@ class ScheduleData extends Equatable {
     List<RoundScheduleData> rounds = [];
     for (final Map<String, dynamic> roundSchedule in roundScheduleList) {
       RoundScheduleData newRound = RoundScheduleData.fromJson(
-        roundSchedule, // TODO TOFIX error on casting, here
+        roundSchedule,
         location,
       );
       rounds.add(newRound);
     }
 
     return ScheduleData(timezone: location, rounds: rounds);
-
-/*
-    return ScheduleData(
-      timezone: location,
-      rounds: [
-        for (final roundSchedule in roundScheduleList)
-          RoundScheduleData.fromJson(
-            roundSchedule.cast(),      // TODO TOFIX error on casting, here
-            location,
-          ),
-      ],
-    );
-*/
   }
   final Location timezone;
   final List<RoundScheduleData> rounds;

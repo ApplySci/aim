@@ -38,7 +38,7 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final maxRankWidth = playerScores
       .map((playerScore) => playerScore.rank)
       .map((rank) => textSize(rank).width)
-      .max;
+      .max; // TODO TOFIX Bad state: No element
   final maxNameWidth = playerScores
       .map((playerScore) => playerScore.name)
       .map((name) => textSize(name).width)
