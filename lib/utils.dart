@@ -188,7 +188,7 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -196,9 +196,7 @@ class ErrorScreen extends StatelessWidget {
           ExpansionTile(
             title: const Text('tap for details'),
             children: [
-              SingleChildScrollView(
-                child: Text('$stackTrace'),
-              ),
+              Text('$stackTrace'),
             ],
           ),
         ],

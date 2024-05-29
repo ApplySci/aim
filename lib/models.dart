@@ -112,7 +112,7 @@ class ScheduleData extends Equatable {
       timezone: location,
       rounds: [
         for (final roundSchedule in roundScheduleList)
-          RoundScheduleData.fromJson(
+          RoundScheduleData.fromJson( // TODO TOFIX error on casting, here
             roundSchedule.cast(),
             location,
           ),
