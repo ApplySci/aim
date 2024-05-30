@@ -236,9 +236,13 @@ def _schedule_to_cloud(sheet):
 @login_required
 def _players_to_cloud(sheet):
     raw : list(list) = googlesheet.get_players(sheet)
-    players = [{'id': p[0], 'name': p[2]} for p in raw]
+    if len(raw) and len(raw[0]) > 2:
+        players = [{'id': p[0], 'name': p[2]} for p in raw]
+        player_map = {p[0]: p[2] for p in raw}
+    else:
+        players = []
+        player_map = {}
     _save_to_cloud('players', players)
-    player_map = {p[0]: p[2] for p in raw}
     return player_map
 
 

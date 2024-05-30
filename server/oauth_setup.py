@@ -33,34 +33,45 @@ def config_db(app):
     db.init_app(app)
     with app.app_context():
         # ensure our defaults are in place
-        scoresheet_id = '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8'
-        firebase_doc = 'Y3sDqxajiXefmP9XBTvY'
-        webdir = '/home/model/apps/tournaments/myapp/static/'
-        title = 'Irish Riichi Open, Cork 2024'
+        # TODO switch this so that our detailed google sheet is the demo tourney
+        scoresheet_ids = (
+            '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8',
+            '1wbxTZJnF-CE90xYEk34z9WgDjawdbHbW_Rb8fQ9yd6A',
+            )
+        firebase_docs = (
+            'Y3sDqxajiXefmP9XBTvY',
+            'test2',
+            )
+        webdirs = (
+            '/home/model/apps/tournaments/myapp/static/',
+            '/home/model/apps/tournaments/myapp/static/wr/',
+            )
+        titles = (
+            'Irish Riichi Open, Cork 2024',
+            'World Riichi App - demo tournament for testing',
+            )
+
         for email in DEFAULT_USERS:
             if not db.session.query(User).get(email):
                 db.session.add(User(email=email))
         db.session.commit()
 
-        if not db.session.query(Tournament).get(scoresheet_id):
-            t = Tournament(
-                id=scoresheet_id,
-                title=title,
-                web_directory=webdir,
-                firebase_doc=firebase_doc,
-                )
-            db.session.add(t)
-            db.session.add(Access(
-                user_email=DEFAULT_OWNER,
-                tournament_id=scoresheet_id,
-                role=Role.admin,
-                ))
-            db.session.add(Access(
-                user_email=DEFAULT_USERS[2],
-                tournament_id=scoresheet_id,
-                role=Role.admin,
-                ))
-            db.session.commit()
+        for i in range(2):
+            if not db.session.query(Tournament).get(scoresheet_ids[i]):
+                t = Tournament(
+                    id=scoresheet_ids[i],
+                    title=titles[i],
+                    web_directory=webdirs[i],
+                    firebase_doc=firebase_docs[i],
+                    )
+                db.session.add(t)
+                for email in DEFAULT_USERS:
+                    db.session.add(Access(
+                        user_email=email,
+                        tournament_id=scoresheet_ids[i],
+                        role=Role.admin,
+                        ))
+                db.session.commit()
 
 
 def config_jinja(app):
