@@ -184,8 +184,8 @@ def sheet_to_cloud():
 @login_required
 def _games_to_cloud(sheet, done : int):
     all_games = []
-    for i in range(1, done):
-        name, results = _get_one_game_results(sheet, i)
+    for i in range(done):
+        name, results = _get_one_game_results(sheet, i + 1)
         all_games.append({'roundIndex': name, 'games': results})
     _save_to_cloud('games', all_games)
     return all_games
