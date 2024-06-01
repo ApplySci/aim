@@ -124,7 +124,7 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
           ]);
 });
 
-final gamesProvider = StreamProvider<List<GameData>>((ref) async* {
+final gameProvider = StreamProvider<List<GameData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -134,7 +134,7 @@ final gamesProvider = StreamProvider<List<GameData>>((ref) async* {
       .map(snapshotData<List<dynamic>>)
       .map((e) => e ?? const {})
       .map((data) => [
-            for (final round in data) GameData.fromCloud((round as Map).cast()),
+            for (final round in data) GameData.fromJson((round as Map).cast()),
           ]);
 });
 

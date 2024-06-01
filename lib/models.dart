@@ -72,6 +72,7 @@ typedef PlayerId = int;
 class PlayerData extends Equatable implements Comparable<PlayerData> {
   final PlayerId id;
   final String name;
+
   PlayerData(Map<String, dynamic> playerMap)
       : id = playerMap['id'],
         name = playerMap['name'];
@@ -120,6 +121,7 @@ class ScheduleData extends Equatable {
 
     return ScheduleData(timezone: location, rounds: rounds);
   }
+
   final Location timezone;
   final List<RoundScheduleData> rounds;
 
@@ -174,7 +176,7 @@ class ScoreData extends Equatable {
   factory ScoreData.fromJson(int id, Map<String, dynamic> data) =>
       ScoreData(
         id: id,
-        rank: "${['','='][data['t']]}${data['r']}",
+        rank: "${['', '='][data['t']]}${data['r']}",
         total: data['total'] as int,
         penalty: data['p'] as int,
         roundScores: (data['s'] as List).cast(),
@@ -258,32 +260,43 @@ extension HanchanList on List<Hanchan> { // TODO
 }}
 */
 
-class HanchanScore { // detailed score for one player at one table in one round
-    final List<int> initScores;
-    HanchanScore(this.initScores);
-    late PlayerId playerId = initScores[0];
-    late int penalties = initScores[1];
-    late int gameScore = initScores[2];
-    late int placement = initScores[3];
-    late int finalScore = initScores[4];
-    late int rank = initScores[5];
-    late bool tied = initScores[6] != 0;
-    late int uma = finalScore - gameScore - penalties;
+class HanchanScore {
+  // detailed score for one player at one table in one round
+  late PlayerId playerId;
+  late int penalties;
+  late int gameScore;
+  late int placement;
+  late int finalScore;
+  late int rank;
+  late bool tied;
+  late int uma;
+
+  HanchanScore(List<int> initScores) {
+    this.playerId = initScores[0];
+    this.penalties = initScores[1];
+    this.gameScore = initScores[2];
+    this.placement = initScores[3];
+    this.finalScore = initScores[4];
+    this.uma = finalScore - gameScore - penalties;
+  }
 }
 
-class Hanchan { // the scores for all four players at one table in one round
-    final RoundId roundId;
-    final int tableId;
-    final List<List<int>> initScores;
-    late List<HanchanScore> scores;    // length 4: one HanchanScore for each player
+class Hanchan {
+  // the scores for all four players at one table in one round
+  final RoundId roundId;
+  final int tableId;
+  late List<HanchanScore> scores =
+      []; // length 4: one HanchanScore for each player
 
-    Hanchan({
-      required this.roundId,
-      required this.tableId,
-      required this.initScores,
-    }) {
-      scores = initScores.map((score) => HanchanScore(score)).toList();
+  Hanchan({
+    required this.roundId,
+    required this.tableId,
+    required initScores,
+  }) {
+    for (List score in initScores) {
+      scores.add(HanchanScore(score.cast<int>()));
     }
+  }
 }
 
 class GameData { // detailed scores for all hanchans in a round
@@ -296,20 +309,16 @@ class GameData { // detailed scores for all hanchans in a round
   final RoundId roundId;
   final Map<String, Hanchan> tables;
 
-  factory GameData.fromCloud(Map<String, dynamic> data) =>
-      GameData(
-        roundId: data['id'] as String,
+  factory GameData.fromJson(Map<String, dynamic> data) => GameData(
+        roundId: data['roundIndex'].toString(),
         tables: (data['games'] as Map).map(
-              (tableId, scoresList) =>
-              MapEntry(
-                tableId as String,
-                Hanchan(
-                  roundId: data['id'] as String,
-                  tableId: int.parse(tableId),
-                  initScores: scoresList,
-                )
-              ),
+          (tableId, scoresList) => MapEntry(
+              tableId.toString(),
+              Hanchan(
+                roundId: data['roundIndex'].toString(),
+                tableId: int.parse(tableId),
+                initScores: scoresList.cast(),
+              )),
         ),
       );
-
 }
