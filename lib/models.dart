@@ -249,16 +249,18 @@ class RoundData extends Equatable {
       ];
 }
 
-/*
-extension HanchanList on List<Hanchan> { // TODO
+extension HanchanList on List<GameData> {
   // List of detailed results for a given player
-  Iterable<Hanchan> withPlayerId(PlayerId? playerId) =>
-      playerId == null
-          ? this
-          : map((round) =>
-          GameData();
-}}
-*/
+  List<Hanchan> withPlayerId(PlayerId playerId) {
+    List<Hanchan> out = [];
+    for (final GameData round in this) {
+      // get one game for each round for the given player
+      out.add(round.tables.values.firstWhere(
+              (Hanchan h) => h.playerIndex(playerId) > -1));
+    }
+    return out;
+  }
+}
 
 class HanchanScore {
   // detailed score for one player at one table in one round
@@ -272,12 +274,12 @@ class HanchanScore {
   late int uma;
 
   HanchanScore(List<int> initScores) {
-    this.playerId = initScores[0];
-    this.penalties = initScores[1];
-    this.gameScore = initScores[2];
-    this.placement = initScores[3];
-    this.finalScore = initScores[4];
-    this.uma = finalScore - gameScore - penalties;
+    playerId = initScores[0];
+    penalties = initScores[1];
+    gameScore = initScores[2];
+    placement = initScores[3];
+    finalScore = initScores[4];
+    uma = finalScore - gameScore - penalties;
   }
 }
 
@@ -285,17 +287,28 @@ class Hanchan {
   // the scores for all four players at one table in one round
   final RoundId roundId;
   final int tableId;
-  late List<HanchanScore> scores =
-      []; // length 4: one HanchanScore for each player
+  late Map<PlayerId, int> _players;
+  late List<HanchanScore> scores; // length 4: one HanchanScore for each player
 
   Hanchan({
     required this.roundId,
     required this.tableId,
     required initScores,
   }) {
+    _players = {};
+    scores = [];
+    int i = 0;
     for (List score in initScores) {
-      scores.add(HanchanScore(score.cast<int>()));
+      HanchanScore player = HanchanScore(score.cast<int>());
+      scores.add(player);
+      _players[player.playerId] = i;
+      i++;
     }
+  }
+
+  int playerIndex(PlayerId pid) {
+    // the ?? -1 is unnecessary, but the linter doesn't realise that
+    return _players.containsKey(pid) ? (_players[pid] ?? -1) : -1;
   }
 }
 

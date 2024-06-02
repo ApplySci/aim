@@ -30,6 +30,11 @@ class PlayerPage extends ConsumerWidget {
     final isSelected = ref.watch(
       selectedPlayerIdProvider.select((id) => id == playerId(context)),
     );
+    final gamesMap = ref.watch(gameProvider);
+    List<Hanchan> games = [];
+    if (gamesMap.hasValue) {
+      games = gamesMap.value!.withPlayerId(playerId(context));
+    }
     return player.when(
       skipLoadingOnReload: true,
       loading: () => Scaffold(
@@ -78,6 +83,7 @@ class PlayerPage extends ConsumerWidget {
             PlayerStatsTab(player: player),
             PlayerScheduleTab(player: player),
             PlayerScoreTab(player: player),
+            PlayerGameTab(player: player, games: games),
           ]),
         ),
       ),
