@@ -2,9 +2,11 @@
 '''
 pages and backend for the user running the tournament
 '''
-import json
+from functools import wraps
 import os
+import sys
 import threading
+import traceback
 
 from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
@@ -16,6 +18,25 @@ from models import Access
 from oauth_setup import db, firestore_client
 
 blueprint = Blueprint('run', __name__)
+
+def wrap_and_catch(myfunc):
+    @wraps(myfunc)
+    def wrapper(*args, **kwargs):
+        try:
+            return myfunc(*args, **kwargs)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback_details = traceback.extract_tb(exc_traceback)
+            # Filter traceback: only the ones we wrote
+            stack = [frame for frame in traceback_details if "/myapp" in frame.filename]
+            if len(stack):
+                frame = stack[-1]
+                msg = f"ERROR: {str(e)} in {frame.filename}, line {frame.lineno}, in {frame.name}"
+            else:
+                msg = f"ERROR: {str(e)}"
+            return msg, 200
+    return wrapper
+
 
 @blueprint.route('/run/select_tournament', methods=['GET', 'POST',])
 @login_required
@@ -33,14 +54,16 @@ def select_tournament():
 
 
 @login_required
-def _publish_scores_on_web(scores, players, done: int):
+def _publish_ranking_on_web(scores, players, done, round_name):
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
+    print(players)
+    print(sorted_scores)
     html = render_template('scores.html',
                            title=title,
                            scores=sorted_scores,
-                           done=done,
+                           round_name=round_name,
                            players=players,
                            )
     fn = os.path.join(
@@ -76,29 +99,22 @@ def _get_sheet():
 
 
 @blueprint.route('/run/update_schedule')
+@wrap_and_catch
 @login_required
 def update_schedule():
     sheet = _get_sheet()
-    _schedule_to_cloud(sheet)
-    _send_messages('schedule updated')
-    return "SCHEDULE updated, notifications sent", 200
-
-
-@blueprint.route('/run/update_seating')
-@login_required
-def update_seating():
-    sheet = _get_sheet()
-    schedule = _schedule_to_cloud(sheet)
-    _seating_to_cloud(sheet, schedule)
-    _send_messages('seating updated')
-    return "SEATING PLAN updated, notifications sent", 200
+    seating = _seating_to_map(sheet)
+    _save_to_cloud('seating', {'seating': seating})
+    _send_messages('seating & schedule updated')
+    return "SEATING & SCHEDULE updated, notifications sent", 200
 
 
 @blueprint.route('/run/update_players')
+@wrap_and_catch
 @login_required
 def update_players():
     sheet = _get_sheet()
-    _players_to_cloud(sheet)
+    _get_players(sheet, True)
     _send_messages('player list updated')
     return "PLAYERS updated, notifications sent", 200
 
@@ -119,7 +135,7 @@ def _message_player_topics(scores: dict, done: int, players):
     '''
     firebase_id = current_user.live_tournament.firebase_doc
     for k,v in scores.items():
-        name = players[k]
+        name = players[int(k)]
         _send_topic_fcm(
             f"{firebase_id}-{k}",
             f"{name} is now in position {('','=')[v['t']]}{v['r']}",
@@ -127,54 +143,54 @@ def _message_player_topics(scores: dict, done: int, players):
             )
 
 @login_required
-def _get_one_game_results(sheet, rnd: int):
+def _get_one_round_results(sheet, rnd: int):
     vals = googlesheet.get_table_results(rnd, sheet)
     row : int = 4
     tables = {}
     while row + 3 < len(vals):
         # Get the table number from column 1
-        table = vals[row][0]
-        tables[table] = []
+        table = f"{vals[row][0]}"
+        tables[table] = {}
         if not table:
             # end of score page
             break
         # For each table, get the player ID & scores
         for i in range(4):
             player_id = vals[row + i][1]
-            tables[table].append([
+            tables[table][f"{i}"] = [
                 player_id,                         # player_id: int
                 round(10 * vals[row + i][3] or 0), # chombo: int
                 round(10* vals[row + i][4]),       # game score: int
                 vals[row + i][5],                  # placement: int
                 round(10 * vals[row + i][6]),      # final score: int
-                ])
+                ]
 
         # Move to the next table
         row += 7
-    return vals[0][1], tables
+    return {f"{rnd}": tables}
 
 
 @login_required
-def _publish_games_on_web(games, players): # TODO
+def _publish_games_on_web(games, schedule, players): # TODO
     return f"{games}", 200
 
 
 @blueprint.route('/run/get_results')
 @login_required
-def sheet_to_cloud():
+def update_ranking_and_scores():
 
     @copy_current_request_context
     def _finish_sheet_to_cloud():
         sheet = _get_sheet()
-        done = googlesheet.count_completed_hanchan(sheet)
-        scores = _total_scores_to_cloud(sheet, done)
-        players = _players_to_cloud(sheet)
-        schedule = _schedule_to_cloud(sheet)
-        _seating_to_cloud(sheet, schedule)
+        schedule: dict = googlesheet.get_schedule(sheet)
+        done : int = googlesheet.count_completed_hanchan(sheet)
+        round_name : str = schedule['rounds'][done-1]['name']
+        ranking = _ranking_to_cloud(sheet, done)
+        players = _get_players(sheet, False)
         games = _games_to_cloud(sheet, done)
-        _publish_games_on_web(games, players)
-        _publish_scores_on_web(scores, players, done)
-        _message_player_topics(scores, done, players)
+        _publish_games_on_web(games, schedule, players)
+        _publish_ranking_on_web(ranking, players, done, round_name)
+        _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
@@ -182,17 +198,14 @@ def sheet_to_cloud():
 
 
 @login_required
-def _games_to_cloud(sheet, done : int):
-    all_games = []
-    for i in range(done):
-        name, results = _get_one_game_results(sheet, i + 1)
-        all_games.append({'roundIndex': name, 'games': results})
-    _save_to_cloud('games', all_games)
-    return all_games
+def _games_to_cloud(sheet, this_round: int):
+    results = _get_one_round_results(sheet, this_round)
+    _save_to_cloud('scores', results)
+    return results
 
 
 @login_required
-def _total_scores_to_cloud(sheet, done : int) -> dict:
+def _ranking_to_cloud(sheet, done : int) -> dict:
     results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
@@ -207,34 +220,23 @@ def _total_scores_to_cloud(sheet, done : int) -> dict:
             rank = i + 1
             tied = 0
 
-        all_scores[body[i][0]] = {
+        all_scores[str(body[i][0])] = {
             "total": total,
             "p": round(body[i][4] * 10),
-            "s": [round(10 * s) for s in body[i][5 : 5 + done]],
             "r": rank,
             "t": tied,
             }
 
-    _save_to_cloud(
-        'scores',
-        {
-            f"{done}": all_scores,
-            'roundDone': done,
-        },
-        None,
-        )
+    round_index : str = f"{done}"
+    _save_to_cloud('ranking', {
+        round_index: all_scores,
+        'roundDone': round_index
+        })
     return all_scores
 
 
 @login_required
-def _schedule_to_cloud(sheet):
-    schedule: list(list) = googlesheet.get_schedule(sheet)
-    _save_to_cloud('schedule', schedule)
-    return schedule
-
-
-@login_required
-def _players_to_cloud(sheet):
+def _get_players(sheet, to_cloud=True):
     raw : list(list) = googlesheet.get_players(sheet)
     if len(raw) and len(raw[0]) > 2:
         players = [{'id': p[0], 'name': p[2]} for p in raw]
@@ -242,12 +244,14 @@ def _players_to_cloud(sheet):
     else:
         players = []
         player_map = {}
-    _save_to_cloud('players', players)
+    if to_cloud:
+        _save_to_cloud('players', {'players': players})
     return player_map
 
 
 @login_required
-def _seating_to_cloud(sheet, schedule):
+def _seating_to_map(sheet):
+    schedule: dict = googlesheet.get_schedule(sheet)
     raw = googlesheet.get_seating(sheet)
     seating = []
     previous_round = ''
@@ -260,31 +264,26 @@ def _seating_to_cloud(sheet, schedule):
             previous_round = this_round
             seating.append({
                 'id': this_round,
+                'name': schedule['rounds'][hanchan_number]['name'],
+                'start': schedule['rounds'][hanchan_number]['start'],
                 'tables': {},
                 })
             hanchan_number = hanchan_number + 1
         seating[-1]['tables'][table] = players
 
-    _save_to_cloud('seating', seating)
-    # return seating
+    return seating
 
 
 @login_required
-def _save_to_cloud(document: str, data, key='json'):
+def _save_to_cloud(document: str, data: dict):
     firebase_id : str = current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments").document(
-        f"{firebase_id}/json/{document}")
+        f"{firebase_id}/v2/{document}")
 
-    if key == None:
-        field = {k: json.dumps(v, ensure_ascii=False, indent=None) \
-                 for k, v in data.items()}
-    else:
-        value = json.dumps(data, ensure_ascii=False, indent=None)
-        field : dict = {key: value}
     doc = ref.get()
     if doc.exists:
         # If the document exists, update the field
-        ref.update(field)
+        ref.update(data)
     else:
         # If the document does not exist, create it with the field
-        ref.set(field)
+        ref.set(data)

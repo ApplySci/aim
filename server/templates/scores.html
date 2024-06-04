@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>{{ title }} - scores after {{ round_name }}</title>
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
     <div id=scoreHeader>
         <h1>
-            {{ title }} - scores after round {{ done }}
+            {{ title }} - scores after {{ round_name }}
             <span id=paginator></span>
         </h1>
     </div>
@@ -17,7 +18,7 @@
         <div class=scorePlayer>
             <div class=scoreRank>{{ ('','=')[p[1]['t']] }}{{ p[1]['r'] }}</div>
             <div class=scoreScore>{{ p[1]['total'] | prettyScore }}</div>
-            <div class=scoreName>{{ players[p[0]] }}</div>
+            <div class=scoreName>{{ players[p[0] | int] }}</div>
         </div>
     {% endfor %}
     </div>
