@@ -13,17 +13,11 @@ export 'providers/shared_preferences.dart';
 final alarmScheduleProvider = StreamProvider((ref) async* {
   final location = await ref.watch(locationProvider.future);
   final seating = await ref.watch(seatingProvider.future);
-  final scheduleRounds = await ref.watch(
-    scheduleProvider.selectAsync((schedule) {
-      return {
-        for (final round in schedule.rounds) round.id: round,
-      };
-    }),
-  );
+  final scheduleRounds = await ref.watch(scheduleProvider.future);
   final selectedPlayer = ref.watch(selectedPlayerProvider);
 
   yield seating.map((round) {
-    final roundSchedule = scheduleRounds[round.id]!;
+    final roundSchedule = scheduleRounds.rounds.firstWhere((rnd) => rnd.id == round.id);
     return (
       id: round.id,
       name: roundSchedule.name,

@@ -219,6 +219,7 @@ class PlayerGameTab extends ConsumerWidget {
 }
 
 class ResultsTable extends ConsumerWidget {
+  // TODO looks horrible, needs work on column widths & spacing
   const ResultsTable({
     super.key,
     required this.game,
@@ -229,7 +230,6 @@ class ResultsTable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DataTable2(
-      //minwidth: double.infinity,
       columns: const [
         DataColumn2(
           label: Text(""),
