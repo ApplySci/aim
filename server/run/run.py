@@ -103,8 +103,12 @@ def _get_sheet():
 @login_required
 def update_schedule():
     sheet = _get_sheet()
-    seating = _seating_to_map(sheet)
-    _save_to_cloud('seating', {'seating': seating})
+    schedule: dict = googlesheet.get_schedule(sheet)
+    seating = _seating_to_map(sheet, schedule)
+    _save_to_cloud('seating', {
+        'rounds': seating,
+        'timezone': schedule['timezone'],
+        })
     _send_messages('seating & schedule updated')
     return "SEATING & SCHEDULE updated, notifications sent", 200
 
@@ -250,8 +254,7 @@ def _get_players(sheet, to_cloud=True):
 
 
 @login_required
-def _seating_to_map(sheet):
-    schedule: dict = googlesheet.get_schedule(sheet)
+def _seating_to_map(sheet, schedule):
     raw = googlesheet.get_seating(sheet)
     seating = []
     previous_round = ''

@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, DEFAULT_OWNER
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS
 from models import User, Tournament, Access, Role
 
 oauth = OAuth()
@@ -33,7 +33,6 @@ def config_db(app):
     db.init_app(app)
     with app.app_context():
         # ensure our defaults are in place
-        # TODO switch this so that our detailed google sheet is the demo tourney
         scoresheet_ids = (
             '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8',
             '1wbxTZJnF-CE90xYEk34z9WgDjawdbHbW_Rb8fQ9yd6A',
@@ -50,6 +49,10 @@ def config_db(app):
             'Irish Riichi Open, Cork 2024',
             'World Riichi App - demo tournament for testing',
             )
+        addresses = (
+            'The Crows Nest, Victoria Cross Road, Cork, Ireland',
+            'Grimsby Dock Tower, Wharncliffe Rd N, Grimsby DN31 3QL, UK',
+            )
 
         for email in DEFAULT_USERS:
             if not db.session.query(User).get(email):
@@ -63,6 +66,7 @@ def config_db(app):
                     title=titles[i],
                     web_directory=webdirs[i],
                     firebase_doc=firebase_docs[i],
+                    address=addresses[i],
                     )
                 db.session.add(t)
                 for email in DEFAULT_USERS:

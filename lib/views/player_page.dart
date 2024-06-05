@@ -44,7 +44,8 @@ class PlayerPage extends ConsumerWidget {
         ),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, stackTrace) => Scaffold( // uses ErrorScreen
+      error: (error, stackTrace) => Scaffold(
+        // uses ErrorScreen
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Text('Player'),
@@ -52,7 +53,7 @@ class PlayerPage extends ConsumerWidget {
         body: ErrorScreen(error: error, stackTrace: stackTrace),
       ),
       data: (player) => DefaultTabController(
-        length: 3,
+        length: 4,
         child: Scaffold(
           appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -77,6 +78,7 @@ class PlayerPage extends ConsumerWidget {
               Tab(text: 'Stats'),
               Tab(text: 'Schedule'),
               Tab(text: 'Scores'),
+              Tab(text: 'Games'),
             ]),
           ),
           body: TabBarView(children: [
@@ -191,6 +193,73 @@ class PlayerScoreTab extends ConsumerWidget {
             DataCell(Text('Round ${index + 1}')),
             DataCell(ScoreText(score.score)),
           ]),
+      ],
+    );
+  }
+}
+
+class PlayerGameTab extends ConsumerWidget {
+  const PlayerGameTab({
+    super.key,
+    required this.player,
+    required this.games,
+  });
+
+  final PlayerScore player;
+  final List<Hanchan> games;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (games.isEmpty) {
+      return const Center(
+          child: Text('No game results available yet for this player'));
+    }
+    return ResultsTable(game: games[0],);
+  }
+}
+
+class ResultsTable extends ConsumerWidget {
+  const ResultsTable({
+    super.key,
+    required this.game,
+  });
+
+  final Hanchan game;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DataTable2(
+      //minwidth: double.infinity,
+      columns: const [
+        DataColumn2(
+          label: Text(""),
+        ), // player
+        DataColumn2(
+          label: Text("game score"),
+        ),
+        DataColumn2(
+          label: Text("place"),
+        ),
+        DataColumn2(
+          label: Text("uma"),
+        ),
+        DataColumn2(
+          label: Text("penalty"),
+        ),
+        DataColumn2(
+          label: Text("final score"),
+        ),
+      ],
+      rows: [
+        for (final HanchanScore p in game.scores)
+          DataRow2(cells: [
+            DataCell(Text(p.playerId.toString())),
+            DataCell(ScoreText(p.gameScore)),
+            DataCell(Text(p.placement.toString())),
+            DataCell(ScoreText(p.uma)),
+            DataCell(ScoreText(p.penalties)),
+            DataCell(ScoreText(p.finalScore)),
+          ])
       ],
     );
   }

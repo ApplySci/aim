@@ -106,13 +106,12 @@ class ScheduleData extends Equatable {
     required this.rounds,
   });
 
-  factory ScheduleData.fromJson(Map<String, dynamic> data) {
-    final location = getLocation(data['timezone'] as String);
-    final roundScheduleList = data['rounds'];
+  factory ScheduleData.fromSeating(Map<String, dynamic> data) {
+    final location = getLocation(data['timezone'].toString());
 
     List<RoundScheduleData> rounds = [];
-    for (final Map<String, dynamic> roundSchedule in roundScheduleList) {
-      RoundScheduleData newRound = RoundScheduleData.fromJson(
+    for (final Map<String, dynamic> roundSchedule in data['rounds']) {
+      RoundScheduleData newRound = RoundScheduleData.fromMap(
         roundSchedule,
         location,
       );
@@ -140,7 +139,7 @@ class RoundScheduleData extends Equatable {
     required this.start,
   });
 
-  factory RoundScheduleData.fromJson(Map<String, dynamic> data,
+  factory RoundScheduleData.fromMap(Map<String, dynamic> data,
       Location location,) =>
       RoundScheduleData(
         id: data['id'] as RoundId,

@@ -59,7 +59,7 @@ final tournamentCollectionProvider = Provider((ref) {
   final tournamentId = ref.watch(tournamentIdProvider);
   if (tournamentId == null) return null;
 
-  return db.collection('tournaments').doc(tournamentId).collection('json');
+  return db.collection('tournaments').doc(tournamentId).collection('v2');
 });
 
 final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
@@ -69,12 +69,17 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
   yield* collection
       .doc('players')
       .snapshots()
-      .map(snapshotData<List<dynamic>>)
-      .map((e) => e ?? const [])
-      .map((data) => [
-            for (final player in data) PlayerData((player as Map).cast()),
-          ]);
-});
+      .map((DocumentSnapshot<Map<String, dynamic>> snapshot) {
+          Map<String, dynamic> data = snapshot.data() ?? {};
+          if (data.containsKey('players')) {
+            return [for (final player in data['players'])
+                    PlayerData((player as Map).cast())];
+          } else {
+            return [];
+          }
+        });
+  }
+);
 
 final selectedPlayerProvider = Provider((ref) {
   final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
@@ -142,13 +147,14 @@ final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
-  yield* collection
-      .doc('schedule') //
-      .snapshots()
-      .map(snapshotData<Map<String, dynamic>>)
-      .map((data) => data != null
-          ? ScheduleData.fromJson(data.cast())
-          : ScheduleData(timezone: UTC, rounds: const []));
+  yield* collection.doc('seating').snapshots().map((snapshot) {
+    ScheduleData out = ScheduleData(timezone: UTC, rounds: const []);
+    Map<String, dynamic> data = snapshot.data() ?? {};
+    if (data.containsKey('timezone') && data.containsKey('rounds')) {
+      out = ScheduleData.fromSeating(data);
+    }
+    return out;
+  });
 });
 
 typedef RoundScore = ({
