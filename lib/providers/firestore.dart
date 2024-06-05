@@ -108,6 +108,7 @@ final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
             for (final s in scoreList.entries) {
               scores.add(RankData.fromMap(int.parse(s.key), s.value));
             }
+            scores.sort((a,b) => b.total.compareTo(a.total));
             return scores;
           } else {
             return [];
