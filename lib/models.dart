@@ -210,7 +210,7 @@ class RoundData extends Equatable {
     required this.tables,
   });
 
-  factory RoundData.fromJson(Map<String, dynamic> data) => RoundData(
+  factory RoundData.fromMap(Map<String, dynamic> data) => RoundData(
         id: data['id'] as String,
         tables: (data['tables'] as Map).map(
           (key, value) => MapEntry(

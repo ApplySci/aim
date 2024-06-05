@@ -123,13 +123,17 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   if (collection == null) return;
 
   yield* collection
-      .doc('seating') //
+      .doc('seating')
       .snapshots()
-      .map(snapshotData<List<dynamic>>)
-      .map((e) => e ?? const {})
-      .map((data) => [
-            for (final round in data) RoundData.fromJson((round as Map).cast()),
-          ]);
+      .map((snapshot) {
+        Map<String, dynamic> data = snapshot.data() ?? {};
+        if (!data.containsKey('rounds')) {
+          return <RoundData>[];
+        }
+        return [for
+          (final Map oneRound in data['rounds'])
+          RoundData.fromMap(oneRound.cast())];
+  });
 });
 
 final gameProvider = StreamProvider<List<GameData>>((ref) async* {
