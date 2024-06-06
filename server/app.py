@@ -21,7 +21,8 @@ from create.tournament_setup import blueprint as bp_create
 from public.public import blueprint as bp_public
 from root import blueprint as bp_root
 from run.run import blueprint as bp_run
-from oauth_setup import config_oauth, config_login_manager, config_db
+from oauth_setup import config_oauth, config_login_manager, config_db, \
+                        config_jinja
 
 def create_app():
     app = Flask(__name__)
@@ -33,6 +34,7 @@ def create_app():
     config_oauth(app)
     config_login_manager(app)
     config_db(app)
+    config_jinja(app)
     return app
 
 application = create_app()

@@ -6,51 +6,38 @@
  This is to avoid circular dependencies.
 
  */
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+
+import 'package:alarm/alarm.dart';
+import 'package:alarm/model/alarm_settings.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-FirebaseMessaging messaging = FirebaseMessaging.instance;
-
-void unassigned() {}
-
-String enumToString<T>(T o) {
-  return o.toString().split('.').last;
+enum LOG {
+  debug,
+  info,
+  score,
+  unusual,
+  warn,
+  error,
 }
 
-T enumFromString<T>(String key, List<T> values) {
-  return values.firstWhere((v) => key == enumToString(v));
-}
+const enableAlarm = kReleaseMode || false;
 
-enum LOG { debug, info, score, unusual, warn, error }
+const String defaultColourKey = 'black knight';
 
-enum STORE {
-  setPlayerId,
-  setPlayerList,
-  setScores,
-  setSchedule,
-  setSeating,
-  setTournament,
-  setPageIndex,
-}
-
-const DEBUG = true;
-
-const String DEFAULT_COLOUR_KEY = 'black knight';
-
-const Map<String, Color> BACKGROUND_COLOURS = {
-  DEFAULT_COLOUR_KEY: Colors.black,
+const Map<String, Color> backgroundColours = {
+  defaultColourKey: Colors.black,
   'fireball red': Color(0xFF330000),
   'deep purple': Color(0xFF220033),
 };
 
-final GlobalKey<NavigatorState> globalNavigatorKey =
-    GlobalKey<NavigatorState>();
-
-String dateRange(dynamic startDT, dynamic endDT) {
+String dateRange(Timestamp? startDT, Timestamp? endDT) {
   if (startDT == null || endDT == null) return '';
-  DateTime sd = startDT.toDate();
-  DateTime ed = endDT.toDate();
+  final sd = startDT.toDate();
+  final ed = endDT.toDate();
   String start = 'ERROR: unassigned dateRange!';
   if (sd.year == ed.year) {
     if (sd.month == ed.month && sd.day == ed.day) {
@@ -61,8 +48,8 @@ String dateRange(dynamic startDT, dynamic endDT) {
   } else {
     start = DateFormat('HH:mm d MMM y').format(sd);
   }
-  String end = DateFormat('HH:mm d MMM y').format(ed);
-  return "$start - $end";
+  final end = DateFormat('HH:mm d MMM y').format(ed);
+  return '$start - $end';
 }
 
 class ROUTES {
@@ -71,73 +58,10 @@ class ROUTES {
   static const String settings = '/settings';
   static const String tournaments = '/tournaments';
   static const String tournament = '/tournament';
+  static const String player = '/player';
 }
 
 const Color selectedHighlight = Color(0x88aaaaff);
-
-enum Winds {
-  east('E', '東'),
-  south('S', '西'),
-  west('W', '南'),
-  north('N', '北');
-
-  const Winds(this.western, this.japanese);
-
-  final String japanese;
-  final String western;
-}
-
-class Player implements Comparable<Player> {
-  int id = -99;
-  String name = '';
-
-  Player(this.id, this.name);
-
-  @override
-  int compareTo(Player other) => name.compareTo(other.name);
-
-  @override
-  toString() => '$name ($id)';
-}
-
-typedef SeatingPlan = List<RoundState>;
-
-class RoundState {
-  const RoundState({
-    required this.id,
-    required this.tables,
-  });
-
-  factory RoundState.fromJson(Map<String, dynamic> data) => RoundState(
-        id: data['id'],
-        tables: (data['tables'] as Map).map(
-          (key, value) => MapEntry(
-            key,
-            (value as List).cast(),
-          ),
-        ),
-      );
-
-  final String id;
-  final Map<String, List<int>> tables;
-}
-
-/// Get the seating for an individual player
-/// [seating] is the seating plan for the whole tournament
-/// [selected] is the player id
-/// [getSeats] returns the SeatingPlan just for the player selected
-SeatingPlan getSeats(SeatingPlan seating, int? selected) {
-  return [
-    for (final e in seating)
-      RoundState(
-        id: e.id,
-        tables: {
-          for (final MapEntry(:key, :value) in e.tables.entries)
-            if (value.contains(selected)) key: [...value]
-        },
-      )
-  ];
-}
 
 class Log {
   static List<List<dynamic>> logs = [];
@@ -147,7 +71,7 @@ class Log {
   }
 
   static void _saveLog(LOG type, String text) {
-    String typeString = enumToString(type);
+    final typeString = type.name;
     logs.add([DateTime.now().toIso8601String(), typeString, text]);
     debug('$typeString : $text');
   }
@@ -169,6 +93,79 @@ class Log {
   }
 }
 
+typedef RunOrQueueValue = ({
+  Future<void> future,
+  FutureOr<void> Function() current,
+  FutureOr<void> Function()? next,
+});
+
+class RunOrQueue {
+  RunOrQueue._();
+
+  RunOrQueueValue? _queue;
+
+  Future<void> call(FutureOr<void> Function() block) async {
+    if (_queue case RunOrQueueValue queue) {
+      _queue = (
+        future: queue.future,
+        current: queue.current,
+        next: block,
+      );
+      return await queue.future;
+    }
+
+    final completer = Completer<void>();
+    _queue = (
+      future: completer.future,
+      current: block,
+      next: null,
+    );
+    while (_queue != null) {
+      try {
+        await _queue!.current();
+      } finally {
+        _queue = switch (_queue) {
+          (
+            future: Future<void> future,
+            current: FutureOr<void> Function() _,
+            next: FutureOr<void> Function() current,
+          ) =>
+            (
+              future: future,
+              current: current,
+              next: null,
+            ),
+          _ => null,
+        };
+      }
+    }
+    completer.complete();
+  }
+}
+
+final alarmRunner = RunOrQueue._();
+
+// Function to store alarm ID
+Future<void> setAlarm(
+  DateTime when,
+  String title,
+  String body,
+  int id,
+) async {
+  final alarmSettings = AlarmSettings(
+    id: id,
+    dateTime: when,
+    assetAudioPath: 'assets/audio/notif.mp3',
+    loopAudio: false,
+    vibrate: true,
+    volume: null,
+    fadeDuration: 0,
+    notificationTitle: title,
+    notificationBody: body,
+  );
+  await Alarm.set(alarmSettings: alarmSettings);
+}
+
 extension SeperatedBy<T> on Iterable<T> {
   Iterable<T> seperatedBy(T seperator) sync* {
     if (isEmpty) return;
@@ -180,5 +177,30 @@ extension SeperatedBy<T> on Iterable<T> {
       yield seperator;
       yield iterator.current;
     }
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  final dynamic error;
+  final StackTrace stackTrace;
+
+  const ErrorScreen({super.key, required this.error, required this.stackTrace});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('$error'),
+          ExpansionTile(
+            title: const Text('tap for details'),
+            children: [
+              Text('$stackTrace'),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
