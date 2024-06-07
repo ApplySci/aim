@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -8,13 +6,6 @@ import 'package:timezone/timezone.dart';
 
 import '/models.dart';
 import 'shared_preferences.dart';
-
-T? snapshotData<T>(DocumentSnapshot<Map<String, dynamic>> snapshot) {
-  if (snapshot.data() case {'json': String json}) {
-    return jsonDecode(json) as T;
-  }
-  return null;
-}
 
 final firebaseProvider = Provider((ref) => FirebaseFirestore.instance);
 
@@ -29,8 +20,8 @@ final tournamentListProvider = StreamProvider((ref) {
   };
 
   return snapshots.map((query) => [
-        for (final doc in query.docs)
-          TournamentData.fromJson({
+      for (final doc in query.docs)
+          TournamentData.fromMap({
             'id': doc.id,
             'address': '',
             ...(doc.data() as Map).cast(),
@@ -47,7 +38,7 @@ final tournamentProvider = StreamProvider<TournamentData>((ref) async* {
       .collection('tournaments')
       .doc(tournamentId)
       .snapshots()
-      .map((snapshot) => TournamentData.fromJson({
+      .map((snapshot) => TournamentData.fromMap({
             'id': snapshot.id,
             'address': '',
             ...(snapshot.data() as Map).cast(),

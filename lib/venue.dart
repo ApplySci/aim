@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,8 +18,13 @@ Future<bool> tryLaunchUrl(Uri url) => launchUrl(url).onError((_, __) => false);
  */
 Future<void> openMap(BuildContext context, String address) async {
   final safeAddress = Uri.encodeQueryComponent(address);
-  if (await tryLaunchUrl(googleMapsUrl(safeAddress))) return;
-  if (await tryLaunchUrl(appleMapsUrl(safeAddress))) return;
+  if (Platform.isIOS || Platform.isMacOS) {
+    if (await tryLaunchUrl(appleMapsUrl(safeAddress))) return;
+    if (await tryLaunchUrl(googleMapsUrl(safeAddress))) return;
+  } else {
+    if (await tryLaunchUrl(googleMapsUrl(safeAddress))) return;
+    if (await tryLaunchUrl(appleMapsUrl(safeAddress))) return;
+  }
 
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(

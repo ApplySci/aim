@@ -30,7 +30,7 @@ class TournamentData extends Equatable {
     required this.rules,
   });
 
-  factory TournamentData.fromJson(Map<String, dynamic> data) => TournamentData(
+  factory TournamentData.fromMap(Map<String, dynamic> data) => TournamentData(
         id: data['id'] as TournamentId,
         name: data['name'] as String,
         address: data['address'] as String,
