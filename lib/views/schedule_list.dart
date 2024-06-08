@@ -26,9 +26,18 @@ final filterByPlayerIdProvider = Provider((ref) {
   return ref.watch(selectedPlayerIdProvider);
 });
 
+final filterByPlayerProvider = Provider((ref) {
+  final playerId = ref.watch(filterByPlayerIdProvider);
+  final playerList = ref.watch(playerListProvider);
+  return playerList.value?.firstWhereOrNull((e) => e.id == playerId);
+}, dependencies: [
+  filterByPlayerIdProvider,
+  playerListProvider,
+]);
+
 final roundListProvider = StreamProvider((ref) async* {
   final showAll = ref.watch(showAllProvider);
-  final filterByPlayerId = ref.watch(filterByPlayerIdProvider);
+  final filterByPlayer = ref.watch(filterByPlayerProvider);
   final roundById = await ref.watch(scheduleProvider.selectAsync(
     (schedule) => Map.fromEntries(
       (schedule.rounds.map((e) => MapEntry(e.id, e))),
@@ -51,8 +60,8 @@ final roundListProvider = StreamProvider((ref) async* {
             for (final MapEntry(key: tableName, value: playerIds)
                 in round.tables.entries)
               if (showAll ||
-                  filterByPlayerId == null ||
-                  playerIds.contains(filterByPlayerId))
+                  filterByPlayer == null ||
+                  playerIds.contains(filterByPlayer.id))
                 (
                   name: tableName,
                   players: {
@@ -69,7 +78,7 @@ final roundListProvider = StreamProvider((ref) async* {
       .sortedBy((round) => round.start);
 }, dependencies: [
   showAllProvider,
-  filterByPlayerIdProvider,
+  filterByPlayerProvider,
 ]);
 
 enum When {
@@ -121,7 +130,8 @@ class ScheduleList extends ConsumerWidget {
     return roundList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) =>
+          ErrorScreen(error: error, stackTrace: stackTrace),
       data: (roundList) {
         if (roundList.isEmpty) {
           return const Center(child: Text('No seating schedule available'));

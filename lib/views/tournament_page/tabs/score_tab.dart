@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
@@ -12,56 +10,32 @@ import '/views/score_text.dart';
 
 const columnMargin = 18;
 
-const scoreStyle = TextStyle(
-  fontWeight: FontWeight.bold,
-  fontSize: 16,
-);
-
-Size textSize(String text, {TextStyle? style}) {
-  return (TextPainter(
-    text: TextSpan(text: text, style: style),
-    maxLines: 1,
-    textDirection: TextDirection.ltr,
-  )..layout())
-      .size;
-}
-
-Size scoreSize(int score, String negSign) => textSize(
-      // Display score with 1 decimal point
-      scoreFormat(score, negSign),
-      style: scoreStyle,
-    );
-
 final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final negSign = ref.watch(negSignProvider);
   final playerScores = await ref.watch(playerScoreListProvider.future);
-  final maxRankWidth = playerScores
-      .map((playerScore) => playerScore.rank)
-      .map((rank) => textSize(rank).width)
-      .max;
-  final maxNameWidth = playerScores
-      .map((playerScore) => playerScore.name)
-      .map((name) => textSize(name).width)
-      .max;
   final maxScoreWidth = playerScores
       .map((playerScore) => playerScore.roundScores.map((e) => e.score))
       .flattened
-      .map((score) => scoreSize(score, negSign).width)
-      .max;
+      .map((score) => scoreSize(score, negSign).width);
   final maxTotalWidth = playerScores
       .map((playerScore) => playerScore.total)
-      .map((score) => scoreSize(score, negSign).width)
-      .max;
+      .map((score) => scoreSize(score, negSign).width);
   final maxPenaltyWidth = playerScores
       .map((playerScore) => playerScore.penalty)
-      .map((score) => scoreSize(score, negSign).width)
-      .max;
+      .map((score) => scoreSize(score, negSign).width);
 
   yield (
     playerScores: playerScores,
-    maxRankWidth: maxRankWidth,
-    maxNameWidth: maxNameWidth,
-    maxScoreWidth: max(max(maxScoreWidth, maxTotalWidth), maxPenaltyWidth),
+    maxRankWidth: playerScores
+        .map((playerScore) => playerScore.rank)
+        .map((rank) => textSize(rank).width)
+        .max,
+    maxNameWidth: playerScores
+        .map((playerScore) => playerScore.name)
+        .map((name) => textSize(name).width)
+        .max,
+    maxScoreWidth:
+        maxScoreWidth.followedBy(maxTotalWidth).followedBy(maxPenaltyWidth).max,
   );
 });
 
@@ -78,7 +52,8 @@ class ScoreTable extends ConsumerWidget {
     return playerScores.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) =>
+          ErrorScreen(error: error, stackTrace: stackTrace),
       data: (playerScores) {
         final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,
@@ -165,6 +140,6 @@ class ScoreRow extends DataRow2 {
               // TODO decide: do we want a user to tap on a single score to go to the whole hanchan score? Maybe in a modal popup?
               // onTap: () => showHanchanModel(score.id, i),
             ),
-          DataCell(ScoreText(score.penalty)),
+          DataCell(PenaltyText(score.penalty)),
         ]);
 }

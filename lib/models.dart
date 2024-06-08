@@ -171,7 +171,7 @@ class RankData extends Equatable {
 
   factory RankData.fromMap(int id, Map<String, dynamic> data) => RankData(
         id: id,
-        rank: "${['', '='][data['t']]}${data['r']}",
+        rank: "${data['t'] == 1 ? '=' : ''}${data['r']}",
         total: data['total'] as int,
         penalty: data['p'] as int,
       );
@@ -236,69 +236,64 @@ class RoundData extends Equatable {
 extension HanchanList on List<GameData> {
   // List of detailed results for a given player
   List<Hanchan> withPlayerId(PlayerId playerId) {
-    List<Hanchan> out = [];
-    for (final GameData hanchan in this) {
-      // get one game for each round for the given player
-      out.add(hanchan.tables.values
-          .firstWhere((Hanchan h) => h.playerIndex(playerId) > -1));
-    }
-    return out;
+    // get one game for each round for the given player
+    return [
+      for (final hanchan in this)
+        for (final table in hanchan.tables.values)
+          if (table.hasPlayerId(playerId)) table,
+    ];
   }
 }
 
 class HanchanScore {
   // detailed score for one player at one table in one round
-  late PlayerId playerId;
-  late int penalties;
-  late int gameScore;
-  late int placement;
-  late int finalScore;
-  late int rank;
-  late bool tied;
-  late int uma;
+  final PlayerId playerId;
+  final int penalties;
+  final int gameScore;
+  final int placement;
+  final int finalScore;
 
-  HanchanScore(List<int> values) {
-    playerId = values[0];
-    penalties = values[1];
-    gameScore = values[2];
-    placement = values[3];
-    finalScore = values[4];
-    uma = finalScore - gameScore - penalties;
+  const HanchanScore({
+    required this.playerId,
+    required this.penalties,
+    required this.gameScore,
+    required this.placement,
+    required this.finalScore,
+  });
+
+  factory HanchanScore.fromList(List<int> values) {
+    return HanchanScore(
+      playerId: values[0],
+      penalties: values[1],
+      gameScore: values[2],
+      placement: values[3],
+      finalScore: values[4],
+    );
   }
+
+  int get uma => finalScore - gameScore - penalties;
 }
 
 class Hanchan {
   // the scores for all four players at one table in one round
   final RoundId roundId;
   final TableId tableId;
-  late Map<PlayerId, int> _players;
-  late List<HanchanScore> scores; // length 4: one HanchanScore for each player
+  final List<HanchanScore> scores; // length 4: one HanchanScore for each player
 
-  Hanchan({
+  const Hanchan({
     required this.roundId,
     required this.tableId,
-    required initScores,
-  }) {
-    _players = {};
-    scores = [];
-    for (int i = 0; i < 4; i++) {
-      List<int> values = List<int>.from(initScores[i.toString()]);
-      HanchanScore player = HanchanScore(values);
-      scores.add(player);
-      _players[player.playerId] = i;
-    }
-  }
+    required this.scores,
+  });
 
-  int playerIndex(PlayerId pid) {
-    // the ?? -1 is unnecessary, but the linter doesn't realise that
-    return _players.containsKey(pid) ? (_players[pid] ?? -1) : -1;
-  }
+  bool hasPlayerId(PlayerId playerId) =>
+      scores.any((e) => e.playerId == playerId);
 }
 
 class GameData {
   // detailed scores for all hanchans in a round
 
-  GameData({
+  const GameData({
     required this.roundId,
     required this.tables,
   });
@@ -307,16 +302,21 @@ class GameData {
   final Map<TableId, Hanchan> tables;
 
   factory GameData.fromMap(MapEntry data) {
-    RoundId rid = data.key as RoundId;
-    Map<TableId, Hanchan> tableMap = {};
-    data.value.forEach((k, v) {
-      TableId tid = k as TableId;
-      tableMap[tid] = Hanchan(
-        roundId: rid,
-        tableId: tid,
-        initScores: v.cast(),
+    final roundId = data.key as RoundId;
+    final tables = (data.value as Map).map((k, v) {
+      final tableId = k as TableId;
+      return MapEntry(
+        tableId,
+        Hanchan(
+          roundId: roundId,
+          tableId: tableId,
+          scores: [
+            for (final wind in Wind.values)
+              HanchanScore.fromList((v['${wind.index}'] as List).cast())
+          ],
+        ),
       );
     });
-    return GameData(roundId: rid, tables: tableMap);
+    return GameData(roundId: roundId, tables: tables);
   }
 }

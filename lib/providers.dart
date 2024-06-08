@@ -17,7 +17,8 @@ final alarmScheduleProvider = StreamProvider((ref) async* {
   final selectedPlayer = ref.watch(selectedPlayerProvider);
 
   yield seating.map((round) {
-    final roundSchedule = scheduleRounds.rounds.firstWhere((rnd) => rnd.id == round.id);
+    final roundSchedule =
+        scheduleRounds.rounds.firstWhere((rnd) => rnd.id == round.id);
     return (
       id: round.id,
       name: roundSchedule.name,
@@ -37,7 +38,7 @@ final alarmScheduleProvider = StreamProvider((ref) async* {
 });
 
 extension SelectAsyncValue<State> on StreamProvider<State> {
-  ProviderListenable<AsyncValue<Selected>> selectAsyncData<Selected>(
+  AlwaysAliveProviderListenable<AsyncValue<Selected>> selectAsyncData<Selected>(
     Selected Function(State value) selector,
   ) {
     return select((e) => e.whenData(selector));
