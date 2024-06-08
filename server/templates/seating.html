@@ -13,6 +13,7 @@
     </div>
     <div id=seatingBody>
     {% for r in schedule %}
+    <section>
     <h2>{{ r[1] }} {{ r[2] }}</h2>
       {% for tname, t in seating[loop.index0]['tables'].items() %}
         <table class=seating>
@@ -29,7 +30,7 @@
           </tbody>
         </table>
       {% endfor %}
-      <hr>
+    </section>
     {% endfor %}
     </div>
 </body>

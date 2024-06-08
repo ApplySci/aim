@@ -24,10 +24,17 @@
   <button class="action" data-url="{{
     url_for('run.update_schedule')
     }}">Update schedule & seating</button>
+  <p>
 
   <button class="action" data-url="{{
     url_for('run.update_players')
     }}">Update list of players & seat-number assignments</button>
+
+  <p>
+      <a href='{{ webroot }}/scores.html' target='blank'>Live ranking for data projector</a>
+      |
+      <a href='{{ webroot }}/seating.html' target='blank'>Seating</a>
+      </p>
 
 </div>
 <div><button id="clearButton">Clear log</button></div>

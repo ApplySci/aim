@@ -88,7 +88,12 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 @login_required
 def run_tournament():
     if current_user.live_tournament:
-        return render_template('run_tournament.html')
+        # TODO current_user.live_tournament.web_directory
+        #   but that gives /home/model/apps/tournaments/myapp/static/wr
+        return render_template(
+            'run_tournament.html',
+            webroot='/static/wr',
+            )
     return redirect(url_for('create.index'))
 
 
