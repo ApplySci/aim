@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
@@ -155,6 +156,16 @@ class _MyApp extends ConsumerWidget {
       },
     );
 
+    if (Platform.isIOS) {
+      // apple notifications
+      // TODO we need to add "Push Notifications" via XCode > Signing & Capabilities
+      ref.listenAsyncData(
+        apnsTokenProvider,
+            (prev, next) {
+          Log.debug('APNS token refreshed: $next');
+        },
+      );
+    }
     // Handle fcm messages
     ref.listenAsyncData(
       fcmMessagesProvider,

@@ -11,6 +11,12 @@ final fcmTokenProvider = StreamProvider((ref) async* {
   yield* FirebaseMessaging.instance.onTokenRefresh;
 });
 
+final apnsTokenProvider = StreamProvider((ref) async* {
+  final fcm = ref.watch(fcmProvider);
+  yield await fcm.getAPNSToken() ?? '';
+  yield* FirebaseMessaging.instance.onTokenRefresh;
+});
+
 final fcmMessagesProvider = StreamProvider((ref) async* {
   final fcm = ref.watch(fcmProvider);
   final initialMessage = await fcm.getInitialMessage();
