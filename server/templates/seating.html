@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }} - seating</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div>
+        <h1>
+            {{ title }} - Seating
+        </h1>
+    </div>
+    <div id=seatingBody>
+    {% for r in schedule %}
+    <h2>{{ r[1] }} {{ r[2] }}</h2>
+      {% for tname, t in seating[loop.index0]['tables'].items() %}
+        <table class=seating>
+          <thead>
+          <tr><th colspan = 2>Table {{ tname }}</th</tr>
+          </thead>
+          <tbody>
+            {% for p in t %}
+            <tr>
+              <th>{{ "ESWN"[loop.index0] }}</th>
+              <td>{{ players[p] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endfor %}
+      <hr>
+    {% endfor %}
+    </div>
+</body>
+</html>

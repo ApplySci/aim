@@ -32,12 +32,15 @@ class GSP:
     def get_sheet(self, id: str):
         return self.client.open_by_key(id)
 
+    def get_raw_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
+        return live.worksheet('schedule').get()[1:]
+
     def get_schedule(self, live : gspread.spreadsheet.Spreadsheet) -> list:
         '''
         get the timezone, the local start times, and the names of all the rounds.
         Convert all the datetimes to UTC, and standard ISO format
         '''
-        vals : list  = live.worksheet('schedule').get()[1:]
+        vals : list  = self.get_raw_schedule(live)
         timezone_string = vals[0][2]
         tz = pytz.timezone(timezone_string)
         vals = vals[2:] # throw away the headers

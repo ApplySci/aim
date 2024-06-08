@@ -109,8 +109,31 @@ def update_schedule():
         'rounds': seating,
         'timezone': schedule['timezone'],
         })
+    _publish_seating_on_web(sheet=sheet, seating=seating)
     _send_messages('seating & schedule updated')
     return "SEATING & SCHEDULE updated, notifications sent", 200
+
+
+@login_required
+def _publish_seating_on_web(sheet, seating): # TODO
+    done : int = googlesheet.count_completed_hanchan(sheet)
+    players = _get_players(sheet, False)
+    schedule_vals = googlesheet.get_raw_schedule(sheet)
+
+    html : str = render_template('seating.html',
+        done=done,
+        timezone=schedule_vals[0][2],
+        title=current_user.live_tournament.title,
+        seating=seating,
+        schedule=schedule_vals[2:],
+        players=players,
+        )
+    fn = os.path.join(
+        current_user.live_tournament.web_directory,
+        'seating.html')
+    with open(fn, 'w', encoding='utf-8') as f:
+        f.write(html)
+    return "Seating published on web", 200
 
 
 @blueprint.route('/run/update_players')
