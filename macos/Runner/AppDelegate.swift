@@ -3,7 +3,7 @@ import FlutterMacOS
 import UserNotifications
 import alarm
 
-@NSApplicationMain
+@main
 class AppDelegate: FlutterAppDelegate {
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return true

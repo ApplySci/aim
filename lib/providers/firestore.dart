@@ -20,7 +20,7 @@ final tournamentListProvider = StreamProvider((ref) {
   };
 
   return snapshots.map((query) => [
-      for (final doc in query.docs)
+        for (final doc in query.docs)
           TournamentData.fromMap({
             'id': doc.id,
             'address': '',
@@ -61,16 +61,17 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
       .doc('players')
       .snapshots()
       .map((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-          Map<String, dynamic> data = snapshot.data() ?? {};
-          if (data.containsKey('players')) {
-            return [for (final Map<String, dynamic> player in data['players'])
-                    PlayerData(player.cast())];
-          } else {
-            return [];
-          }
-        });
-  }
-);
+    Map<String, dynamic> data = snapshot.data() ?? {};
+    if (data.containsKey('players')) {
+      return [
+        for (final Map<String, dynamic> player in data['players'])
+          PlayerData(player.cast())
+      ];
+    } else {
+      return [];
+    }
+  });
+});
 
 final selectedPlayerProvider = Provider((ref) {
   final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
@@ -85,28 +86,25 @@ final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
-  yield* collection
-      .doc('ranking')
-      .snapshots()
-      .map((snapshot) {
-        Map? data = snapshot.data();
-        if (data == null) return [];
-        if (data.containsKey('roundDone')) {
-          String done = data['roundDone'];
-          if (data.containsKey(done)) {
-            List<RankData> scores = [];
-            Map<String, dynamic> scoreList = data[done];
-            for (final s in scoreList.entries) {
-              scores.add(RankData.fromMap(int.parse(s.key), s.value));
-            }
-            scores.sort((a,b) => b.total.compareTo(a.total));
-            return scores;
-          } else {
-            return [];
-          }
-        } else {
-          return [];
+  yield* collection.doc('ranking').snapshots().map((snapshot) {
+    Map? data = snapshot.data();
+    if (data == null) return [];
+    if (data.containsKey('roundDone')) {
+      String done = data['roundDone'];
+      if (data.containsKey(done)) {
+        List<RankData> scores = [];
+        Map<String, dynamic> scoreList = data[done];
+        for (final s in scoreList.entries) {
+          scores.add(RankData.fromMap(int.parse(s.key), s.value));
         }
+        scores.sort((a, b) => b.total.compareTo(a.total));
+        return scores;
+      } else {
+        return [];
+      }
+    } else {
+      return [];
+    }
   });
 });
 
@@ -114,17 +112,15 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
-  yield* collection
-      .doc('seating')
-      .snapshots()
-      .map((snapshot) {
-        Map<String, dynamic> data = snapshot.data() ?? {};
-        if (!data.containsKey('rounds')) {
-          return <RoundData>[];
-        }
-        return [for
-          (final Map oneRound in data['rounds'])
-          RoundData.fromMap(oneRound.cast())];
+  yield* collection.doc('seating').snapshots().map((snapshot) {
+    Map<String, dynamic> data = snapshot.data() ?? {};
+    if (!data.containsKey('rounds')) {
+      return <RoundData>[];
+    }
+    return [
+      for (final Map oneRound in data['rounds'])
+        RoundData.fromMap(oneRound.cast())
+    ];
   });
 });
 
@@ -136,9 +132,9 @@ final gameProvider = StreamProvider<List<GameData>>((ref) async* {
       .doc('scores') //
       .snapshots()
       .map((snapshot) {
-        Map<String, Map> data = (snapshot.data() ?? {}).cast();
-        List<GameData> out = data.entries.map(GameData.fromMap).toList();
-        return out;
+    Map<String, Map> data = (snapshot.data() ?? {}).cast();
+    List<GameData> out = data.entries.map(GameData.fromMap).toList();
+    return out;
   });
 });
 
@@ -187,12 +183,19 @@ final playerScoreListProvider = StreamProvider((ref) async* {
         rank: ranking.rank,
         total: ranking.total,
         penalty: ranking.penalty,
-        roundScores: [for (final hanchan in games.withPlayerId(ranking.id))
-          (
-          name: schedule.rounds.firstWhere((rnd) => rnd.id == hanchan.roundId).name,
-          score: hanchan.scores[hanchan.playerIndex(ranking.id)].finalScore,
-          start: DateTime.now(),
-          )
+        roundScores: [
+          for (final hanchan in games.withPlayerId(ranking.id))
+            (
+              name: schedule.rounds
+                  .firstWhere((rnd) => rnd.id == hanchan.roundId)
+                  .name,
+              score: hanchan.scores
+                  .firstWhere((score) => score.playerId == ranking.id)
+                  .finalScore,
+              start: schedule.rounds
+                  .firstWhere((rnd) => rnd.id == hanchan.roundId)
+                  .start,
+            )
         ],
       )
   ];

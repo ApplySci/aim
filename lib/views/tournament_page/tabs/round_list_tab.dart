@@ -9,8 +9,7 @@ class Seating extends ConsumerWidget {
   @override
   Widget build(context, ref) {
     final showAll = ref.watch(showAllProvider);
-    final filtered =
-        ref.watch(filterByPlayerIdProvider.select((e) => e != null));
+    final filtered = ref.watch(filterByPlayerProvider.select((e) => e != null));
     return DefaultTabController(
       length: 2,
       child: Column(children: [
