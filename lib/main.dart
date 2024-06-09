@@ -158,10 +158,9 @@ class _MyApp extends ConsumerWidget {
 
     if (Platform.isIOS) {
       // apple notifications
-      // TODO we need to add "Push Notifications" via XCode > Signing & Capabilities
       ref.listenAsyncData(
         apnsTokenProvider,
-            (prev, next) {
+        (prev, next) {
           Log.debug('APNS token refreshed: $next');
         },
       );
