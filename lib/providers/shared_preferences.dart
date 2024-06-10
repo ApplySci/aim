@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -152,7 +153,7 @@ class SharedPreferencesIntNotifier extends SharedPreferencesValueNotifier<int>
 }
 
 final alarmPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
-  () => SharedPreferencesBoolNotifier(key: 'alarm', fallback: true),
+  () => SharedPreferencesBoolNotifier(key: 'alarm', fallback: kReleaseMode || false),
 );
 
 final scorePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(

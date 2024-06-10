@@ -44,7 +44,7 @@ Future<void> initFirebaseMessaging() async {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   Log.debug('Handling a background message: ${message.messageId}');
   Log.debug('Message body: ${message.notification?.body}');
-  //_handleMessage(message);
+  // TODO show snackbar for it?
 }
 
 Future<void> initPermissions() async {
@@ -68,7 +68,7 @@ Future<void> main() async {
   await initFirebase();
   await initFirebaseMessaging();
   await initPermissions();
-  if (enableAlarm) await Alarm.init();
+  await Alarm.init();
 
   runApp(ProviderScope(
     overrides: [
@@ -102,10 +102,13 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
-        if (!enableAlarm) return;
 
         final now = DateTime.now().toUtc();
         await Alarm.stopAll();
+
+        final alarmsOn = ref.watch(alarmPrefProvider);
+        if (!alarmsOn) return;
+
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
         // set one alarm for each round

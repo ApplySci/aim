@@ -11,7 +11,6 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -23,8 +22,6 @@ enum LOG {
   warn,
   error,
 }
-
-const enableAlarm = kReleaseMode || false;
 
 const String defaultColourKey = 'black knight';
 
@@ -166,8 +163,8 @@ Future<void> setAlarm(
   await Alarm.set(alarmSettings: alarmSettings);
 }
 
-extension SeperatedBy<T> on Iterable<T> {
-  Iterable<T> seperatedBy(T seperator) sync* {
+extension SeparatedBy<T> on Iterable<T> {
+  Iterable<T> separatedBy(T seperator) sync* {
     if (isEmpty) return;
 
     final iterator = this.iterator;

@@ -35,6 +35,7 @@ class SettingsPage extends ConsumerWidget {
                 .read(timezonePrefProvider.notifier) //
                 .set(value),
           ),
+          /*   commented out as they're not currently used
           SwitchListTile(
             title: const Text('Notifications for updated scores'),
             value: scorePref,
@@ -50,6 +51,7 @@ class SettingsPage extends ConsumerWidget {
                 .read(seatingPrefProvider.notifier) //
                 .set(value),
           ),
+           */
         ],
       ),
     );

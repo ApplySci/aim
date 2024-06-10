@@ -2,6 +2,8 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 
+import '../utils.dart';
+
 class AlarmPage extends StatelessWidget {
   const AlarmPage({super.key, required this.settings});
 
@@ -9,6 +11,8 @@ class AlarmPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Log.debug('building alarm page');
+    Log.debug(settings.toString());
     return PopScope(
       onPopInvoked: (didPop) => Alarm.stop(settings.id),
       child: Dialog(

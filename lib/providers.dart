@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 
+import 'utils.dart';
 import 'providers/firestore.dart';
 import 'providers/location.dart';
+import 'providers/shared_preferences.dart';
 
 export 'providers/alarm.dart';
 export 'providers/fcm.dart';
@@ -15,7 +17,11 @@ final alarmScheduleProvider = StreamProvider((ref) async* {
   final seating = await ref.watch(seatingProvider.future);
   final scheduleRounds = await ref.watch(scheduleProvider.future);
   final selectedPlayer = ref.watch(selectedPlayerProvider);
+  final alarmsOn = ref.watch(alarmPrefProvider);
 
+  if (!alarmsOn) {
+    yield [];
+  }
   yield seating.map((round) {
     final roundSchedule =
         scheduleRounds.rounds.firstWhere((rnd) => rnd.id == round.id);
