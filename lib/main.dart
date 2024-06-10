@@ -68,7 +68,7 @@ Future<void> main() async {
   await initFirebase();
   await initFirebaseMessaging();
   await initPermissions();
-  await Alarm.init();
+  if (enableAlarm) await Alarm.init();
 
   runApp(ProviderScope(
     overrides: [
@@ -102,12 +102,10 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
-
         final now = DateTime.now().toUtc();
         await Alarm.stopAll();
 
-        final alarmsOn = ref.watch(alarmPrefProvider);
-        if (!alarmsOn) return;
+        if (!enableAlarm) return;
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
 

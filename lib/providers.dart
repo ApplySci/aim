@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 
+import 'models.dart';
 import 'providers/firestore.dart';
 import 'providers/location.dart';
 import 'providers/shared_preferences.dart';
@@ -11,7 +12,18 @@ export 'providers/firestore.dart';
 export 'providers/location.dart';
 export 'providers/shared_preferences.dart';
 
-final alarmScheduleProvider = StreamProvider((ref) async* {
+typedef AlarmInfo = ({
+  RoundId id,
+  String name,
+  TZDateTime alarm,
+  ({
+    PlayerId id,
+    String name,
+    String table,
+  })? player
+});
+
+final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
   final location = await ref.watch(locationProvider.future);
   final seating = await ref.watch(seatingProvider.future);
   final scheduleRounds = await ref.watch(scheduleProvider.future);
@@ -20,6 +32,7 @@ final alarmScheduleProvider = StreamProvider((ref) async* {
 
   if (!alarmsOn) {
     yield [];
+    return;
   }
   yield seating.map((round) {
     final roundSchedule =
