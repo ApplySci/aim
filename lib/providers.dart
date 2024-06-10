@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 
-import 'utils.dart';
 import 'providers/firestore.dart';
 import 'providers/location.dart';
 import 'providers/shared_preferences.dart';

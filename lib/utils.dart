@@ -25,6 +25,8 @@ enum LOG {
 
 const String defaultColourKey = 'black knight';
 
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 const Map<String, Color> backgroundColours = {
   defaultColourKey: Colors.black,
   'fireball red': Color(0xFF330000),

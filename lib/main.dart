@@ -83,8 +83,8 @@ Future<void> main() async {
 class _MyApp extends ConsumerWidget {
   // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
   // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
-  Future<void> openAlarmPage(BuildContext context, AlarmSettings settings) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(
+  openAlarmPage(BuildContext context, AlarmSettings settings) =>
+      globalNavigatorKey.currentState?.push(MaterialPageRoute<void>(
         builder: (context) => AlarmPage(settings: settings),
       ));
 
@@ -182,6 +182,7 @@ class _MyApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: ROUTES.home,
+      navigatorKey: globalNavigatorKey,
       title: 'All-Ireland Mahjong Tournaments',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
