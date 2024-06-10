@@ -44,7 +44,7 @@ Future<void> initFirebaseMessaging() async {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   Log.debug('Handling a background message: ${message.messageId}');
   Log.debug('Message body: ${message.notification?.body}');
-  // TODO show snackbar for it?
+  // TODO may need to update values if app is in background - particularly if schedule is updated - we must update alarms
 }
 
 Future<void> initPermissions() async {
