@@ -31,14 +31,6 @@ def index():
         return render_template('welcome_anon.html')
 
 
-@blueprint.route('/create/run')
-@login_required
-def run_tournament():
-    if hasattr(current_user, 'tournament'):
-        return render_template('run_tournament.html')
-    return redirect(url_for('create.index'))
-
-
 @blueprint.route('/create/results', methods=['GET', 'POST', 'PUT'])
 @login_required
 def results_create():
