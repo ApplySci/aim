@@ -7,10 +7,12 @@
 
  */
 import 'dart:async';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -23,15 +25,10 @@ enum LOG {
   error,
 }
 
-const String defaultColourKey = 'black knight';
+final enableAlarm = kReleaseMode || Platform.isIOS;
 
-final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
-
-const Map<String, Color> backgroundColours = {
-  defaultColourKey: Colors.black,
-  'fireball red': Color(0xFF330000),
-  'deep purple': Color(0xFF220033),
-};
+final GlobalKey<NavigatorState> globalNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 String dateRange(Timestamp? startDT, Timestamp? endDT) {
   if (startDT == null || endDT == null) return '';

@@ -1,3 +1,4 @@
+import 'package:aim_tournaments/views/rank_text.dart';
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
 import '/views/score_text.dart';
+import '/views/utils.dart';
 
 const columnMargin = 18;
 
@@ -26,14 +28,8 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 
   yield (
     playerScores: playerScores,
-    maxRankWidth: playerScores
-        .map((playerScore) => playerScore.rank)
-        .map((rank) => textSize(rank).width)
-        .max,
-    maxNameWidth: playerScores
-        .map((playerScore) => playerScore.name)
-        .map((name) => textSize(name).width)
-        .max,
+    maxRankWidth: playerScores.map((e) => rankSize(e.rank, e.tied).width).max,
+    maxNameWidth: playerScores.map((e) => textSize(e.name).width).max,
     maxScoreWidth:
         maxScoreWidth.followedBy(maxTotalWidth).followedBy(maxPenaltyWidth).max,
   );
@@ -124,9 +120,9 @@ class ScoreRow extends DataRow2 {
     super.color,
     super.selected,
   }) : super(cells: [
-          DataCell(Text(
-            score.rank,
-            maxLines: 1,
+          DataCell(RankText(
+            rank: score.rank,
+            tied: score.tied,
           )),
           DataCell(Text(
             score.name,

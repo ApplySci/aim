@@ -82,7 +82,7 @@ final selectedPlayerProvider = Provider((ref) {
       ?.firstWhereOrNull((player) => player.id == selectedPlayerId);
 });
 
-final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
+final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -92,10 +92,10 @@ final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
     if (data.containsKey('roundDone')) {
       String done = data['roundDone'];
       if (data.containsKey(done)) {
-        List<RankData> scores = [];
+        List<PlayerRankData> scores = [];
         Map<String, dynamic> scoreList = data[done];
         for (final s in scoreList.entries) {
-          scores.add(RankData.fromMap(int.parse(s.key), s.value));
+          scores.add(PlayerRankData.fromMap(int.parse(s.key), s.value));
         }
         scores.sort((a, b) => b.total.compareTo(a.total));
         return scores;
@@ -161,13 +161,14 @@ typedef RoundScore = ({
 typedef PlayerScore = ({
   PlayerId id,
   String name,
-  String rank,
+  int rank,
+  bool tied,
   int total,
   int penalty,
   List<RoundScore> roundScores,
 });
 
-final playerScoreListProvider = StreamProvider((ref) async* {
+final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
   final rankings = await ref.watch(rankingProvider.future);
   final playerList = await ref.watch(playerListProvider.future);
   final games = await ref.watch(gameProvider.future);
@@ -181,6 +182,7 @@ final playerScoreListProvider = StreamProvider((ref) async* {
         id: ranking.id,
         name: playerNames[ranking.id]!,
         rank: ranking.rank,
+        tied: ranking.tied,
         total: ranking.total,
         penalty: ranking.penalty,
         roundScores: [

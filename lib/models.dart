@@ -164,24 +164,28 @@ class RoundScheduleData extends Equatable {
       ];
 }
 
-class RankData extends Equatable {
+class PlayerRankData extends Equatable {
   // one player's score
-  const RankData({
+  const PlayerRankData({
     required this.id,
     required this.rank,
+    required this.tied,
     required this.total,
     required this.penalty,
   });
 
-  factory RankData.fromMap(int id, Map<String, dynamic> data) => RankData(
+  factory PlayerRankData.fromMap(int id, Map<String, dynamic> data) =>
+      PlayerRankData(
         id: id,
-        rank: "${data['t'] == 1 ? '=' : ''}${data['r']}",
+        rank: data['r'] as int,
+        tied: data['t'] == 1,
         total: data['total'] as int,
         penalty: data['p'] as int,
       );
 
   final PlayerId id;
-  final String rank;
+  final int rank;
+  final bool tied;
   final int total;
   final int penalty;
 
@@ -189,6 +193,7 @@ class RankData extends Equatable {
   List<Object?> get props => [
         id,
         rank,
+        tied,
         total,
         penalty,
       ];

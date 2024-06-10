@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 
 import '/models.dart';
 import '/providers.dart';
+import '/utils.dart';
 import 'schedule_list.dart';
 import 'score_text.dart';
-import '/utils.dart';
+import 'utils.dart';
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerScore, PlayerId>((ref, playerId) async* {
