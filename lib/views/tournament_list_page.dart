@@ -43,9 +43,11 @@ class TournamentList extends ConsumerWidget {
                 child: ListTile(
                   leading: tournament.url_icon == null ? null :
                     CachedNetworkImage(
+                      width: 70,
                       imageUrl: tournament.url_icon!,
                       placeholder: (context, url) => CircularProgressIndicator(),
                       errorWidget: (context, url, error) => Icon(Icons.error),
+                      fit: BoxFit.contain,
                     ),
                   selected: tournamentId == tournament.id,
                   title: Text(tournament.name),
