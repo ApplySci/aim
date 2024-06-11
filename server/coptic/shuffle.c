@@ -37,7 +37,7 @@ void count_tables() {
 int score_seats() {
   /*
    check no player is on any one table too often
-   3-visits are right out - so huge penalty of 1000 for any 3+ visit
+   3-visits are right out - so huge penalty of 1000 for every 3+ visit
    no player should have too many 2-visits. So a penalty of n-squared for the count of 2-visits
   */
   int score = 0;
@@ -45,7 +45,7 @@ int score_seats() {
     uint8_t twos = 0;
     for (uint8_t t = 0; t < 8; t++) {
       if (tables[p][t] > 2) {
-        return 10000;
+        score += tables[p][t] * 10000;
       } else if (tables[p][t] == 2) {
         twos++;
       }
@@ -55,40 +55,43 @@ int score_seats() {
   return score;
 }
 
-int main() {
-    FILE *file = fopen("default.txt", "r");
-    if (file == NULL) {
-        printf("Could not open file\n");
-        return 1;
-    }
+int main(int argc, char *argv[]) {
+  char *filename;
+  if(argc > 1) {
+      filename = argv[1];
+  } else {
+      filename = "coptic.coptic/default.txt";
+  }
 
-    uint8_t seats[8][8][4];
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        if (strstr(line, "SEATING BY ROUND, BY TABLE") != NULL) {
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    fscanf(file, "%hhu,%hhu,%hhu,%hhu, ;", &seats[i][j][0], &seats[i][j][1], &seats[i][j][2], &seats[i][j][3]);
-                }
-            }
-            break;
-        }
-    }
+  FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+      printf("Could not open file\n");
+      return 1;
+  }
 
-    while (fgets(line, sizeof(line), file)) {
-        if (strstr(line, "TABLE COUNT BY PLAYER") != NULL) {
-            for (int i = 0; i < 32; i++) {
-				fscanf(file, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,", \
-				&tables[i][0], &tables[i][1], &tables[i][2], \
-				&tables[i][3], &tables[i][4], &tables[i][5], \
-				&tables[i][6], &tables[i][7]);
-            }
-            break;
-		}
-	}
+  uint8_t seats[8][8][4];
+  char line[256];
+  while (fgets(line, sizeof(line), file)) {
+      if (strstr(line, "SEATING BY ROUND, BY TABLE") != NULL) {
+          for (int i = 0; i < 8; i++) {
+              for (int j = 0; j < 8; j++) {
+                  fscanf(file, "%hhu,%hhu,%hhu,%hhu, ;", &seats[i][j][0], &seats[i][j][1], &seats[i][j][2], &seats[i][j][3]);
+              }
+          }
+          break;
+      }
+  }
  
   fclose(file);
 
+  for (uint8_t h = 0; h < 8; h++) {
+    for (uint8_t t = 0; t < 8; t++) {
+      for (uint8_t s = 0; s < 4; s++) {
+        uint8_t p = seats[h][t][s];
+        tables[p][t]++;
+      }
+    }
+  }
 
   printf("\n\n initial tables\n\n");
   // Print the results
@@ -128,7 +131,7 @@ int main() {
   printf("\n\nSEATING BY ROUND, BY TABLE\n\n");
   for (int h = 0; h < 8; h++) {
       for (int t = 0; t < 8; t++) {
-          printf("%u, %u, %u, %u, ;", seats[h][t][0], seats[h][t][1], seats[h][t][2], seats[h][t][3]);
+          printf("%4u, %4u, %4u, %4u, ; ", seats[h][t][0], seats[h][t][1], seats[h][t][2], seats[h][t][3]);
       }
       printf("\n");
   }
@@ -141,5 +144,6 @@ int main() {
       }
       printf("\n");
   }
+  printf("\n\nFINAL SCORE: %5d\n\n", score);
   return 0;
-}
+} 
