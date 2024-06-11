@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '/providers.dart';
 import '/utils.dart';
@@ -40,6 +41,12 @@ class TournamentList extends ConsumerWidget {
             for (final tournament in tournamentList)
               Card(
                 child: ListTile(
+                  leading: tournament.url_icon == null ? null :
+                    CachedNetworkImage(
+                      imageUrl: tournament.url_icon!,
+                      placeholder: (context, url) => CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
+                    ),
                   selected: tournamentId == tournament.id,
                   title: Text(tournament.name),
                   subtitle: Column(
