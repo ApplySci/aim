@@ -45,8 +45,8 @@ class TournamentList extends ConsumerWidget {
                     CachedNetworkImage(
                       width: 70,
                       imageUrl: tournament.url_icon!,
-                      placeholder: (context, url) => CircularProgressIndicator(),
-                      errorWidget: (context, url, error) => Icon(Icons.error),
+                      placeholder: (c, u) => const CircularProgressIndicator(),
+                      errorWidget: (c, u, e) => const Icon(Icons.error),
                       fit: BoxFit.contain,
                     ),
                   selected: tournamentId == tournament.id,
