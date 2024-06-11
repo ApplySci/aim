@@ -107,6 +107,8 @@ def get_their_copy():
 @blueprint.route('/create/select/<doc>', methods=['POST', 'GET', 'PUT'])
 @login_required
 def google_doc_selected(doc):
+    # TODO add to the firebase database too!
+    # and then add the database document ID to our local db here
     title = request.form.get('submit')
     _add_to_db(doc, title)
     current_user.live_tournament_id = doc

@@ -131,9 +131,12 @@ int main(int argc, char *argv[]) {
   printf("\n\nSEATING BY ROUND, BY TABLE\n\n");
   for (int h = 0; h < 8; h++) {
       for (int t = 0; t < 8; t++) {
-          printf("%4u, %4u, %4u, %4u, ; ", seats[h][t][0], seats[h][t][1], seats[h][t][2], seats[h][t][3]);
+          printf("%2d, %2d, ", h + 1, t + 1);
+          for (int s = 0; s < 4; s++) {
+            printf("%4u, ", seats[h][t][s] + 1);
+          }
+          printf("\n");
       }
-      printf("\n");
   }
 
   printf("\n\nTABLE COUNT BY PLAYER\n\n");

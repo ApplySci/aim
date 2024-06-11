@@ -87,12 +87,13 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 @blueprint.route('/run/')
 @login_required
 def run_tournament():
+    # TODO allow the user to update the schedule on firebase WITHOUT seating
     if current_user.live_tournament:
-        # TODO current_user.live_tournament.web_directory
-        #   but that gives /home/model/apps/tournaments/myapp/static/wr
+        start = "/static/"
+        result = current_user.live_tournament.web_directory.split(start, 1)[-1]
         return render_template(
             'run_tournament.html',
-            webroot='/static/wr',
+            webroot = start + result,
             )
     return redirect(url_for('create.index'))
 
@@ -219,8 +220,9 @@ def update_ranking_and_scores():
         round_name : str = schedule['rounds'][done-1]['name']
         ranking = _ranking_to_cloud(sheet, done)
         players = _get_players(sheet, False)
-        games = _games_to_cloud(sheet, done)
-        _publish_games_on_web(games, schedule, players)
+        if done > 0:
+            games = _games_to_cloud(sheet, done)
+            _publish_games_on_web(games, schedule, players)
         _publish_ranking_on_web(ranking, players, done, round_name)
         _message_player_topics(ranking, done, players)
 
