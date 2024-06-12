@@ -28,6 +28,7 @@ class TournamentData extends Equatable {
     required this.endDate,
     required this.status,
     required this.rules,
+    this.url,
     this.urlIcon,
   });
 
@@ -40,6 +41,7 @@ class TournamentData extends Equatable {
         endDate: data['end_date'] as Timestamp,
         status: data['status'] as String,
         rules: data['rules'] as String,
+        url: data['url'] as String?,
         urlIcon: data['url_icon'] as String?,
       );
 
@@ -51,6 +53,7 @@ class TournamentData extends Equatable {
   final Timestamp endDate;
   final String status;
   final String rules;
+  final String? url; // may not be present, hence can be null
   final String? urlIcon; // may not be present, hence can be null
 
   String get when => dateRange(startDate, endDate);
@@ -65,6 +68,7 @@ class TournamentData extends Equatable {
         endDate,
         status,
         rules,
+        url,
         urlIcon,
       ];
 }
@@ -221,13 +225,13 @@ class RoundData extends Equatable {
 
   factory RoundData.fromMap(Map<String, dynamic> data) => RoundData(
         id: data['id'] as String,
-        tables: [
+        tables: data.containsKey('tables') ? [
           for (final MapEntry(:key, :value) in (data['tables'] as Map).entries)
             TableData(
               name: key,
               players: (value as List).cast(),
             ),
-        ],
+        ] : [],
       );
 
   final String id;

@@ -31,6 +31,7 @@ class TournamentInfo extends ConsumerWidget {
                     errorWidget: (context, url, error) =>
                         const Icon(Icons.error),
                   ),
+            // todo add link to tournament.url if available
           ),
           ListTile(
             leading: const Icon(Icons.location_on),
