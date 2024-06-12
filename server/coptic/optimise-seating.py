@@ -1,7 +1,7 @@
 import importlib
+from itertools import combinations
 import os
 import subprocess
-from glob import glob
 
 
 print("add a command-line argument to suppress re-running coptic, thus re-using previous coptic outputs")
@@ -27,51 +27,59 @@ for k in list(range(0, total_rounds)):
 initial_seating = initial_seating[:-1]
 
 with open('template.c', 'r') as file:
-    template = file.read()
+    raw_template = file.read()
 
-template = template.replace(
+base_template = raw_template.replace(
     '#HANCHAN#', str(hanchan)).replace(
     '#TABLES#', str(tables)).replace(
     '#INITIAL_SEATING#', initial_seating).replace(
     '#TOTAL_ROUNDS#', str(total_rounds)
     )
 
-for i in range(total_rounds - 1):
-    # Inner loop
-    for j in range(i+1, total_rounds):
-        if use_coptic:
-
-            rounds_to_use = ''
-            for r in list(range(0, i)) + list(range(i+1, j)) \
-                    + list(range(j+1, total_rounds)):
-                rounds_to_use += f'{r}, '
-            rounds_to_use  = rounds_to_use[:-2]
-
-            c_file = template.replace('#ROUNDS_TO_USE#', rounds_to_use)
-            with open('coptic.c', 'w') as file:
-                file.write(c_file)
-
-            # Execute the perl script
-            subprocess.run(['../tool/coptic.pl', 'coptic.c'])
-
-            os.rename('coptic.coptic/default.txt', f"coptic.coptic/{i}{j}.txt")
-
-        # Run the C program 'shuffle' and redirect output to file
-        subprocess.run(['./shuffle', f"coptic.coptic/{i}{j}.txt"], stdout=open(f"out/{i}{j}.txt", 'w'))
+c_file = 'coptic.c'
 
 results = []
-for file in glob('out/*.txt'):
-    with open(file, 'r') as f:
+# Generate all combinations of (N-M) objects
+for combo in combinations(range(total_rounds), hanchan):
+    template = base_template.replace('#HANCHAN#', str(hanchan))
+    idx = ''.join(str(i) for i in combo)
+    coptic_file = f"coptic.coptic/{idx}.txt"
+
+    if use_coptic:
+        rounds_to_use =  ', '.join(str(i) for i in combo)
+
+        c_source = template.replace('#ROUNDS_TO_USE#', rounds_to_use)
+        with open(c_file, 'w') as file:
+            file.write(c_source)
+
+        # Execute the perl script
+        subprocess.run(['../tool/coptic.pl', c_file])
+
+        # TODO catch if file doesn't exist - no solution found
+        os.rename('coptic.coptic/default.txt', coptic_file)
+
+    # Run the C program 'shuffle' and redirect output to file
+    outfile = f"out/{idx}.txt"
+    with open(outfile, 'w') as f:
+        subprocess.run(['./shuffle', coptic_file], stdout=f)
+    with open(outfile, 'r') as f:
         for line in f:
             if "FINAL SCORE" in line:
-                results.append((line.split('FINAL')[1].strip(), file))
+                results.append((line.split('FINAL')[1].strip(), outfile))
+                break
+
+    # if score was zero we can halt now
+    parts = line.split("FINAL SCORE:")
+
+    # The second part should contain the score as a string with leading spaces
+    score_str = parts[1]
+
+    # Strip leading/trailing spaces and convert to integer
+    score = int(score_str.strip())
+    if score == 0:
+        break
 
 results.sort()
-with open('results.txt', 'w', encoding='utf-8') as f:
-    for result in results:
-        f.write(f"FINAL{result[0]} in {result[1]}\n")
-print(results[0])
-
 file = results[0][1]
 
 # Start and end patterns
