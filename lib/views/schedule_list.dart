@@ -106,8 +106,8 @@ final filteredRoundList = StreamProvider.family<Iterable<Round>, When>(
 
 class ScheduleList extends ConsumerWidget {
   const ScheduleList({
-    super.key,
     required this.when,
+    super.key,
   });
 
   final When when;

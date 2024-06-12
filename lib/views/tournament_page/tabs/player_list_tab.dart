@@ -70,9 +70,7 @@ class _PlayersState extends ConsumerState<Players> {
 }
 
 class PlayerList extends ConsumerWidget {
-  const PlayerList({
-    super.key,
-  });
+  const PlayerList({super.key});
 
   @override
   Widget build(context, ref) {
@@ -80,7 +78,8 @@ class PlayerList extends ConsumerWidget {
     return playerList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) =>
+          ErrorScreen(error: error, stackTrace: stackTrace),
       data: (playerList) => ListView.builder(
         itemCount: playerList.length,
         itemBuilder: (context, index) => PlayerTile(player: playerList[index]),
@@ -91,8 +90,8 @@ class PlayerList extends ConsumerWidget {
 
 class PlayerTile extends ConsumerWidget {
   const PlayerTile({
-    super.key,
     required this.player,
+    super.key,
   });
 
   final PlayerScore player;
