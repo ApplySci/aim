@@ -25,7 +25,7 @@ enum LOG {
   error,
 }
 
-final enableAlarm = kReleaseMode || Platform.isIOS;
+final enableAlarm = kReleaseMode || !Platform.isIOS;
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -55,9 +55,10 @@ class ROUTES {
   static const String tournaments = '/tournaments';
   static const String tournament = '/tournament';
   static const String player = '/player';
+  static const String round = '/round';
 }
 
-const Color selectedHighlight = Color(0x88aaaaff);
+const Color selectedHighlight = Color.fromARGB(135, 1, 1, 3);
 
 class Log {
   static List<List<dynamic>> logs = [];

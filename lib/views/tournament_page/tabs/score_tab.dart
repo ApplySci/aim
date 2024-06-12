@@ -1,4 +1,3 @@
-import 'package:aim_tournaments/views/rank_text.dart';
 import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/rank_text.dart';
 import '/views/score_text.dart';
 import '/views/utils.dart';
 
@@ -16,9 +16,9 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final negSign = ref.watch(negSignProvider);
   final playerScores = await ref.watch(playerScoreListProvider.future);
   final maxScoreWidth = playerScores
-      .map((playerScore) => playerScore.roundScores.map((e) => e.score))
+      .map((playerScore) => playerScore.scores)
       .flattened
-      .map((score) => scoreSize(score, negSign).width);
+      .map((score) => scoreSize(score.finalScore, negSign).width);
   final maxTotalWidth = playerScores
       .map((playerScore) => playerScore.total)
       .map((score) => scoreSize(score, negSign).width);
@@ -54,7 +54,7 @@ class ScoreTable extends ConsumerWidget {
         final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,
         );
-        final int rounds = playerScores.playerScores[0].roundScores.length;
+        final int rounds = playerScores.playerScores[0].scores.length;
         return DataTable2(
           minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
@@ -132,7 +132,7 @@ class ScoreRow extends DataRow2 {
           DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
-              ScoreText(score.roundScores[i].score),
+              ScoreText(score.scores[i].finalScore),
               // TODO decide: do we want a user to tap on a single score to go to the whole hanchan score? Maybe in a modal popup?
               // onTap: () => showHanchanModel(score.id, i),
             ),
