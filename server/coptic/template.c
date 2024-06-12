@@ -10,7 +10,7 @@
 #define TOTAL_ROUNDS #TOTAL_ROUNDS#
 // -->
 
-#define MAX_WIND_REPEATS ( (TABLES + HANCHAN + 1) / TABLES)
+#define MAX_WIND_REPEATS ( (HANCHAN + 3) / 4)
 #define PLAYERS (TABLES * SIZE)
 
 const uint8_t rounds_to_use[HANCHAN] = {#ROUNDS_TO_USE#};
