@@ -1,6 +1,8 @@
+import importlib
 import os
 import subprocess
 from glob import glob
+
 
 print("add a command-line argument to suppress re-running coptic, thus re-using previous coptic outputs")
 
@@ -11,25 +13,43 @@ players = tables * 4
 
 use_coptic : bool = len(os.sys.argv) < 2
 
+seats = importlib.import_module(f"{players}")
+
+initial_seating = ''
+for k in list(range(0, total_rounds)):
+    initial_seating += '{\n'
+    for r in seats.seats[k]:
+        initial_seating += ' {'
+        for p in r:
+            initial_seating += f' {p-1},'
+        initial_seating = initial_seating[:-1] + ' },\n'
+    initial_seating = initial_seating[:-1] + ' },\n'
+initial_seating = initial_seating[:-1]
+
+with open('template.c', 'r') as file:
+    template = file.read()
+
+template = template.replace(
+    '#HANCHAN#', str(hanchan)).replace(
+    '#TABLES#', str(tables)).replace(
+    '#INITIAL_SEATING#', initial_seating).replace(
+    '#TOTAL_ROUNDS#', str(total_rounds)
+    )
+
 for i in range(total_rounds - 1):
     # Inner loop
     for j in range(i+1, total_rounds):
         if use_coptic:
+
             rounds_to_use = ''
-            for r in list(range(0, i)) \
-                    + list(range(i+1, j)) \
+            for r in list(range(0, i)) + list(range(i+1, j)) \
                     + list(range(j+1, total_rounds)):
                 rounds_to_use += f'{r}, '
-            with open('template.c', 'r') as file:
-                data = file.read()
-            data = data.replace(
-                '#HANCHAN#', str(hanchan)).replace(
-                '#TABLES#', str(tables)).replace(
-                '#TOTAL_ROUNDS#', str(total_rounds)).replace(
-                '#ROUNDS_TO_USE#', str(rounds_to_use)
-                )
+            rounds_to_use  = rounds_to_use[:-2]
+
+            c_file = template.replace('#ROUNDS_TO_USE#', rounds_to_use)
             with open('coptic.c', 'w') as file:
-                file.write(data)
+                file.write(c_file)
 
             # Execute the perl script
             subprocess.run(['../tool/coptic.pl', 'coptic.c'])
