@@ -51,7 +51,7 @@ int main() {
     for (uint8_t s = 0; s < SIZE; s++) {
       CHECK(winds[p][s] <= MAX_WIND_REPEATS);
     }
-  }
+  } 
 
   // ============================================================================
   SATISFY();

@@ -109,11 +109,11 @@ for combo in all_combos:
             )
 
         if not "Result: Solution: " in coptic_output.stdout:
-            print('failed to find a solution')
+            print('\n*** failed to find a solution\n')
             continue
 
         os.rename('coptic.coptic/default.txt', coptic_file)
-        print('.', end='')
+        print('.', end='', flush=True)
 
     # Run the C program 'shuffle' and redirect output to file
     outfile = f"shuffled/{idx}.txt"
@@ -136,7 +136,7 @@ for combo in all_combos:
     if score == 0:
         break
     if score < best_score:
-        print(f"best score to date: {score}")
+        print(f"\nbest score to date: {score}")
         best_score = score
 
 

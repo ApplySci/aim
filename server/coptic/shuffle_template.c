@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
             score = score2;
           } else {
             // no improvement, so swap back
-            swap_rows(seats[h], t, t2);
+            swap_rows(seats[h], t, t2); 
           }
         }
       }
