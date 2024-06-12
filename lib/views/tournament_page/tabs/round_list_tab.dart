@@ -13,10 +13,13 @@ class Seating extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Column(children: [
-        const TabBar(tabs: [
-          Tab(text: 'Upcoming'),
-          Tab(text: 'Past'),
-        ]),
+        Material(
+          color: Theme.of(context).colorScheme.inversePrimary,
+          child: const TabBar(tabs: [
+            Tab(text: 'Upcoming'),
+            Tab(text: 'Past'),
+          ]),
+        ),
         const Expanded(
           child: TabBarView(children: [
             ScheduleList(when: When.upcoming),

@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/rank_text.dart';
 import '/views/score_text.dart';
+import '/views/utils.dart';
 
 const columnMargin = 18;
 
@@ -14,9 +16,9 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final negSign = ref.watch(negSignProvider);
   final playerScores = await ref.watch(playerScoreListProvider.future);
   final maxScoreWidth = playerScores
-      .map((playerScore) => playerScore.roundScores.map((e) => e.score))
+      .map((playerScore) => playerScore.scores)
       .flattened
-      .map((score) => scoreSize(score, negSign).width);
+      .map((score) => scoreSize(score.finalScore, negSign).width);
   final maxTotalWidth = playerScores
       .map((playerScore) => playerScore.total)
       .map((score) => scoreSize(score, negSign).width);
@@ -26,14 +28,8 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 
   yield (
     playerScores: playerScores,
-    maxRankWidth: playerScores
-        .map((playerScore) => playerScore.rank)
-        .map((rank) => textSize(rank).width)
-        .max,
-    maxNameWidth: playerScores
-        .map((playerScore) => playerScore.name)
-        .map((name) => textSize(name).width)
-        .max,
+    maxRankWidth: playerScores.map((e) => rankSize(e.rank, e.tied).width).max,
+    maxNameWidth: playerScores.map((e) => textSize(e.name).width).max,
     maxScoreWidth:
         maxScoreWidth.followedBy(maxTotalWidth).followedBy(maxPenaltyWidth).max,
   );
@@ -58,7 +54,7 @@ class ScoreTable extends ConsumerWidget {
         final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,
         );
-        final int rounds = playerScores.playerScores[0].roundScores.length;
+        final int rounds = playerScores.playerScores[0].scores.length;
         return DataTable2(
           minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
@@ -124,9 +120,9 @@ class ScoreRow extends DataRow2 {
     super.color,
     super.selected,
   }) : super(cells: [
-          DataCell(Text(
-            score.rank,
-            maxLines: 1,
+          DataCell(RankText(
+            rank: score.rank,
+            tied: score.tied,
           )),
           DataCell(Text(
             score.name,
@@ -136,7 +132,7 @@ class ScoreRow extends DataRow2 {
           DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
-              ScoreText(score.roundScores[i].score),
+              ScoreText(score.scores[i].finalScore),
               // TODO decide: do we want a user to tap on a single score to go to the whole hanchan score? Maybe in a modal popup?
               // onTap: () => showHanchanModel(score.id, i),
             ),

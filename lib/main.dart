@@ -18,6 +18,7 @@ import 'providers.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
 import 'views/player_page.dart';
+import 'views/round_page/round_page.dart';
 import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
@@ -68,7 +69,7 @@ Future<void> main() async {
   await initFirebase();
   await initFirebaseMessaging();
   await initPermissions();
-  await Alarm.init();
+  if (enableAlarm) await Alarm.init();
 
   runApp(ProviderScope(
     overrides: [
@@ -102,12 +103,10 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
+        if (!enableAlarm) return;
 
         final now = DateTime.now().toUtc();
         await Alarm.stopAll();
-
-        final alarmsOn = ref.watch(alarmPrefProvider);
-        if (!alarmsOn) return;
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
@@ -196,6 +195,7 @@ class _MyApp extends ConsumerWidget {
         ROUTES.tournaments: (context) => const TournamentListPage(),
         ROUTES.tournament: (context) => const TournamentPage(),
         ROUTES.player: (context) => const PlayerPage(),
+        ROUTES.round: (context) => const RoundPage(),
       },
     );
   }

@@ -2,13 +2,16 @@ import 'package:collection/collection.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 
 import '/models.dart';
 import '/providers.dart';
+import '/utils.dart';
 import 'schedule_list.dart';
 import 'score_text.dart';
-import '/utils.dart';
+import 'table_score_table.dart';
+import 'utils.dart';
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerScore, PlayerId>((ref, playerId) async* {
@@ -41,7 +44,6 @@ class PlayerPage extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, stackTrace) => Scaffold(
-        // uses ErrorScreen
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Text('Player'),
@@ -99,7 +101,6 @@ class PlayerStatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scores = player.roundScores.map((e) => e.score);
     return ListView(children: [
       ListTile(
         title: const Text('Current Overall Score'),
@@ -118,21 +119,21 @@ class PlayerStatsTab extends ConsumerWidget {
       ListTile(
         title: const Text('Average Score'),
         trailing: ScoreText(
-          scores.average,
+          player.scores.map((e) => e.finalScore).average,
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
       ListTile(
         title: const Text('Highest Score'),
         trailing: ScoreText(
-          scores.max,
+          player.scores.map((e) => e.finalScore).max,
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
       ListTile(
         title: const Text('Lowest Score'),
         trailing: ScoreText(
-          scores.min,
+          player.scores.map((e) => e.finalScore).min,
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
@@ -170,7 +171,7 @@ class PlayerScoreTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (player.roundScores.isEmpty) {
+    if (player.scores.isEmpty) {
       return const Center(child: Text('No Rounds Played'));
     }
 
@@ -184,48 +185,27 @@ class PlayerScoreTab extends ConsumerWidget {
         ),
       ],
       rows: [
-        for (final (index, score) in player.roundScores.indexed)
+        for (final (index, score) in player.scores.indexed)
           DataRow2(cells: [
             DataCell(Text('Round ${index + 1}')),
-            DataCell(ScoreText(score.score)),
+            DataCell(ScoreText(score.finalScore)),
           ]),
       ],
     );
   }
 }
 
-typedef PlayerHanchanScore = ({
-  PlayerData player,
-  HanchanScore score,
-});
-
-typedef RoundHanchanScore = ({
+typedef PlayerRounds = ({
   RoundScheduleData round,
-  List<PlayerHanchanScore> players,
-});
-
-typedef PlayerGamesWithWidths = ({
-  List<RoundHanchanScore> rounds,
-  double maxNameWidth,
-  double maxScoreWidth,
-  double maxPlaceWidth,
-  double maxUmaWidth,
+  List<TablePlayerScore> players,
 });
 
 final playerScoresProvider =
-    StreamProvider.autoDispose.family<List<RoundHanchanScore>, PlayerId>(
+    StreamProvider.autoDispose.family<List<PlayerRounds>, PlayerId>(
   (ref, playerId) async* {
     final games = (await ref.watch(gameProvider.future)).withPlayerId(playerId);
-    final roundMap = await ref.watch(scheduleProvider.selectAsync((schedule) {
-      return {
-        for (final round in schedule.rounds) round.id: round,
-      };
-    }));
-    final playerMap = await ref.watch(playerListProvider.selectAsync((players) {
-      return {
-        for (final player in players) player.id: player,
-      };
-    }));
+    final roundMap = await ref.watch(roundMapProvider.future);
+    final playerMap = await ref.watch(playerMapProvider.future);
     yield [
       for (final game in games)
         (
@@ -236,18 +216,18 @@ final playerScoresProvider =
                 player: playerMap[score.playerId]!,
                 score: score,
               )
-          ],
-        )
+          ]
+        ),
     ];
   },
 );
 
-final playerGamesWithWidthsProvider =
-    StreamProvider.autoDispose.family<PlayerGamesWithWidths?, PlayerId>(
+final playerGamesWithWidthsProvider = StreamProvider.autoDispose
+    .family<(TableScoreWidths, List<PlayerRounds>)?, PlayerId>(
   (ref, playerId) async* {
     final negSign = ref.watch(negSignProvider);
-    final playerScores = await ref.watch(playerScoresProvider(playerId).future);
-    if (playerScores.isEmpty) {
+    final scores = await ref.watch(playerScoresProvider(playerId).future);
+    if (scores.isEmpty) {
       yield null;
       return;
     }
@@ -255,45 +235,47 @@ final playerGamesWithWidthsProvider =
     final gameSize = textSize('Game').width;
     final penaltySize = textSize('Pen.').width;
     final finalSize = textSize('Final').width;
-    final maxScoreWidth = playerScores
-        .map((a) => a.players)
+    final maxScoreWidth = scores
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.gameScore, negSign).width);
-    final maxPenaltyWidth = playerScores
-        .map((a) => a.players)
+    final maxPenaltyWidth = scores
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.penalties, negSign).width);
-    final maxFinalScoreWidth = playerScores
-        .map((a) => a.players)
+    final maxFinalScoreWidth = scores
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.finalScore, negSign).width);
 
     yield (
-      rounds: playerScores,
-      maxNameWidth: playerScores
-          .map((a) => a.players)
-          .flattened
-          .map((score) => textSize(score.player.name).width)
-          .max,
-      maxScoreWidth: [
-        gameSize,
-        penaltySize,
-        finalSize,
-      ]
-          .followedBy(maxScoreWidth)
-          .followedBy(maxPenaltyWidth)
-          .followedBy(maxFinalScoreWidth)
-          .max,
-      maxPlaceWidth: playerScores
-          .map((a) => a.players)
-          .flattened
-          .map((score) => textSize('${score.score.placement}').width)
-          .max,
-      maxUmaWidth: playerScores
-          .map((a) => a.players)
-          .flattened
-          .map((score) => scoreSize(score.score.uma, negSign).width)
-          .max,
+      (
+        maxNameWidth: scores
+            .map((e) => e.players)
+            .flattened
+            .map((score) => textSize(score.player.name).width)
+            .max,
+        maxScoreWidth: [
+          gameSize,
+          penaltySize,
+          finalSize,
+        ]
+            .followedBy(maxScoreWidth)
+            .followedBy(maxPenaltyWidth)
+            .followedBy(maxFinalScoreWidth)
+            .max,
+        maxPlaceWidth: scores
+            .map((e) => e.players)
+            .flattened
+            .map((score) => textSize('${score.score.placement}').width)
+            .max,
+        maxUmaWidth: scores
+            .map((e) => e.players)
+            .flattened
+            .map((score) => scoreSize(score.score.uma, negSign).width)
+            .max,
+      ),
+      scores,
     );
   },
 );
@@ -313,103 +295,45 @@ class PlayerGameTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) =>
           ErrorScreen(error: error, stackTrace: stackTrace),
-      data: (games) {
-        if (games == null) {
+      data: (data) {
+        if (data == null) {
           return const Center(
             child: Text('No game results available yet for this player'),
           );
         }
-        return ListView(
-          children: [
-            for (final round in games.rounds)
-              SizedBox(
-                height: 312,
-                child: Column(
-                  children: [
-                    Material(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      elevation: 1,
-                      child: ListTile(
-                        leading: const Icon(Icons.watch_later_outlined),
-                        title: Text(round.round.name),
-                        subtitle: Text(
-                          DateFormat('EEEE d MMMM HH:mm')
-                              .format(round.round.start),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
+        final (widths, rounds) = data;
+        return CustomScrollView(
+          slivers: [
+            for (final round in rounds)
+              SliverStickyHeader(
+                header: Material(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  elevation: 1,
+                  child: ListTile(
+                    leading: const Icon(Icons.watch_later_outlined),
+                    title: Text(round.round.name),
+                    subtitle: Text(
+                      DateFormat('EEEE d MMMM HH:mm').format(round.round.start),
                     ),
-                    Expanded(
-                      child: ResultsTable(
-                        widths: games,
-                        round: round,
-                      ),
+                    visualDensity: VisualDensity.compact,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      ROUTES.round,
+                      arguments: round.round.id,
                     ),
-                  ],
+                  ),
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    TableScoreTable(
+                      widths: widths,
+                      players: round.players,
+                    ),
+                  ]),
                 ),
               ),
           ],
         );
       },
-    );
-  }
-}
-
-class ResultsTable extends ConsumerWidget {
-  const ResultsTable({
-    super.key,
-    required this.widths,
-    required this.round,
-  });
-
-  final PlayerGamesWithWidths widths;
-  final RoundHanchanScore round;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DataTable2(
-      columnSpacing: 8,
-      columns: [
-        const DataColumn2(
-          label: Text("Player"),
-        ), // player
-        DataColumn2(
-          label: const Text("#"),
-          numeric: true,
-          fixedWidth: widths.maxPlaceWidth + 8,
-        ),
-        DataColumn2(
-          label: const Text("Game"),
-          numeric: true,
-          fixedWidth: widths.maxScoreWidth + 8,
-        ),
-        DataColumn2(
-          label: const Text("Uma"),
-          numeric: true,
-          fixedWidth: widths.maxUmaWidth + 8,
-        ),
-        DataColumn2(
-          label: const Text("Pen."),
-          numeric: true,
-          fixedWidth: widths.maxScoreWidth + 8,
-        ),
-        DataColumn2(
-          label: const Text("Final"),
-          numeric: true,
-          fixedWidth: widths.maxScoreWidth + 8,
-        ),
-      ],
-      rows: [
-        for (final player in round.players)
-          DataRow2(cells: [
-            DataCell(Text(player.player.name)),
-            DataCell(Text(player.score.placement.toString())),
-            DataCell(ScoreText(player.score.gameScore)),
-            DataCell(ScoreText(player.score.uma)),
-            DataCell(PenaltyText(player.score.penalties)),
-            DataCell(ScoreText(player.score.finalScore)),
-          ])
-      ],
     );
   }
 }

@@ -38,38 +38,26 @@ final filterByPlayerProvider = Provider((ref) {
 final roundListProvider = StreamProvider((ref) async* {
   final showAll = ref.watch(showAllProvider);
   final filterByPlayer = ref.watch(filterByPlayerProvider);
-  final roundById = await ref.watch(scheduleProvider.selectAsync(
-    (schedule) => Map.fromEntries(
-      (schedule.rounds.map((e) => MapEntry(e.id, e))),
-    ),
-  ));
-  final playerById = await ref.watch(playerListProvider.selectAsync(
-    (playerList) => Map.fromEntries(
-      playerList.map((e) => MapEntry(e.id, e.name)),
-    ),
-  ));
+  final roundMap = await ref.watch(roundMapProvider.future);
+  final playerMap = await ref.watch(playerMapProvider.future);
 
   final roundList = await ref.watch(seatingProvider.future);
   yield roundList
       .map(
         (round) => (
           id: round.id,
-          name: roundById[round.id]!.name,
-          start: roundById[round.id]!.start,
+          name: roundMap[round.id]!.name,
+          start: roundMap[round.id]!.start,
           tables: [
-            for (final MapEntry(key: tableName, value: playerIds)
-                in round.tables.entries)
+            for (final table in round.tables)
               if (showAll ||
                   filterByPlayer == null ||
-                  playerIds.contains(filterByPlayer.id))
+                  table.players.contains(filterByPlayer.id))
                 (
-                  name: tableName,
+                  name: table.name,
                   players: {
                     for (final wind in Wind.values)
-                      wind: PlayerData({
-                        'id': playerIds[wind.index],
-                        'name': playerById[playerIds[wind.index]]!,
-                      }),
+                      wind: playerMap[table.players[wind.index]]!,
                   },
                 )
           ],
@@ -150,6 +138,10 @@ class ScheduleList extends ConsumerWidget {
                       DateFormat('EEEE d MMMM HH:mm').format(round.start),
                     ),
                     visualDensity: VisualDensity.compact,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      ROUTES.round,
+                      arguments: round.id,
+                    ),
                   ),
                 ),
                 sliver: SliverPadding(

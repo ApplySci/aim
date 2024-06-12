@@ -73,6 +73,13 @@ final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
   });
 });
 
+final playerMapProvider = StreamProvider((ref) async* {
+  final playerList = await ref.watch(playerListProvider.future);
+  yield {
+    for (final player in playerList) player.id: player,
+  };
+});
+
 final selectedPlayerProvider = Provider((ref) {
   final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
   if (selectedPlayerId == null) return null;
@@ -82,7 +89,7 @@ final selectedPlayerProvider = Provider((ref) {
       ?.firstWhereOrNull((player) => player.id == selectedPlayerId);
 });
 
-final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
+final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -92,10 +99,10 @@ final rankingProvider = StreamProvider<List<RankData>>((ref) async* {
     if (data.containsKey('roundDone')) {
       String done = data['roundDone'];
       if (data.containsKey(done)) {
-        List<RankData> scores = [];
+        List<PlayerRankData> scores = [];
         Map<String, dynamic> scoreList = data[done];
         for (final s in scoreList.entries) {
-          scores.add(RankData.fromMap(int.parse(s.key), s.value));
+          scores.add(PlayerRankData.fromMap(int.parse(s.key), s.value));
         }
         scores.sort((a, b) => b.total.compareTo(a.total));
         return scores;
@@ -115,11 +122,10 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
   yield* collection.doc('seating').snapshots().map((snapshot) {
     Map<String, dynamic> data = snapshot.data() ?? {};
     if (!data.containsKey('rounds')) {
-      return <RoundData>[];
+      return [];
     }
     return [
-      for (final Map oneRound in data['rounds'])
-        RoundData.fromMap(oneRound.cast())
+      for (final Map round in data['rounds']) RoundData.fromMap(round.cast()),
     ];
   });
 });
@@ -144,7 +150,7 @@ final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
 
   yield* collection.doc('seating').snapshots().map((snapshot) {
     ScheduleData out = ScheduleData(timezone: UTC, rounds: const []);
-    Map<String, dynamic> data = snapshot.data() ?? {};
+    final data = snapshot.data() ?? {};
     if (data.containsKey('timezone') && data.containsKey('rounds')) {
       out = ScheduleData.fromSeating(data);
     }
@@ -152,51 +158,48 @@ final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
   });
 });
 
-typedef RoundScore = ({
-  String name,
-  DateTime start, // TODO do we use this anywhere? What's the rationale for having this here?
-  int score,
+final roundListProvider = StreamProvider((ref) async* {
+  final schedule = await ref.watch(scheduleProvider.future);
+  yield schedule.rounds;
+});
+
+final roundMapProvider = StreamProvider((ref) async* {
+  final roundList = await ref.watch(roundListProvider.future);
+  yield {
+    for (final round in roundList) round.id: round,
+  };
 });
 
 typedef PlayerScore = ({
   PlayerId id,
   String name,
-  String rank,
+  int rank,
+  bool tied,
   int total,
   int penalty,
-  List<RoundScore> roundScores,
+  List<HanchanScore> scores,
 });
 
-final playerScoreListProvider = StreamProvider((ref) async* {
+final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
   final rankings = await ref.watch(rankingProvider.future);
-  final playerList = await ref.watch(playerListProvider.future);
+  final playerMap = await ref.watch(playerMapProvider.future);
   final games = await ref.watch(gameProvider.future);
-  final schedule = await ref.watch(scheduleProvider.future);
-  final playerNames =
-      Map.fromEntries(playerList.map((e) => MapEntry(e.id, e.name)));
 
   yield [
     for (final ranking in rankings)
       (
         id: ranking.id,
-        name: playerNames[ranking.id]!,
+        name: playerMap[ranking.id]!.name,
         rank: ranking.rank,
+        tied: ranking.tied,
         total: ranking.total,
         penalty: ranking.penalty,
-        roundScores: [
-          for (final hanchan in games.withPlayerId(ranking.id))
-            (
-              name: schedule.rounds
-                  .firstWhere((rnd) => rnd.id == hanchan.roundId)
-                  .name,
-              score: hanchan.scores
-                  .firstWhere((score) => score.playerId == ranking.id)
-                  .finalScore,
-              start: schedule.rounds
-                  .firstWhere((rnd) => rnd.id == hanchan.roundId)
-                  .start,
-            )
+        scores: [
+          for (final game in games)
+            for (final table in game.tables)
+              for (final scores in table.scores)
+                if (scores.playerId == ranking.id) scores,
         ],
-      )
+      ),
   ];
 });

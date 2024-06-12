@@ -3,20 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '/providers.dart';
+import 'utils.dart';
 
 const scoreStyle = TextStyle(
   fontWeight: FontWeight.bold,
   fontSize: 16,
 );
-
-Size textSize(String text, {TextStyle? style}) {
-  return (TextPainter(
-    text: TextSpan(text: text, style: style),
-    maxLines: 1,
-    textDirection: TextDirection.ltr,
-  )..layout())
-      .size;
-}
 
 Size scoreSize(int score, String negSign) => textSize(
       // Display score with 1 decimal point

@@ -29,7 +29,10 @@ class TournamentList extends ConsumerWidget {
     return tournamentList.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) => ErrorScreen(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (tournamentList) {
         if (tournamentList.isEmpty) {
           return const Center(child: Text('No Tournaments Found'));
@@ -41,14 +44,16 @@ class TournamentList extends ConsumerWidget {
             for (final tournament in tournamentList)
               Card(
                 child: ListTile(
-                  leading: tournament.url_icon == null ? null :
-                    CachedNetworkImage(
-                      width: 70,
-                      imageUrl: tournament.url_icon!,
-                      placeholder: (c, u) => const CircularProgressIndicator(),
-                      errorWidget: (c, u, e) => const Icon(Icons.error),
-                      fit: BoxFit.contain,
-                    ),
+                  leading: tournament.urlIcon == null
+                      ? null
+                      : CachedNetworkImage(
+                          width: 70,
+                          imageUrl: tournament.urlIcon!,
+                          placeholder: (c, u) =>
+                              const CircularProgressIndicator(),
+                          errorWidget: (c, u, e) => const Icon(Icons.error),
+                          fit: BoxFit.contain,
+                        ),
                   selected: tournamentId == tournament.id,
                   title: Text(tournament.name),
                   subtitle: Column(
