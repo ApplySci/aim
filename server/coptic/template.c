@@ -1,20 +1,18 @@
 #include "coptic.h"
-// #include "math.h"
-// Originally built on Martin Lester's socialgolfer.c
-// modified by Andrew ZP Smith
-
+/* don't worry about that warning about coptic.h not being present:
+   it has to be (and is) auto-generated at coptic runtime
+*/
 // <!--
-#define HANCHAN 8
-#define TABLES 8
+#define HANCHAN #HANCHAN#
+#define TABLES #TABLES#
 #define SIZE 4
 #define PERMUTATIONS 24
-#define MAX_WIND_REPEATS 2
-#define IGNORE_H1 #O1#
-#define IGNORE_H2 #O2#
 // -->
 
-
+#define MAX_WIND_REPEATS ( (TABLES + HANCHAN + 1) / TABLES)
 #define PLAYERS (TABLES * SIZE)
+
+const uint8_t rounds_to_use[HANCHAN] = {#ROUNDS_TO_USE#};
 
 const uint8_t initial_seats[10][8][4] = {
 	{{0, 1, 2, 3},
@@ -119,16 +117,6 @@ int main() {
   uint8_t seats[HANCHAN][PLAYERS][SIZE] = {0};
   uint8_t winds[PLAYERS][SIZE] = {0};
   uint8_t tables[PLAYERS][TABLES] = {0};
-
-  // pick 8 digits in the range 0..9
-  // make sure they're unique. They're the 2 rounds we're not using
-  uint8_t h0 = 0;
-  uint8_t rounds_to_use[HANCHAN];
-  for (uint8_t h = 0; h < 10; h++) {
-    if (h != IGNORE_H1 && h != IGNORE_H2) {
-      rounds_to_use[h0++] = h;
-    }
-  }
 
   // at each table, order the players in a random order
   for (uint8_t h = 0; h < HANCHAN; h++) {

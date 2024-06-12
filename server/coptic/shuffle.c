@@ -128,16 +128,19 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("\n\nSEATING BY ROUND, BY TABLE\n\n");
+  printf("\n\nSEATING BY ROUND, BY TABLE\n\nseats = [\n");
   for (int h = 0; h < 8; h++) {
+      printf("    [\n");
       for (int t = 0; t < 8; t++) {
-          printf("%2d, %2d, ", h + 1, t + 1);
+        printf("    [");  
           for (int s = 0; s < 4; s++) {
-            printf("%4u, ", seats[h][t][s] + 1);
+            printf("%3u, ", seats[h][t][s] + 1);
           }
-          printf("\n");
+          printf("],\n");
       }
+      printf("    ],\n");
   }
+  printf("]\n\n\n");
 
   printf("\n\nTABLE COUNT BY PLAYER\n\n");
   // Print the results
@@ -149,4 +152,8 @@ int main(int argc, char *argv[]) {
   }
   printf("\n\nFINAL SCORE: %5d\n\n", score);
   return 0;
+
+  
+
+  
 } 
