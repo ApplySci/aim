@@ -28,7 +28,7 @@ class TournamentData extends Equatable {
     required this.endDate,
     required this.status,
     required this.rules,
-    this.url_icon,
+    this.urlIcon,
   });
 
   factory TournamentData.fromMap(Map<String, dynamic> data) => TournamentData(
@@ -40,8 +40,7 @@ class TournamentData extends Equatable {
         endDate: data['end_date'] as Timestamp,
         status: data['status'] as String,
         rules: data['rules'] as String,
-        url_icon:
-            data.containsKey('url_icon') ? data['url_icon'] as String : null,
+        urlIcon: data['url_icon'] as String?,
       );
 
   final TournamentId id;
@@ -52,7 +51,7 @@ class TournamentData extends Equatable {
   final Timestamp endDate;
   final String status;
   final String rules;
-  final String? url_icon; // may not be present, hence can be null
+  final String? urlIcon; // may not be present, hence can be null
 
   String get when => dateRange(startDate, endDate);
 
@@ -66,7 +65,7 @@ class TournamentData extends Equatable {
         endDate,
         status,
         rules,
-        url_icon,
+        urlIcon,
       ];
 }
 

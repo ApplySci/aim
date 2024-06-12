@@ -17,16 +17,20 @@ class TournamentInfo extends ConsumerWidget {
     return tournament.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) =>
+          ErrorScreen(error: error, stackTrace: stackTrace),
       data: (tournament) => ListView(
         children: [
           ListTile(
-            leading: tournament.url_icon == null ? null :
-              CachedNetworkImage(
-              imageUrl: tournament.url_icon!,
-              placeholder: (context, url) => CircularProgressIndicator(),
-              errorWidget: (context, url, error) => Icon(Icons.error),
-            ),
+            leading: tournament.urlIcon == null
+                ? null
+                : CachedNetworkImage(
+                    imageUrl: tournament.urlIcon!,
+                    placeholder: (context, url) =>
+                        const CircularProgressIndicator(),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.error),
+                  ),
           ),
           ListTile(
             leading: const Icon(Icons.location_on),
@@ -73,7 +77,8 @@ class ScheduleTable extends ConsumerWidget {
     return rounds.when(
       skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) =>
+          ErrorScreen(error: error, stackTrace: stackTrace),
       data: (rounds) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Table(
