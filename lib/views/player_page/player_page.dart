@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/models.dart';
 import '/providers.dart';
-import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 import 'tabs/games_tab.dart';
 import 'tabs/schedule_tab.dart';
 import 'tabs/scores_tab.dart';
@@ -32,25 +33,18 @@ class PlayerPage extends ConsumerWidget {
     );
     return player.when(
       skipLoadingOnReload: true,
-      loading: () => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Player'),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingScaffold(
+        title: Text('Player'),
       ),
-      error: (error, stackTrace) => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Player'),
-        ),
-        body: ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) => ErrorScaffold(
+        title: const Text('Player'),
+        error: error,
+        stackTrace: stackTrace,
       ),
       data: (player) => DefaultTabController(
         length: 4,
         child: Scaffold(
           appBar: AppBar(
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             title: Text(player.name),
             actions: [
               IconButton(

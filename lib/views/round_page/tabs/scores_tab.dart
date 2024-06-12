@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/models.dart';
 import '/providers.dart';
-import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 import '/views/score_text.dart';
 import '/views/utils.dart';
 
@@ -81,8 +82,8 @@ class RoundScoresTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final roundScoreList = ref.watch(roundScoreListWidthsProvider(round.id));
     return roundScoreList.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
         error: error,
         stackTrace: stackTrace,
       ),

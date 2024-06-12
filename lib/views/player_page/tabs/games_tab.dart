@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 import '/views/score_text.dart';
 import '/views/table_score_table.dart';
 import '/views/utils.dart';
@@ -108,9 +110,11 @@ class PlayerGameTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final games = ref.watch(playerGamesWithWidthsProvider(player.id));
     return games.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (data) {
         if (data == null) {
           return const Center(

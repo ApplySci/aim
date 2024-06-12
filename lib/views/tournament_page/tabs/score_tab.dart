@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 import '/views/rank_text.dart';
 import '/views/score_text.dart';
 import '/views/utils.dart';
@@ -47,9 +49,11 @@ class ScoreTable extends ConsumerWidget {
     final playerScores = ref.watch(scoreWidthProvider);
     return playerScores.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (playerScores) {
         final selectedScore = playerScores.playerScores.firstWhereOrNull(
           (e) => e.id == selectedPlayerId,

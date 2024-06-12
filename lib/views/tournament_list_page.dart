@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import 'loading_view.dart';
 
 class TournamentListPage extends StatelessWidget {
   const TournamentListPage({super.key});
@@ -12,7 +14,6 @@ class TournamentListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Tournaments'),
       ),
       body: const TournamentList(),
@@ -28,8 +29,8 @@ class TournamentList extends ConsumerWidget {
     final tournamentList = ref.watch(tournamentListProvider);
     return tournamentList.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
         error: error,
         stackTrace: stackTrace,
       ),
