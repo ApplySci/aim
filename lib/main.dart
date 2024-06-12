@@ -178,16 +178,23 @@ class _MyApp extends ConsumerWidget {
       },
     );
 
+    final lightTheme = ThemeData.light(useMaterial3: true);
+    final darkTheme = ThemeData.dark(useMaterial3: true);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: ROUTES.home,
       navigatorKey: globalNavigatorKey,
       title: 'All-Ireland Mahjong Tournaments',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      theme: lightTheme.copyWith(
+        appBarTheme: AppBarTheme(
+          backgroundColor: lightTheme.colorScheme.inversePrimary,
+        ),
       ),
-      darkTheme: ThemeData.dark(),
+      darkTheme: darkTheme.copyWith(
+        appBarTheme: AppBarTheme(
+          backgroundColor: darkTheme.colorScheme.inversePrimary,
+        ),
+      ),
       themeMode: ThemeMode.system,
       routes: {
         ROUTES.home: (context) => const TournamentListPage(),
