@@ -2,10 +2,13 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm/model/alarm_settings.dart';
 import 'package:flutter/material.dart';
 
-import '../utils.dart';
+import '/utils.dart';
 
 class AlarmPage extends StatelessWidget {
-  const AlarmPage({super.key, required this.settings});
+  const AlarmPage({
+    required this.settings,
+    super.key,
+  });
 
   final AlarmSettings settings;
 

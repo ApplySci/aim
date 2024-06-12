@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import 'loading_view.dart';
 
 typedef Round = ({
   String id,
@@ -106,8 +108,8 @@ final filteredRoundList = StreamProvider.family<Iterable<Round>, When>(
 
 class ScheduleList extends ConsumerWidget {
   const ScheduleList({
-    super.key,
     required this.when,
+    super.key,
   });
 
   final When when;
@@ -117,9 +119,11 @@ class ScheduleList extends ConsumerWidget {
     final roundList = ref.watch(filteredRoundList(when));
     return roundList.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (roundList) {
         if (roundList.isEmpty) {
           return const Center(child: Text('No seating schedule available'));

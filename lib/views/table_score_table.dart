@@ -18,9 +18,9 @@ typedef TableScoreWidths = ({
 
 class TableScoreTable extends StatelessWidget {
   const TableScoreTable({
-    super.key,
     required this.widths,
     required this.players,
+    super.key,
   });
 
   final TableScoreWidths widths;

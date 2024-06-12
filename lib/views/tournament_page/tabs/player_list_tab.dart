@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 
 final searchProvider = StateProvider((_) => '');
 
@@ -70,17 +72,18 @@ class _PlayersState extends ConsumerState<Players> {
 }
 
 class PlayerList extends ConsumerWidget {
-  const PlayerList({
-    super.key,
-  });
+  const PlayerList({super.key});
 
   @override
   Widget build(context, ref) {
     final playerList = ref.watch(searchPlayerList);
     return playerList.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (playerList) => ListView.builder(
         itemCount: playerList.length,
         itemBuilder: (context, index) => PlayerTile(player: playerList[index]),
@@ -91,8 +94,8 @@ class PlayerList extends ConsumerWidget {
 
 class PlayerTile extends ConsumerWidget {
   const PlayerTile({
-    super.key,
     required this.player,
+    super.key,
   });
 
   final PlayerScore player;

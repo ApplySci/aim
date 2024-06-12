@@ -2,48 +2,49 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:intl/intl.dart';
 
 import '/models.dart';
 import '/providers.dart';
+import '/utils.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/score_text.dart';
 import '/views/table_score_table.dart';
 import '/views/utils.dart';
 
-typedef RoundTableScores = ({
-  Hanchan table,
+typedef PlayerRounds = ({
+  RoundScheduleData round,
   List<TablePlayerScore> players,
 });
 
-final roundScoresProvider =
-    StreamProvider.autoDispose.family<List<RoundTableScores>, RoundId>(
-  (ref, roundId) async* {
-    final games = await ref.watch(gameProvider.future);
+final playerScoresProvider =
+    StreamProvider.autoDispose.family<List<PlayerRounds>, PlayerId>(
+  (ref, playerId) async* {
+    final games = (await ref.watch(gameProvider.future)).withPlayerId(playerId);
+    final roundMap = await ref.watch(roundMapProvider.future);
     final playerMap = await ref.watch(playerMapProvider.future);
     yield [
       for (final game in games)
-        if (game.roundId == roundId)
-          for (final table in game.tables)
-            (
-              table: table,
-              players: [
-                for (final score in table.scores)
-                  (
-                    player: playerMap[score.playerId]!,
-                    score: score,
-                  ),
-              ],
-            ),
+        (
+          round: roundMap[game.roundId]!,
+          players: [
+            for (final score in game.scores)
+              (
+                player: playerMap[score.playerId]!,
+                score: score,
+              )
+          ]
+        ),
     ];
   },
 );
 
-final roundGamesWithWidthsProvider = StreamProvider.autoDispose
-    .family<(TableScoreWidths, List<RoundTableScores>)?, RoundId>(
-  (ref, roundId) async* {
+final playerGamesWithWidthsProvider = StreamProvider.autoDispose
+    .family<(TableScoreWidths, List<PlayerRounds>)?, PlayerId>(
+  (ref, playerId) async* {
     final negSign = ref.watch(negSignProvider);
-    final scores = await ref.watch(roundScoresProvider(roundId).future);
+    final scores = await ref.watch(playerScoresProvider(playerId).future);
     if (scores.isEmpty) {
       yield null;
       return;
@@ -53,22 +54,22 @@ final roundGamesWithWidthsProvider = StreamProvider.autoDispose
     final penaltySize = textSize('Pen.').width;
     final finalSize = textSize('Final').width;
     final maxScoreWidth = scores
-        .map((a) => a.players)
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.gameScore, negSign).width);
     final maxPenaltyWidth = scores
-        .map((a) => a.players)
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.penalties, negSign).width);
     final maxFinalScoreWidth = scores
-        .map((a) => a.players)
+        .map((e) => e.players)
         .flattened
         .map((score) => scoreSize(score.score.finalScore, negSign).width);
 
     yield (
       (
         maxNameWidth: scores
-            .map((a) => a.players)
+            .map((e) => e.players)
             .flattened
             .map((score) => textSize(score.player.name).width)
             .max,
@@ -82,12 +83,12 @@ final roundGamesWithWidthsProvider = StreamProvider.autoDispose
             .followedBy(maxFinalScoreWidth)
             .max,
         maxPlaceWidth: scores
-            .map((a) => a.players)
+            .map((e) => e.players)
             .flattened
             .map((score) => textSize('${score.score.placement}').width)
             .max,
         maxUmaWidth: scores
-            .map((a) => a.players)
+            .map((e) => e.players)
             .flattened
             .map((score) => scoreSize(score.score.uma, negSign).width)
             .max,
@@ -97,17 +98,17 @@ final roundGamesWithWidthsProvider = StreamProvider.autoDispose
   },
 );
 
-class RoundGamesTab extends ConsumerWidget {
-  const RoundGamesTab({
-    required this.round,
+class PlayerGameTab extends ConsumerWidget {
+  const PlayerGameTab({
+    required this.player,
     super.key,
   });
 
-  final RoundScheduleData round;
+  final PlayerScore player;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final games = ref.watch(roundGamesWithWidthsProvider(round.id));
+    final games = ref.watch(playerGamesWithWidthsProvider(player.id));
     return games.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(
@@ -120,24 +121,32 @@ class RoundGamesTab extends ConsumerWidget {
             child: Text('No game results available yet for this player'),
           );
         }
-        final (widths, tables) = data;
+        final (widths, rounds) = data;
         return CustomScrollView(
           slivers: [
-            for (final table in tables)
+            for (final round in rounds)
               SliverStickyHeader(
                 header: Material(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   elevation: 1,
                   child: ListTile(
-                    title: Text(table.table.tableId),
+                    leading: const Icon(Icons.watch_later_outlined),
+                    title: Text(round.round.name),
+                    subtitle: Text(
+                      DateFormat('EEEE d MMMM HH:mm').format(round.round.start),
+                    ),
                     visualDensity: VisualDensity.compact,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      ROUTES.round,
+                      arguments: round.round.id,
+                    ),
                   ),
                 ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     TableScoreTable(
                       widths: widths,
-                      players: table.players,
+                      players: round.players,
                     ),
                   ]),
                 ),

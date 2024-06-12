@@ -1,12 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '/providers.dart';
-import '/utils.dart';
 import '/venue.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 
 class TournamentInfo extends ConsumerWidget {
   const TournamentInfo({super.key});
@@ -16,9 +17,11 @@ class TournamentInfo extends ConsumerWidget {
     final tournament = ref.watch(tournamentProvider);
     return tournament.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (tournament) => ListView(
         children: [
           ListTile(
@@ -77,9 +80,11 @@ class ScheduleTable extends ConsumerWidget {
     ));
     return rounds.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          ErrorScreen(error: error, stackTrace: stackTrace),
+      loading: () => const LoadingView(),
+      error: (error, stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (rounds) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Table(

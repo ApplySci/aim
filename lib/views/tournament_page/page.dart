@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/providers.dart';
 import '/utils.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 import 'tabs/info_tab.dart';
 import 'tabs/player_list_tab.dart';
 import 'tabs/round_list_tab.dart';
@@ -20,23 +22,16 @@ class TournamentPage extends ConsumerWidget {
 
     return tournament.when(
       skipLoadingOnReload: true,
-      loading: () => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Tournament'),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingScaffold(
+        title: Text('Tournament'),
       ),
-      error: (error, stackTrace) => Scaffold( // uses ErrorScreen
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Tournament'),
-        ),
-        body: ErrorScreen(error: error, stackTrace: stackTrace),
+      error: (error, stackTrace) => ErrorScaffold(
+        title: const Text('Tournament'),
+        error: error,
+        stackTrace: stackTrace,
       ),
       data: (tournament) => Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: Text(tournament.name),
           actions: [
             IconButton(

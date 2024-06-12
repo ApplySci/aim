@@ -17,7 +17,7 @@ import 'models.dart';
 import 'providers.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
-import 'views/player_page.dart';
+import 'views/player_page/player_page.dart';
 import 'views/round_page/round_page.dart';
 import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
@@ -178,16 +178,23 @@ class _MyApp extends ConsumerWidget {
       },
     );
 
+    final lightTheme = ThemeData.light(useMaterial3: true);
+    final darkTheme = ThemeData.dark(useMaterial3: true);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: ROUTES.home,
       navigatorKey: globalNavigatorKey,
       title: 'All-Ireland Mahjong Tournaments',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      theme: lightTheme.copyWith(
+        appBarTheme: AppBarTheme(
+          backgroundColor: lightTheme.colorScheme.inversePrimary,
+        ),
       ),
-      darkTheme: ThemeData.dark(),
+      darkTheme: darkTheme.copyWith(
+        appBarTheme: AppBarTheme(
+          backgroundColor: darkTheme.colorScheme.inversePrimary,
+        ),
+      ),
       themeMode: ThemeMode.system,
       routes: {
         ROUTES.home: (context) => const TournamentListPage(),
