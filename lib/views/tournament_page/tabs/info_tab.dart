@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '/providers.dart';
 import '/venue.dart';
@@ -24,25 +25,44 @@ class TournamentInfo extends ConsumerWidget {
       ),
       data: (tournament) => ListView(
         children: [
-          ListTile(
-            leading: tournament.urlIcon == null
-                ? null
-                : CachedNetworkImage(
-                    imageUrl: tournament.urlIcon!,
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.error),
-                  ),
-            // todo add link to tournament.url if available
-          ),
+          if (tournament.urlIcon case String urlIcon)
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Center(
+                child: CachedNetworkImage(
+                  width: 128,
+                  imageUrl: urlIcon,
+                  placeholder: (context, url) =>
+                      const CircularProgressIndicator(),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
+              ),
+            ),
+          switch (tournament.url) {
+            String url => ListTile(
+                leading: const Icon(Icons.public),
+                title: Text(tournament.name),
+                subtitle: Text(url),
+                onTap: () => launchUrl(Uri.parse(url)),
+                onLongPress: () async {
+                  await Clipboard.setData(ClipboardData(text: url));
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied url to clipboard')),
+                  );
+                },
+              ),
+            _ => ListTile(
+                leading: const Icon(Icons.public),
+                title: Text(tournament.name),
+              ),
+          },
           ListTile(
             leading: const Icon(Icons.location_on),
-            title: Text(tournament.address),
-            trailing: IconButton(
-              onPressed: () => openMap(context, tournament.address),
-              icon: const Icon(Icons.open_in_new),
-            ),
+            title: const Text('Location'),
+            subtitle: Text(tournament.address),
+            onTap: () => openMap(context, tournament.address),
             onLongPress: () async {
               await Clipboard.setData(ClipboardData(text: tournament.address));
 
@@ -55,12 +75,13 @@ class TournamentInfo extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.calendar_month),
-            title: Text(tournament.when),
+            title: const Text('Event Date'),
+            subtitle: Text(tournament.when),
             visualDensity: VisualDensity.compact,
           ),
           const ListTile(
             leading: Icon(Icons.table_restaurant),
-            title: Text('Hanchan timings'),
+            title: Text('Hanchan Start Times'),
             visualDensity: VisualDensity.compact,
           ),
           const ScheduleTable(),
