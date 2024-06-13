@@ -45,16 +45,19 @@ class TournamentList extends ConsumerWidget {
             for (final tournament in tournamentList)
               Card(
                 child: ListTile(
-                  leading: tournament.urlIcon == null
-                      ? null
-                      : CachedNetworkImage(
-                          width: 70,
-                          imageUrl: tournament.urlIcon!,
-                          placeholder: (c, u) =>
-                              const CircularProgressIndicator(),
-                          errorWidget: (c, u, e) => const Icon(Icons.error),
-                          fit: BoxFit.contain,
+                  leading: switch (tournament.urlIcon) {
+                    String urlIcon => CachedNetworkImage(
+                        height: 70,
+                        width: 70,
+                        imageUrl: urlIcon,
+                        placeholder: (c, u) => const Center(
+                          child: CircularProgressIndicator(),
                         ),
+                        errorWidget: (c, u, e) => const Icon(Icons.error),
+                        fit: BoxFit.contain,
+                      ),
+                    _ => null,
+                  },
                   selected: tournamentId == tournament.id,
                   title: Text(tournament.name),
                   subtitle: Column(
