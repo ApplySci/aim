@@ -41,8 +41,6 @@ void count_tables() {
 int score_seats() {
   /*
    check no player is on any one table too often
-   3-visits are right out - so huge penalty of 1000 for every 3+ visit
-   no player should have too many 2-visits. So a penalty of n-squared for the count of 2-visits
   */
   int score = 0;
   for (uint8_t p = 0; p < PLAYERS; p++) {
@@ -54,7 +52,7 @@ int score_seats() {
         tolerated++;
       }
     }
-    score += tolerated * tolerated;
+    // score += tolerated * tolerated;
   }
   return score;
 }
@@ -123,6 +121,10 @@ int main(int argc, char *argv[]) {
           if (score2 < score) {
             printf("%d, ", score2);
             score = score2;
+            if (score == 0) {
+              printf("\n fully optimal solution found\n");
+              goto optimised;
+            }
           } else {
             // no improvement, so swap back
             swap_rows(seats[h], t, t2); 
@@ -132,6 +134,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  optimised:
+  
   printf("\n\nSEATING BY ROUND, BY TABLE\n\nseats = [\n");
   for (int h = 0; h < HANCHAN; h++) {
       printf("    [\n");

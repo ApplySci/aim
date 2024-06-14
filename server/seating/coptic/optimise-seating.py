@@ -1,6 +1,7 @@
 import argparse
 import importlib
 from itertools import combinations
+from math import factorial
 import os
 import subprocess
 
@@ -19,10 +20,14 @@ parser.add_argument("hanchan", metavar="hanchan", type=int, nargs=1,
 parser.add_argument("-no", action="store_true",
                     help="don't run coptic - use previous results")
 
+parser.add_argument("-f", "--force", action="store_true",
+                    help="force re-running of coptic even if output file already exists")
+
 args = parser.parse_args()
 tables = args.tables[0]
 hanchan = args.hanchan[0]
 use_coptic = not args.no
+force_coptic = args.force
 
 
 #    write our programs from templates
@@ -89,12 +94,24 @@ results = []
 all_combos = combinations(range(total_rounds), hanchan)
 best_score = 9999999
 
+if use_coptic:
+    combo_count = int(factorial(total_rounds) \
+                / factorial(hanchan) \
+                / factorial(total_rounds - hanchan))
+    minutes = int(6 * combo_count / 60) # 6s per iteration
+    print(f"{combo_count} combinations to test: estimated time: {minutes}m")
+
 for combo in all_combos:
     template = base_template.replace('#HANCHAN#', str(hanchan))
     idx = ''.join(str(i) for i in combo)
     coptic_file = f"coptic.coptic/{idx}.txt"
+    outfile = f"shuffled/{idx}.txt"
 
-    if use_coptic:
+    if use_coptic and (
+            force_coptic
+            or not os.path.isfile(coptic_file)
+            or os.path.getsize(coptic_file) == 0):
+
         rounds_to_use =  ', '.join(str(i) for i in combo)
 
         c_source = template.replace('#ROUNDS_TO_USE#', rounds_to_use)
@@ -115,15 +132,21 @@ for combo in all_combos:
         os.rename('coptic.coptic/default.txt', coptic_file)
         print('.', end='', flush=True)
 
-    # Run the C program 'shuffle' and redirect output to file
-    outfile = f"shuffled/{idx}.txt"
+    # Run the C program 'shuffle' and capture the output
+
+    if os.path.isfile(coptic_file) and os.path.getsize(coptic_file) > 0:
+        shuffle_output = subprocess.run(
+                ['./shuffle', coptic_file],
+                capture_output=True,
+                text=True,)
+
     with open(outfile, 'w') as f:
-        subprocess.run(['./shuffle', coptic_file], stdout=f)
-    with open(outfile, 'r') as f:
-        for line in f:
-            if "FINAL SCORE" in line:
-                results.append((line.split('FINAL')[1].strip(), outfile))
-                break
+        f.write(shuffle_output.stdout)
+
+    for line in shuffle_output.stdout.split('\n'):
+        if "FINAL SCORE" in line:
+            results.append((line.split('FINAL')[1].strip(), outfile))
+            break
 
     # if score was zero we can halt now
     parts = line.split("FINAL SCORE:")
@@ -136,7 +159,7 @@ for combo in all_combos:
     if score == 0:
         break
     if score < best_score:
-        print(f"\nbest score to date: {score}")
+        print(f"\nbest score to date: {score} in {idx}")
         best_score = score
 
 
