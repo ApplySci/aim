@@ -12,6 +12,7 @@
 <p><a href='{{ url_for('run.select_tournament') }}'>
   Select which tournament you want to manage - currently managing {{ current_user.live_tournament.title }}
   </a></p>
+<p><a href='/create/metadata'>Edit tournament metadata</a></p>
 <p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament_id }}' target=_blank>Open the google sheet</a>
 </p>
 <hr>

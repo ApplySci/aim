@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Tournament Metadata</title>
+    <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+<h1>Edit Tournament</h1>
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    <p> TBD: extra text here: first hanchan start time - last hanchan end time.
+
+    Say which data should be updated in spreadsheet, not here - eg hanchan times.
+
+    show google doc id, and say it shouldn't be changed.
+
+    show firebase doc id. don't allow it to change
+
+    show timezone, and specify that date/times must be given local to that timezone
+    </p>
+
+    <p>
+        {{ form.name.label }}<br>
+        {{ form.name(size=80) }}
+        {% for error in form.name.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.start_date.label }}<br>
+        {{ form.start_date() }}
+        {% for error in form.start_date.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.end_date.label }}<br>
+        {{ form.end_date() }}
+        {% for error in form.end_date.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.address.label }}<br>
+        {{ form.address(size=80) }}
+        {% for error in form.address.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.country.label }}<br>
+        {{ form.country(size=25) }}
+        {% for error in form.country.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.status.label }}<br>
+        {% for subfield in form.status %}
+            {{ subfield }} {{ subfield.label }}
+        {% endfor %}
+        {% for error in form.status.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.url.label }}<br>
+        {{ form.url(id="url", size=80) }}
+        <span id="url_status"></span>
+        {% for error in form.url.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.url_icon.label }}<br>
+        {{ form.url_icon(id="url_icon", size=80) }}
+        <span id="icon_status"></span>
+        {% for error in form.url_icon.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.submit() }}
+    </p>
+</form>
+<pre>{{ data }}
+
+{{ doc }}
+</pre>
+<script>
+$(document).ready(function(){
+    $('#url').change(function(){
+        $.get(this.value).done(function() {
+            $('#url_status').html('<span style="color:green;">✔️</span>');
+        }).fail(function() {
+            $('#url_status').html('<span style="color:red;">❌</span>');
+        });
+    });
+
+    $('#url_icon').change(function(){
+        var img = new Image();
+        img.src = this.value;
+        img.onload = function() {
+            $('#icon_status').html('<img src="' + img.src + '" width="50" height="50">');
+        }
+        img.onerror = function() {
+            $('#icon_status').html('<span style="color:red;">❌</span>');
+        }
+    });
+});
+</script>
+</body>
+</html>

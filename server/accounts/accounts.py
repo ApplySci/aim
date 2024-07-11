@@ -14,14 +14,16 @@ blueprint = Blueprint('accounts', __name__)
 messages_by_user = {}
 
 
-
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.query(User).get(user_id)
+    try:
+        return db.session.query(User).get(user_id)
+    except:
+        return None
 
 
-@login_required
 @blueprint.route('/account/delete', methods=['GET', 'POST'])
+@login_required
 def delete_account():
     # TODO this doesn't do anything yet. It will, in time
     return render_template('delete_account.html', email=current_user.email)

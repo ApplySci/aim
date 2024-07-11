@@ -11,6 +11,21 @@ from wtforms.validators import DataRequired, Email, NumberRange, Optional, \
     ValidationError
 
 
+class FirebaseDataForm(FlaskForm):
+    """
+    address : str
+    country : str
+    name : str
+    rules : str default: "EMA RCR" / "WRC" / freeform
+    start_date : DateTime with timezone
+    end_date : DateTime with timezone
+    status : str "live"
+    url_icon : str
+    url : str
+    """
+    pass
+
+
 class GameParametersForm(FlaskForm):
 
     hanchan_name = SelectField(

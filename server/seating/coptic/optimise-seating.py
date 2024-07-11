@@ -37,6 +37,10 @@ players = tables * 4
 # eg 5-8 hanchan, 4 tables: 2 is tolerable.
 tolerable_repeats = int((hanchan + tables - 1) / tables)
 
+# TODO if we're not doing winds, then we don't need coptic,
+#      so find a way to bypass it
+#  if use_coptic is false, and dir doesn't exist, assume we're not doing winds.
+#  otherwise, do winds
 
 seats = importlib.import_module(f"{players}")
 total_rounds = len(seats.seats)
@@ -62,9 +66,7 @@ base_template = raw_template.replace(
     '#TOTAL_ROUNDS#', str(total_rounds)
     )
 
-
 #  customise the shuffle program
-
 
 with open('shuffle_template.c', 'r') as file:
     shuffle_template = file.read()
@@ -74,12 +76,16 @@ shuffle_source = shuffle_template.replace(
     '#TABLES#', str(tables)).replace(
     '#TOLERABLE_REPEATS#', str(tolerable_repeats))
 
-shuffle_file = 'shuffle.c'
+suffix = f"{players}x{hanchan}"
+if not os.path.exists(suffix):
+    os.makedirs(suffix)
+os.chdir(suffix)
+shuffle_exe = "shuffle"
+shuffle_file = "shuffle.c"
 with open(shuffle_file, 'w') as f:
     f.write(shuffle_source)
 
-subprocess.run(['gcc', shuffle_file, '-o', 'shuffle'])
-
+subprocess.run(['gcc', shuffle_file, '-o', shuffle_exe])
 
 #  end of shuffle customisation
 
@@ -88,7 +94,7 @@ subprocess.run(['gcc', shuffle_file, '-o', 'shuffle'])
 #  of hanchans from the available rounds, optimising each time
 
 
-c_file = 'coptic.c'
+c_file = "coptic.c"
 
 results = []
 all_combos = combinations(range(total_rounds), hanchan)
@@ -104,8 +110,8 @@ if use_coptic:
 for combo in all_combos:
     template = base_template.replace('#HANCHAN#', str(hanchan))
     idx = ''.join(str(i) for i in combo)
-    coptic_file = f"coptic.coptic/{idx}.txt"
-    outfile = f"shuffled/{idx}.txt"
+    coptic_file = f"{idx}.coptic"
+    outfile = f"{idx}.shuffled"
 
     if use_coptic and (
             force_coptic
@@ -120,7 +126,7 @@ for combo in all_combos:
 
         # Execute the perl script
         coptic_output = subprocess.run(
-            ['../tool/coptic.pl', c_file],
+            ['../../tool/coptic.pl', c_file],
             capture_output=True,
             text=True,
             )
@@ -136,7 +142,7 @@ for combo in all_combos:
 
     if os.path.isfile(coptic_file) and os.path.getsize(coptic_file) > 0:
         shuffle_output = subprocess.run(
-                ['./shuffle', coptic_file],
+                [f'./{shuffle_exe}', coptic_file],
                 capture_output=True,
                 text=True,)
 
@@ -176,7 +182,7 @@ end = "TABLE COUNT BY PLAYER"
 
 # Print lines between start and end patterns
 flag = False
-with open(file, 'r') as f, open(f'final/seats_{players}x{hanchan}.py', 'w') as out:
+with open(file, 'r') as f, open(f'../final/seats_{suffix}.py', 'w') as out:
     for line in f:
         if start in line:
             flag = True

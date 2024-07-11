@@ -232,9 +232,12 @@ def update_ranking_and_scores():
 
 
 @login_required
-def _games_to_cloud(sheet, this_round: int):
-    results = _get_one_round_results(sheet, this_round)
-    _save_to_cloud('scores', results)
+def _games_to_cloud(sheet, done: int):
+    results = {}
+    for this_round in range(1, done + 1):
+        one = _get_one_round_results(sheet, this_round)
+        results.update(one)
+    _save_to_cloud('scores', results, force_set=True)
     return results
 
 
@@ -308,13 +311,13 @@ def _seating_to_map(sheet, schedule):
 
 
 @login_required
-def _save_to_cloud(document: str, data: dict):
+def _save_to_cloud(document: str, data: dict, force_set = False):
     firebase_id : str = current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments").document(
         f"{firebase_id}/v2/{document}")
 
     doc = ref.get()
-    if doc.exists:
+    if doc.exists and not force_set:
         # If the document exists, update the field
         ref.update(data)
     else:
