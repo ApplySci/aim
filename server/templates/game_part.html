@@ -1,0 +1,30 @@
+<table class=gameresults>
+    <caption>Round {{ roundname }} Table {{ tablenumber }}</caption>
+    <thead>
+        <tr class=names>
+            <th>Name
+            {% for p in range(4) %}
+                <th class=pid{{ scores[''~p][0] }}>{{ players[scores[''~p][0]] }}
+            {% endfor %}
+    <tbody>
+        <tr class=place><th>Place
+            {% for p in range(4) %}
+                <td class=pid{{ scores[''~p][0] }}>{{ scores[''~p][3] }}
+            {% endfor %}
+        <tr class=score><th>Game score
+            {% for p in range(4) %}
+                <td class=pid{{ scores[''~p][0] }}>{{ scores[''~p][2] | prettyScore }}
+            {% endfor %}
+        <tr class=score><th>Uma
+            {% for p in range(4) %}
+                <td class=pid{{ scores[''~p][0] }}>{{ (scores[''~p][4] - scores[''~p][2] - scores[''~p][1]) | prettyScore }}
+            {% endfor %}
+        <tr class=score><th>Penalties
+            {% for p in range(4) %}
+                <td class=pid{{ scores[''~p][0] }}>{{ scores[''~p][1] | prettyScore}}
+            {% endfor %}
+        <tr class=score><th>Total
+            {% for p in range(4) %}
+                <td class=pid{{ scores[''~p][0] }}>{{ scores[''~p][4] | prettyScore }}
+            {% endfor %}
+</table>

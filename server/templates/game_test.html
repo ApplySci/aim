@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Multiple game results test{% endblock %}
+
+{% block body %}
+    {% for g in range(1, 4) %}
+        {% set roundname = roundNames[round] %}
+        {% set tablenumber = g %}
+        {% set scores = games[''~g] %}
+        {% include 'game_part.html' %}
+    {% endfor %}
+{% endblock %}

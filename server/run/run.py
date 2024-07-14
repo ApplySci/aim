@@ -204,7 +204,34 @@ def _get_one_round_results(sheet, rnd: int):
 
 
 @login_required
-def _publish_games_on_web(games, schedule, players): # TODO
+def _publish_games_on_web(games, schedule, players):
+    roundNames = {}
+    for r in schedule['rounds']:
+        roundNames[r['id']] = r['name']
+    print(games)
+    html = render_template('game_test.html',
+                           games=games['1'],
+                           players=players,
+                           roundNames=roundNames,
+                           round=1,
+                           )
+
+    print(html)
+
+    fn = os.path.join(
+        current_user.live_tournament.web_directory,
+        'test.html')
+    with open(fn, 'w', encoding='utf-8') as f:
+        f.write(html)
+
+    return
+
+    for key in games.keys():
+        # TODO for each round, create a page for all its games
+        pass
+
+
+    # TODO for each player, create a page for all their games
     return f"{games}", 200
 
 
