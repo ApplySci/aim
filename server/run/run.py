@@ -208,15 +208,13 @@ def _publish_games_on_web(games, schedule, players):
     roundNames = {}
     for r in schedule['rounds']:
         roundNames[r['id']] = r['name']
-    print(games)
+    rnd = "1"
     html = render_template('game_test.html',
-                           games=games['1'],
+                           games=games[rnd],
                            players=players,
                            roundNames=roundNames,
-                           round=1,
+                           round=rnd,
                            )
-
-    print(html)
 
     fn = os.path.join(
         current_user.live_tournament.web_directory,

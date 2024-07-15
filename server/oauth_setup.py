@@ -87,8 +87,11 @@ def config_jinja(app):
         else:
             prefix = ''
         return f"{prefix}{(abs(round(score/10, 1)))}"
+    def scoreClass(score: int):
+        return 'scorePos' if score > 0 else 'scoreNeg' if score < 0 else 'score0'
     env = app.jinja_env
     env.filters['prettyScore'] = prettyScore
+    env.filters['scoreClass'] = scoreClass
 
 def config_login_manager(app):
     login_manager.init_app(app)

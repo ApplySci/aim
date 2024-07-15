@@ -182,7 +182,62 @@ input[type="submit"]:active {
     text-align: center;
 }
 
-#seatingBody tbody td, tbody th {
+#seatingBody tbody td, #seatingBody tbody th {
   border-top: 2px #ccc solid;
   padding: 5px 0 ;
+}
+
+#seatingBody td, #seatingBody tbody th {
+  border-top: 2px #ccc solid;
+  padding: 5px 0 ;
+}
+
+.gameresults {
+  border-collapse: collapse;
+}
+
+.gameresults .caption {
+  border-top: 1px solid #555;
+}
+
+.gameresults td, .gameresults th {
+  text-align: right;
+  border-left: 1px solid #aaa;
+  padding: 2px;
+}
+
+.gameresults td.place {
+  text-align: center;
+}
+
+.gameresults .caption:first-child {
+  border-top: none;
+}
+
+.gameresults .caption td {
+  border-left: none;
+  text-align: center;
+  padding-top: 5px;
+  font-style: italic;
+}
+
+.gameresults th:first-child {
+  text-align: center;
+  border-left: none;
+}
+
+.gameresults .total {
+  font-weight: bolder;
+}
+
+.scorePos {
+  color: #080;
+}
+
+.scoreNeg {
+  color: #800;
+}
+
+.score0 {
+  color: #888;
 }
