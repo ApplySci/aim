@@ -197,7 +197,7 @@ input[type="submit"]:active {
 }
 
 .gameresults .caption {
-  border-top: 1px solid #555;
+  border-top: 2px solid #555;
 }
 
 .gameresults td, .gameresults th {
@@ -240,4 +240,8 @@ input[type="submit"]:active {
 
 .score0 {
   color: #888;
+}
+
+.gameresults tr:not(.caption):not(.headers) {
+  border-top: 1px solid green;
 }
