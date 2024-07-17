@@ -54,19 +54,36 @@ def select_tournament():
 
 
 @login_required
-def _ranking_to_web(scores, players, done, round_name):
+def _ranking_to_web(scores, players, done, schedule):
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
+    roundName = schedule['rounds'][done-1]['name']
     html = render_template('scores.html',
                            title=title,
                            scores=sorted_scores,
-                           round_name=round_name,
+                           round_name=roundName,
                            players=players,
+                           webroot=webroot(),
                            )
     fn = os.path.join(
         current_user.live_tournament.web_directory,
         'scores.html')
+    with open(fn, 'w', encoding='utf-8') as f:
+        f.write(html)
+
+    html = render_template('ranking.html',
+                           title=title,
+                           scores=sorted_scores,
+                           round_name=roundName,
+                           players=players,
+                           webroot=webroot(),
+                           roundNames=_round_names(schedule),
+                           done=done,
+                           )
+    fn = os.path.join(
+        current_user.live_tournament.web_directory,
+        'ranking.html')
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
 
@@ -203,12 +220,15 @@ def webroot():
     result = current_user.live_tournament.web_directory.split(start, 1)[-1]
     return start + result
 
-@login_required
-def _games_to_web(games, schedule, players):
+def _round_names(schedule):
     roundNames = {}
     for r in schedule['rounds']:
         roundNames[r['id']] = r['name']
+    return roundNames
 
+@login_required
+def _games_to_web(games, schedule, players):
+    roundNames = _round_names(schedule)
     player_dir = os.path.join(current_user.live_tournament.web_directory,
                               "players",)
 
@@ -276,13 +296,12 @@ def update_ranking_and_scores():
         sheet = _get_sheet()
         schedule: dict = googlesheet.get_schedule(sheet)
         done : int = googlesheet.count_completed_hanchan(sheet)
-        round_name : str = schedule['rounds'][done-1]['name']
         ranking = _ranking_to_cloud(sheet, done)
         players = _get_players(sheet, False)
         if done > 0:
             games = _games_to_cloud(sheet, done)
             _games_to_web(games, schedule, players)
-        _ranking_to_web(ranking, players, done, round_name)
+        _ranking_to_web(ranking, players, done, schedule)
         _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)

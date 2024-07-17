@@ -13,12 +13,13 @@
 {%- endmacro %}
 <body>
 <nav>
-  <a href='{{ webroot }}scores.html'>Rankings</a>
+  <a href='{{ webroot }}ranking.html'>Ranking</a>
   {% for r in range(1, done+1) %}
     <a href='{{ webroot }}rounds/{{ r }}.html'>{{ roundNames['' ~ r] }}</a>
   {% endfor %}
   <a href='{{ webroot }}seating.html'>Seating</a>
   <a href='{{ current_user.live_tournament }}'>Tournament info</a>
+  <a href='{{ webroot }}scores.html'>Rankings for projector</a>
 </nav>
 <div id=main>
 {% block body %}{% endblock %}

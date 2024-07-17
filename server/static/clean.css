@@ -101,6 +101,7 @@ input[type="submit"]:active {
     grid-template-columns: repeat(auto-fill, 35em);
 }
 
+
 .scorePlayer:nth-child(2n) {
   background-color: #ddd;
 }
@@ -254,17 +255,15 @@ nav {
 
 #main {
     position: absolute;
-    margin-left: 11em;
+    margin-left: 12em;
+    padding-bottom: 2em;
 }
 
 nav a {
-  float: none;
   display: block;
   text-align: left;
   padding: 1em;
   }
-
-/* Style the links inside the navigation bar */
 
 /* Change the color of links on hover */
 nav a:hover {
@@ -277,23 +276,33 @@ nav a.active {
   background-color: #aaf;
 }
 
-@media screen and (max-width: 600px) {
-    #nav {
+@media screen and (max-width: 800px) {
+    body {
+      width: 95%;
+    }
+    nav {
+      background-color: #fcc;
       position: fixed;
       top: 0;
       border-bottom: 2px solid red;
     }
-    #nav a {
-      float: left;
-      display: block;
+    nav a {
+      display: inline-block;
       text-align: center;
-      padding: 14px 16px;
+      padding: 4px;
       text-decoration: none;
-      font-size: 17px;
+      font-size: 14px;
     }
     #main {
-        position: relative;
-        margin-left: 1em;
-        top: 2em;
+        position: absolute;
+        margin-left: 5px;
+        margin-top: 5em;
+    }
 }
+
+#home {
+    position: fixed;
+    top:5px;
+    left: 5px;
+    z-index: 9;
 }

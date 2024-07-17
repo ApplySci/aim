@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Results for {{ roundname }}{% endblock %}
+
+{% block body %}
+<h1>{{ title }} - scores after {{ round_name }}</h1>
+
+<div id=rankingBody>
+{% for p in scores %}
+    <div class=scorePlayer>
+        <div class=scoreRank>{{ ('','=')[p[1]['t']] }}{{ p[1]['r'] }}</div>
+        <div class=scoreScore>{{ p[1]['total'] | prettyScore }}</div>
+        <div class=scoreName>{{ playerLink(players, p[0] | int) }}</div>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}
