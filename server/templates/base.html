@@ -8,6 +8,9 @@
     {% block headextra %}{% endblock %}
     {% endblock %}
 </head>
+{% macro playerLink(players, pid) -%}
+<a href='{{ webroot }}players/{{ pid }}.html'>{{ players[pid] }}</a>
+{%- endmacro %}
 <body>
 {% block body %}{% endblock %}
 </body>

@@ -54,12 +54,10 @@ def select_tournament():
 
 
 @login_required
-def _publish_ranking_on_web(scores, players, done, round_name):
+def _ranking_to_web(scores, players, done, round_name):
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
-    print(players)
-    print(sorted_scores)
     html = render_template('scores.html',
                            title=title,
                            scores=sorted_scores,
@@ -89,11 +87,9 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 def run_tournament():
     # TODO allow the user to update the schedule on firebase WITHOUT seating
     if current_user.live_tournament:
-        start = "/static/"
-        result = current_user.live_tournament.web_directory.split(start, 1)[-1]
         return render_template(
             'run_tournament.html',
-            webroot = start + result,
+            webroot=webroot(),
             )
     return redirect(url_for('create.index'))
 
@@ -115,13 +111,13 @@ def update_schedule():
         'rounds': seating,
         'timezone': schedule['timezone'],
         })
-    _publish_seating_on_web(sheet=sheet, seating=seating)
+    _seating_to_web(sheet=sheet, seating=seating)
     _send_messages('seating & schedule updated')
     return "SEATING & SCHEDULE updated, notifications sent", 200
 
 
 @login_required
-def _publish_seating_on_web(sheet, seating): # TODO
+def _seating_to_web(sheet, seating): # TODO
     done : int = googlesheet.count_completed_hanchan(sheet)
     players = _get_players(sheet, False)
     schedule_vals = googlesheet.get_raw_schedule(sheet)
@@ -202,9 +198,13 @@ def _get_one_round_results(sheet, rnd: int):
         row += 7
     return {f"{rnd}": tables}
 
+def webroot():
+    start = "/static/"
+    result = current_user.live_tournament.web_directory.split(start, 1)[-1]
+    return start + result
 
 @login_required
-def _publish_games_on_web(games, schedule, players):
+def _games_to_web(games, schedule, players):
     roundNames = {}
     for r in schedule['rounds']:
         roundNames[r['id']] = r['name']
@@ -214,22 +214,51 @@ def _publish_games_on_web(games, schedule, players):
                            players=players,
                            roundNames=roundNames,
                            round=rnd,
+                           webroot=webroot(),
                            )
 
     fn = os.path.join(
         current_user.live_tournament.web_directory,
         'test.html')
+
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
 
-    return
+    player_dir = os.path.join(current_user.live_tournament.web_directory,
+                              "players",)
+
+    if not os.path.exists(player_dir):
+        os.makedirs(player_dir)
+
+    print(games)
+    for pid, name in players.items():
+        player_games = {}
+        for r in games:
+            for t in games[r]:
+                present = False
+                for p, s in games[r][t].items():
+                    if s[0] == pid:
+                        present = True
+                        break
+                if (present):
+                    player_games[r] = {t: games[r][t]}
+
+        html = render_template('player_page.html',
+                               games=player_games,
+                               players=players,
+                               roundNames=roundNames,
+                               webroot=webroot(),
+                               pid=pid,
+                               )
+
+        fn = os.path.join(player_dir, f"{pid}.html")
+        with open(fn, 'w', encoding='utf-8') as f:
+            f.write(html)
 
     for key in games.keys():
         # TODO for each round, create a page for all its games
         pass
 
-
-    # TODO for each player, create a page for all their games
     return f"{games}", 200
 
 
@@ -247,8 +276,8 @@ def update_ranking_and_scores():
         players = _get_players(sheet, False)
         if done > 0:
             games = _games_to_cloud(sheet, done)
-            _publish_games_on_web(games, schedule, players)
-        _publish_ranking_on_web(ranking, players, done, round_name)
+            _games_to_web(games, schedule, players)
+        _ranking_to_web(ranking, players, done, round_name)
         _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)

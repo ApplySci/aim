@@ -221,7 +221,7 @@ input[type="submit"]:active {
   font-style: italic;
 }
 
-.gameresults th:first-child {
+.gameresults td:first-child, .gameresults th:first-child {
   text-align: center;
   border-left: none;
 }

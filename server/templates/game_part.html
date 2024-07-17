@@ -5,11 +5,11 @@
     <th>Place
     <th>Score
     <th>Bonus
-    <th>Penlt
+    <th>Penalty
     <th>Total
 {% for p in range(4) %}
     <tr class=pid{{ scores[''~p][0] }}>
-        <th class=name>{{ players[scores[''~p][0]] }}
+        <td class=name>{{ playerLink(players, scores[''~p][0]) }}
         <td class=place>{{ scores[''~p][3] }}
         <td class={{ scores[''~p][2] | scoreClass }}>{{ scores[''~p][2] | prettyScore }}
         {% set uma=scores[''~p][4] - scores[''~p][2] - scores[''~p][1] %}
