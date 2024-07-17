@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Results for {{ roundname }}{% endblock %}
+
+{% block body %}
+<h1>Results for {{ roundname }}</h1>
+<table class=gameresults>
+    {% for tablenumber in games %}
+        {% set scores = games[tablenumber] %}
+        {% include 'game_part.html' %}
+    {% endfor %}
+</table>
+{% endblock %}

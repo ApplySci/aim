@@ -208,21 +208,6 @@ def _games_to_web(games, schedule, players):
     roundNames = {}
     for r in schedule['rounds']:
         roundNames[r['id']] = r['name']
-    rnd = "1"
-    html = render_template('game_test.html',
-                           games=games[rnd],
-                           players=players,
-                           roundNames=roundNames,
-                           round=rnd,
-                           webroot=webroot(),
-                           )
-
-    fn = os.path.join(
-        current_user.live_tournament.web_directory,
-        'test.html')
-
-    with open(fn, 'w', encoding='utf-8') as f:
-        f.write(html)
 
     player_dir = os.path.join(current_user.live_tournament.web_directory,
                               "players",)
@@ -230,8 +215,8 @@ def _games_to_web(games, schedule, players):
     if not os.path.exists(player_dir):
         os.makedirs(player_dir)
 
-    print(games)
     for pid, name in players.items():
+        # for each player, create a page with all their games
         player_games = {}
         for r in games:
             for t in games[r]:
@@ -247,6 +232,7 @@ def _games_to_web(games, schedule, players):
                                games=player_games,
                                players=players,
                                roundNames=roundNames,
+                               done=len(games),
                                webroot=webroot(),
                                pid=pid,
                                )
@@ -255,9 +241,28 @@ def _games_to_web(games, schedule, players):
         with open(fn, 'w', encoding='utf-8') as f:
             f.write(html)
 
-    for key in games.keys():
-        # TODO for each round, create a page for all its games
-        pass
+    # =======================================================
+
+    round_dir = os.path.join(current_user.live_tournament.web_directory,
+                              "rounds",)
+
+    if not os.path.exists(round_dir):
+        os.makedirs(round_dir)
+
+    for r in games:
+        # for each round, create a page for all its games
+        html = render_template('round_page.html',
+                               games=games[r],
+                               players=players,
+                               roundNames=roundNames,
+                               done=len(games),
+                               roundname=roundNames[r],
+                               webroot=webroot(),
+                               )
+
+        fn = os.path.join(round_dir, f"{r}.html")
+        with open(fn, 'w', encoding='utf-8') as f:
+            f.write(html)
 
     return f"{games}", 200
 
