@@ -10,12 +10,16 @@ import traceback
 
 from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
-    copy_current_request_context, request
+    copy_current_request_context, request, flash
 from flask_login import login_required, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, RadioField, SubmitField, SelectField
+from wtforms.validators import DataRequired, Email
 
 from create.write_sheet import googlesheet
-from models import Access
+from models import Access, User, Role, Tournament
 from oauth_setup import db, firestore_client
+from .userform import AddUserForm
 
 blueprint = Blueprint('run', __name__)
 
@@ -54,12 +58,12 @@ def select_tournament():
 
 
 @login_required
-def _ranking_to_web(scores, players, done, schedule):
+def _ranking_to_web(scores, games, players, done, schedule):
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
     roundName = schedule['rounds'][done-1]['name']
-    html = render_template('scores.html',
+    html = render_template('projector.html',
                            title=title,
                            scores=sorted_scores,
                            round_name=roundName,
@@ -68,10 +72,21 @@ def _ranking_to_web(scores, players, done, schedule):
                            )
     fn = os.path.join(
         current_user.live_tournament.web_directory,
-        'scores.html')
+        'projector.html')
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
 
+    # ======================================
+
+    scores_by_player = {}
+    for r in range(1, done+1):
+        rs = str(r)
+        for t in games[rs]:
+            for idx, line in games[rs][t].items():
+                p = line[0]
+                if p not in scores_by_player:
+                    scores_by_player[p] = {}
+                scores_by_player[p][r] = (line[4], t)
     html = render_template('ranking.html',
                            title=title,
                            scores=sorted_scores,
@@ -80,6 +95,7 @@ def _ranking_to_web(scores, players, done, schedule):
                            webroot=webroot(),
                            roundNames=_round_names(schedule),
                            done=done,
+                           games=scores_by_player,
                            )
     fn = os.path.join(
         current_user.live_tournament.web_directory,
@@ -87,7 +103,7 @@ def _ranking_to_web(scores, players, done, schedule):
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
 
-    return 'scores.html has been updated, notifications sent', 200
+    return 'ranking pages updated, notifications sent', 200
 
 
 @login_required
@@ -134,18 +150,19 @@ def update_schedule():
 
 
 @login_required
-def _seating_to_web(sheet, seating): # TODO
+def _seating_to_web(sheet, seating):
     done : int = googlesheet.count_completed_hanchan(sheet)
     players = _get_players(sheet, False)
-    schedule_vals = googlesheet.get_raw_schedule(sheet)
+    schedule: dict = googlesheet.get_schedule(sheet)
+    # TODO would be nice to get & show timezone
 
     html : str = render_template('seating.html',
         done=done,
-        timezone=schedule_vals[0][2],
         title=current_user.live_tournament.title,
         seating=seating,
-        schedule=schedule_vals[2:],
+        schedule=schedule,
         players=players,
+        roundNames=_round_names(schedule),
         )
     fn = os.path.join(
         current_user.live_tournament.web_directory,
@@ -255,6 +272,7 @@ def _games_to_web(games, schedule, players):
                                done=len(games),
                                webroot=webroot(),
                                pid=pid,
+                               title=current_user.live_tournament.title,
                                )
 
         fn = os.path.join(player_dir, f"{pid}.html")
@@ -278,6 +296,7 @@ def _games_to_web(games, schedule, players):
                                done=len(games),
                                roundname=roundNames[r],
                                webroot=webroot(),
+                               title=current_user.live_tournament.title,
                                )
 
         fn = os.path.join(round_dir, f"{r}.html")
@@ -301,8 +320,8 @@ def update_ranking_and_scores():
         if done > 0:
             games = _games_to_cloud(sheet, done)
             _games_to_web(games, schedule, players)
-        _ranking_to_web(ranking, players, done, schedule)
-        _message_player_topics(ranking, done, players)
+            _ranking_to_web(ranking, games, players, done, schedule)
+            _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
@@ -401,3 +420,36 @@ def _save_to_cloud(document: str, data: dict, force_set = False):
     else:
         # If the document does not exist, create it with the field
         ref.set(data)
+
+@blueprint.route('/run/add_user', methods=['GET', 'POST'])
+@login_required
+def add_user():
+    form = AddUserForm()
+    form.tournament.choices = [(t.id, t.title) for t in current_user.tournaments]
+
+    if form.validate_on_submit():
+        email = form.email.data
+        tournament_id = form.tournament.data
+        role = form.role.data
+
+        # Check if the user already exists
+        user = db.session.query(User).filter_by(email=email).first()
+        if not user:
+            user = User(email=email)
+            db.session.add(user)
+            db.session.commit()
+
+        # Add the user to the tournament with the specified role
+        access = db.session.query(Access).filter_by(user_email=email, tournament_id=tournament_id).first()
+        if not access:
+            tournament = db.session.query(Tournament).get(tournament_id)
+            access = Access(user=user, tournament=tournament, role=Role[role])
+            db.session.add(access)
+            db.session.commit()
+            flash('User added successfully!', 'success')
+        else:
+            flash('User already has access to this tournament.', 'warning')
+
+        return redirect(url_for('run.add_user'))
+
+    return render_template('add_user.html', form=form)

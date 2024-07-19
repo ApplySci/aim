@@ -1,17 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}Results for {{ roundname }}{% endblock %}
+{% block title %}{{ title }} - Results for {{ roundname }}{% endblock %}
 
 {% block body %}
-<h1>{{ title }} - scores after {{ round_name }}</h1>
-
-<div id=rankingBody>
+<h1>{{ title }}<h1>
+<h2>Scores after {{ round_name }}</h1>
+<table id=ranking>
+<thead><tr>
+    <th>Place
+    <th>Score
+    <th>Player
+    {% for r in range(done, 0, -1)  %}
+      <th>{{ roundNames[''~r] }}
+    {% endfor %}
+    <th>Penalty
+<tbody>
 {% for p in scores %}
-    <div class=scorePlayer>
-        <div class=scoreRank>{{ ('','=')[p[1]['t']] }}{{ p[1]['r'] }}</div>
-        <div class=scoreScore>{{ p[1]['total'] | prettyScore }}</div>
-        <div class=scoreName>{{ playerLink(players, p[0] | int) }}</div>
+    {% set pid=p[0] | int %}
+    <tr>
+        <td>{{ ('','=')[p[1]['t']] }}{{ p[1]['r'] }}
+        {% set score=p[1]['total'] %}
+        <td class={{score | scoreClass}}>{{ score | prettyScore }}
+        <td>{{ playerLink(players, pid) }}
+        {% for r in range(done, 0, -1) %}
+            {% set score=games[pid][r][0] %}
+            {% set table=games[pid][r][1] %}
+            <td class={{score | scoreClass}}>
+                <a href='{{webroot}}rounds/{{r}}.html#{{
+                        roundNames[''~r]|urlsafe
+                    }}_{{table}}'>{{score | prettyScore}}
+                </a>
+        {% endfor %}
+        {% set score=p[1]['p'] %}
+        <td class={{score | scoreClass}}>{{ score | prettyScore }}
     </div>
 {% endfor %}
-</div>
+</table>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Player results for {{ players[pid] }}{% endblock %}
+{% block title %}{ title }} - Player results for {{ players[pid] }}{% endblock %}
 
 {% block headextra %}
 <style>
@@ -12,7 +12,8 @@
 {% endblock %}
 
 {% block body %}
-<h1>Results for {{ players[pid] }}</h1>
+<h1>{ title }}<h1>
+<h2>Results for {{ players[pid] }}</h2>
 <table class=gameresults>
     {% for r in games %}
         {% set roundname = roundNames[r] %}

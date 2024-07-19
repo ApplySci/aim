@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from urllib.parse import quote_plus
 
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
@@ -89,9 +90,13 @@ def config_jinja(app):
         return f"{prefix}{(abs(round(score/10, 1)))}"
     def scoreClass(score: int):
         return 'scorePos' if score > 0 else 'scoreNeg' if score < 0 else 'score0'
+    def urlsafe(x):
+        return quote_plus(x)
+
     env = app.jinja_env
     env.filters['prettyScore'] = prettyScore
     env.filters['scoreClass'] = scoreClass
+    env.filters['urlsafe'] = urlsafe
 
 def config_login_manager(app):
     login_manager.init_app(app)

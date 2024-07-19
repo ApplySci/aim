@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Results for {{ roundname }}{% endblock %}
+{% block title %}{{ title }} - Results for {{ roundname }}{% endblock %}
 
 {% block body %}
-<h1>Results for {{ roundname }}</h1>
+<h1>{{ title}}</h1>
+<h2>Results for {{ roundname }}</h2>
 <table class=gameresults>
     {% for tablenumber in games %}
         {% set scores = games[tablenumber] %}

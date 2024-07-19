@@ -15,6 +15,9 @@
 <p><a href='/create/metadata'>Edit tournament metadata</a></p>
 <p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament_id }}' target=_blank>Open the google sheet</a>
 </p>
+<p>
+    <a href="{{ url_for('run.add_user') }}">Add User to Tournament</a>
+</p>
 <hr>
 <div id='runButtons'>
 

@@ -3,7 +3,7 @@ body {
     margin: 0 auto;
     padding: 0;
     background-color: #f4f4f4;
-    width: 80%;
+    width: 90%;
 }
 
 form + form {
@@ -163,6 +163,10 @@ input[type="submit"]:active {
     font-weight: bold;
 }
 
+#seatingBody {
+    width: 90%;
+}
+
 #seatingBody section {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -254,7 +258,6 @@ nav {
 }
 
 #main {
-    position: absolute;
     margin-left: 12em;
     padding-bottom: 2em;
 }
@@ -305,4 +308,38 @@ nav a.active {
     top:5px;
     left: 5px;
     z-index: 9;
+}
+
+#ranking {
+    position: relative;
+}
+
+#ranking thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+#ranking tbody {
+    max-height: 80%;
+    overflow-y: auto
+}
+
+#ranking .scorePos a, #ranking .scoreNeg a, #ranking .score0 a {
+    color: inherit;
+}
+
+#ranking .scorePos, #ranking .scoreNeg, #ranking .score0 {
+    text-align: right;
+}
+
+#ranking tr:nth-child(even) {
+    background-color: #d8d8ff;
+}
+#ranking thead th {
+    background-color: #ccf;
+}
+
+#ranking tbody td {
+    padding: 3px;
 }

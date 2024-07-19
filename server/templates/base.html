@@ -5,6 +5,7 @@
     <title>{% block title %}{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel=stylesheet type='text/css' href='/static/clean.css'>
+    <link rel=stylesheet type='text/css' href='{{ webroot }}my.css'>
     {% block headextra %}{% endblock %}
     {% endblock %}
 </head>
@@ -19,7 +20,7 @@
   {% endfor %}
   <a href='{{ webroot }}seating.html'>Seating</a>
   <a href='{{ current_user.live_tournament }}'>Tournament info</a>
-  <a href='{{ webroot }}scores.html'>Rankings for projector</a>
+  <a href='{{ webroot }}projector.html'>Rankings for projector</a>
 </nav>
 <div id=main>
 {% block body %}{% endblock %}

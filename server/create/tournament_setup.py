@@ -145,12 +145,13 @@ def _add_to_db(id, title):
 def update_tournament():
     docId = current_user.live_tournament.firebase_doc or 'None'
     doc_ref = firestore_client.collection('tournaments').document(docId)
-    form = TournamentForm()
+    form = TournamentForm(request.form)
     if not form.validate_on_submit():
+        print('cloud_edit form failed validation')
         return render_template('cloud_edit.html', form=form)
     if docId == None:
         # TODO create doc
-        pass
+        print('no docId present')
     doc_ref.set({
         'start_date': form.start_date.data,
         'end_date': form.end_date.data,
@@ -161,7 +162,7 @@ def update_tournament():
         'url': form.url.data,
         'url_icon': form.url_icon.data
     })
-    return 'changes saved', 200 # TODO decide where to send user next
+    return render_template('cloud_edit.html', form=form)
 
 @blueprint.route('/create/metadata', methods=['GET'])
 @login_required
