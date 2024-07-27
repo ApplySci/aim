@@ -12,14 +12,11 @@ from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
     copy_current_request_context, request, flash
 from flask_login import login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Email
 
 from create.write_sheet import googlesheet
-from models import Access, User, Role, Tournament
+from models import Access, User, Tournament, Role
 from oauth_setup import db, firestore_client
-from .userform import AddUserForm
+from forms import AddUserForm
 
 blueprint = Blueprint('run', __name__)
 

@@ -243,7 +243,8 @@ class GSP:
         match-ups, so only 5 rounds are listed. Currently, this will
         break. We need a smart way to deal with that.
         '''
-        seats = importlib.import_module(f"seating.{table_count*4}")
+        seats = importlib.import_module(
+            f"seating.seats_{table_count*4}x{hanchan_count}")
         # randomize each table; all tables each round; & all rounds
         for round in seats.seats:
             for table in round:
