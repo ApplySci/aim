@@ -1,13 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Tournament Metadata</title>
-    <link rel=stylesheet type='text/css' href='/static/clean.css'>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-</head>
-<body>
+{% extends "runbase.html" %}
+
+{% block title %}Edit Tournament Metadata{% endblock %}
+
+{% block extra_head %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+{% endblock %}
+
+{% block content %}
 <h1>Edit Tournament</h1>
 <form method="POST">
     {{ form.hidden_tag() }}
@@ -99,6 +98,9 @@
 
 {{ doc }}
 </pre>
+{% endblock %}
+
+{% block scripts %}
 <script>
 $(document).ready(function(){
     $('#url').change(function(){
@@ -121,5 +123,4 @@ $(document).ready(function(){
     });
 });
 </script>
-</body>
-</html>
+{% endblock %}

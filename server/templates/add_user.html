@@ -1,41 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Add scorer</title>
-    <link rel="stylesheet" type="text/css" href="/static/clean.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
+{% extends "runbase.html" %}
+
+{% block title %}Add Scorer{% endblock %}
+
+{% block content %}
 <h1>Add scorer to tournament management team</h1>
 <form method="POST">
     {{ form.hidden_tag() }}
-    <p>
-        {{ form.email.label }}<br>
+    <div>
+        <p>{{ form.email.label }}:</p>
         {{ form.email(size=80) }}
         {% for error in form.email.errors %}
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
-    </p>
-    <p>
-        {{ form.tournament.label }}<br>
+    </div>
+    <div>
+        <p>{{ form.tournament.label }}:</p>
         {{ form.tournament() }}
         {% for error in form.tournament.errors %}
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
-    </p>
-    <p>
-        {{ form.role.label }}<br>
-        {% for subfield in form.role %}
-            {{ subfield }} {{ subfield.label }}
-        {% endfor %}
+    </div>
+    <!--div>
+        <p>{{ form.role.label }}:</p>
+        {{  form.role }}
         {% for error in form.role.errors %}
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
-    </p>
+    </div-->
     <p>
         {{ form.submit() }}
     </p>
 </form>
-</body>
-</html>
+{% endblock %}

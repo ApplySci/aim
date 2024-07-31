@@ -168,9 +168,9 @@ def update_tournament():
     })
     return render_template('cloud_edit.html', form=form)
 
-@blueprint.route('/create/metadata', methods=['GET'])
+@blueprint.route('/edit/metadata', methods=['GET'])
 @login_required
-def edit_tournament():
+def edit_metadata():
     sheet = googlesheet.get_sheet(current_user.live_tournament.google_doc_id)
     schedule = googlesheet.get_schedule(sheet)
     docId = current_user.live_tournament.firebase_doc or 'None'

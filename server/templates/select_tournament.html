@@ -1,13 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Select a spreadsheet</title>
-    <link rel=stylesheet type='text/css' href='/static/clean.css'>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-    <ul>
+{% extends "runbase.html" %}
+
+{% block title %}Select a Tournament{% endblock %}
+
+{% block content %}
+<h1>Select a Tournament</h1>
+<ul>
 {% for tournament in tournaments %}
 <li>
 <form method="POST" action="">
@@ -17,5 +14,4 @@
 </li>
 {% endfor %}
 </ul>
-</body>
-</html>
+{% endblock %}

@@ -1,27 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Your scoresheet is being created now</title>
-    <link rel=stylesheet type='text/css' href='/static/clean.css'>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-    <h1>Now creating your new tournament scoresheet.</h1>
-    <div id=doclist>
-        <p>You should receive an email at {{ current_user.email }} from google,
-        with a link to it, as soon as it's ready.</p>
-        <p>Additionally, this page should
-        update with a link to the sheet, as soon as it is ready.
-        <img src='/static/Loading_Key.gif'></p>
-        <p>Once it's there, open the sheet.
-        Then follow the instructions at the top of the
-        README tab. It will explain how to create your copy of that sheet.</p>
-        <p>When you've created the copy, come back to this tab,
-        and press this button:</p>
-        <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>
-    </div>
+{% extends "runbase.html" %}
 
+{% block title %}Your scoresheet is being created now{% endblock %}
+
+{% block content %}
+<h1>Now creating your new tournament scoresheet.</h1>
+<div id="doclist">
+    <p>You should receive an email at {{ current_user.email }} from google,
+    with a link to it, as soon as it's ready.</p>
+    <p>Additionally, this page should
+    update with a link to the sheet, as soon as it is ready.
+    <img src='/static/Loading_Key.gif'></p>
+    <p>Once it's there, open the sheet.
+    Then follow the instructions at the top of the
+    README tab. It will explain how to create your copy of that sheet.</p>
+    <p>When you've created the copy, come back to this tab,
+    and press this button:</p>
+    <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script defer>
 
 var sheetwip_timer;
@@ -95,5 +93,4 @@ function poll_new_sheet() {
 
 poll_new_sheet();
 </script>
-</body>
-</html>
+{% endblock %}

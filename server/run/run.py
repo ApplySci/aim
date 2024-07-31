@@ -466,7 +466,13 @@ def add_user_post():
 @blueprint.route('/run/add_user', methods=['GET'])
 @login_required
 def add_user_get():
-    form = AddUserForm(request.form)
     tournaments = current_user.get_tournaments(db.session)
-    form.tournament.choices = [(t.id, t.title) for t in tournaments]
+    tournament_choices = [(str(t.id), t.title) for t in tournaments]
+    
+    form = AddUserForm(request.form)
+    form.tournament.choices = tournament_choices
+    
+    if current_user.live_tournament_id:
+        form.tournament.data = str(current_user.live_tournament_id)
+    
     return render_template('add_user.html', form=form)
