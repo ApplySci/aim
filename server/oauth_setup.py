@@ -61,9 +61,10 @@ def config_db(app):
         db.session.commit()
 
         for i in range(2):
-            if not db.session.query(Tournament).get(scoresheet_ids[i]):
+            if not db.session.query(Tournament).filter_by(
+                    google_doc_id=scoresheet_ids[i]).first():
                 t = Tournament(
-                    id=scoresheet_ids[i],
+                    google_doc_id=scoresheet_ids[i],
                     title=titles[i],
                     web_directory=webdirs[i],
                     firebase_doc=firebase_docs[i],
@@ -73,7 +74,7 @@ def config_db(app):
                 for email in DEFAULT_USERS:
                     db.session.add(Access(
                         user_email=email,
-                        tournament_id=scoresheet_ids[i],
+                        tournament_id=t.id,
                         role=Role.admin,
                         ))
                 db.session.commit()

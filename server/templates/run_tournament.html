@@ -7,6 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+  
+<!-- Add this section to display flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <div class="flashes">
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+  </div>
+{% endif %}
+{% endwith %}
+
 <h1>Run {{ current_user.live_tournament.title }}</h1>
 <h3>Available actions:</h3>
 <p><a href='{{ url_for('run.select_tournament') }}'>
@@ -16,7 +28,16 @@
 <p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament_id }}' target=_blank>Open the google sheet</a>
 </p>
 <p>
-    <a href="{{ url_for('run.add_user') }}">Add User to Tournament</a>
+    <a href="{{ url_for('run.add_user_get') }}">Add the google account of a new scorer
+       to the tournament management team</a>
+</p>
+<hr>
+<p>
+  <a href='{{ webroot }}projector.html' target='blank'>Live ranking for data projector</a>
+  |
+  <a href='{{ webroot }}ranking.html' target='blank'>Main public score page</a>
+  |
+  <a href='{{ webroot }}seating.html' target='blank'>Seating</a>
 </p>
 <hr>
 <div id='runButtons'>
@@ -34,11 +55,6 @@
     url_for('run.update_players')
     }}">Update list of players & seat-number assignments</button>
 
-  <p>
-      <a href='{{ webroot }}/scores.html' target='blank'>Live ranking for data projector</a>
-      |
-      <a href='{{ webroot }}/seating.html' target='blank'>Seating</a>
-      </p>
 
 </div>
 <div><button id="clearButton">Clear log</button></div>

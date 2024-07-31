@@ -67,7 +67,7 @@ class GSP:
 
 
     def count_completed_hanchan(self, live : gspread.spreadsheet.Spreadsheet) -> int:
-        triggers = live.worksheet('reference').get('PublicationTriggers')
+        triggers = live.worksheet('GO LIVE').get('PublicationTriggers')
         done : int = 0 # number of completed hanchan
         for i in range(1, len(triggers)):
             if len(triggers[i]) < 3 or triggers[i][1] == '':
@@ -146,7 +146,7 @@ class GSP:
     def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:
         # delete unnecessary rows in the RoundResults range
         ref_sheet: gspread.worksheet.Worksheet = \
-            self.live_sheet.worksheet('reference')
+            self.live_sheet.worksheet('GO LIVE')
         triggers = self.live_sheet.named_range('PublicationTriggers')
         first_row = triggers[0].row + hanchan_count + 1
         ref_sheet.delete_rows(first_row, triggers[-1].row)
@@ -225,10 +225,7 @@ class GSP:
     def _set_seating(self, table_count: int, hanchan_count: int) -> None:
         '''
         Reads in a standard solution to the social golfer problem for this
-        size of problem. It then randomises the order of things, to preserve
-        the uniqueness of match-ups, while varying which players sit at
-        which tables in which rounds.
-
+        size of problem.
 
         Args:
             table_count (int): number of tables (players divided by 4)
@@ -237,26 +234,15 @@ class GSP:
         Returns:
             None
 
-        TOFIX: we might have more rounds than are catered for in the
-        solutions we have stored. For example, if there are
-        16 players and 6 rounds, it's impossible to avoid repeat
-        match-ups, so only 5 rounds are listed. Currently, this will
-        break. We need a smart way to deal with that.
         '''
-        seats = importlib.import_module(
+        seats_module = importlib.import_module(
             f"seating.seats_{table_count*4}x{hanchan_count}")
+        seats = getattr(seats_module, 'seats')
         # randomize each table; all tables each round; & all rounds
-        for round in seats.seats:
-            for table in round:
-                random.shuffle(table)
-        for round in seats.seats:
-            random.shuffle(table)
-        random.shuffle(seats.seats)
-        seating = seats.seats[0 : hanchan_count]
         destcells = []
         for round in range(0, hanchan_count):
             for table in range(0, table_count):
-                destcells.append([round+1, table+1, *seating[round][table]])
+                destcells.append([round+1, table+1, *seats[round][table]])
 
         self.live_sheet.worksheet('seating').batch_update(
             [{'range': f'A2:F{table_count*hanchan_count+1}',
@@ -350,6 +336,30 @@ class GSP:
 
         return self.live_sheet.id
 
+
+    def share_sheet(self, sheet_id: str, email: str, notify: bool = False):
+        """
+        Share a Google Sheet with a specific email address.
+
+        Args:
+            sheet_id (str): The ID of the Google Sheet to share.
+            email (str): The email address of the user to share the sheet with.
+            notify (bool): Whether to send a notification email to the user. Default is False.
+
+        Returns:
+            success: True (bool) if the share was successful, error message (str) otherwise.
+        """
+        try:
+            sheet = self.get_sheet(sheet_id)
+            sheet.share(
+                email_address=email,
+                perm_type='user',
+                role='writer',
+                notify=notify
+            )
+            return True
+        except Exception as e:
+            return (f"Error sharing sheet: {str(e)}")
 
 googlesheet = GSP()
 

@@ -16,7 +16,7 @@ from flask_login import login_required, current_user
 from create.write_sheet import googlesheet
 from models import Access, User, Tournament, Role
 from oauth_setup import db, firestore_client
-from forms import AddUserForm
+from run.userform import AddUserForm
 
 blueprint = Blueprint('run', __name__)
 
@@ -126,7 +126,7 @@ def run_tournament():
 
 @login_required
 def _get_sheet():
-    sheet_id = current_user.live_tournament_id
+    sheet_id = current_user.live_tournament.google_doc_id
     return googlesheet.get_sheet(sheet_id)
 
 
@@ -231,6 +231,9 @@ def _get_one_round_results(sheet, rnd: int):
 
 def webroot():
     start = "/static/"
+    # TODO this crashes when we've just created the tournament,
+    # as the web_directory is not yet set. Maybe fix the creation form
+    # to set the web_directory. And check whether it already exists.
     result = current_user.live_tournament.web_directory.split(start, 1)[-1]
     return start + result
 
@@ -418,35 +421,50 @@ def _save_to_cloud(document: str, data: dict, force_set = False):
         # If the document does not exist, create it with the field
         ref.set(data)
 
-@blueprint.route('/run/add_user', methods=['GET', 'POST'])
+@blueprint.route('/run/add_user', methods=['POST'])
 @login_required
-def add_user():
-    form = AddUserForm()
-    form.tournament.choices = [(t.id, t.title) for t in current_user.tournaments]
+def add_user_post():
+    form = AddUserForm(request.form)
+    tournaments = current_user.get_tournaments(db.session)
+    form.tournament.choices = [(t.id, t.title) for t in tournaments]
 
-    if form.validate_on_submit():
-        email = form.email.data
-        tournament_id = form.tournament.data
-        role = form.role.data
+    if not form.validate_on_submit():
+        return add_user_get()
 
-        # Check if the user already exists
-        user = db.session.query(User).filter_by(email=email).first()
-        if not user:
-            user = User(email=email)
-            db.session.add(user)
-            db.session.commit()
+    email = form.email.data
+    tournament_id = form.tournament.data
+    role = form.role.data
 
-        # Add the user to the tournament with the specified role
-        access = db.session.query(Access).filter_by(user_email=email, tournament_id=tournament_id).first()
-        if not access:
-            tournament = db.session.query(Tournament).get(tournament_id)
-            access = Access(user=user, tournament=tournament, role=Role[role])
-            db.session.add(access)
-            db.session.commit()
-            flash('User added successfully!', 'success')
+    # Check if the user already exists
+    user = db.session.query(User).filter_by(email=email).first()
+    if not user:
+        user = User(email=email)
+        db.session.add(user)
+        db.session.commit()
+
+    # Add the user to the tournament with the specified role
+    access = db.session.query(Access).filter_by(
+            user_email=email, tournament_id=tournament_id).first()
+    if not access:
+        tournament = db.session.query(Tournament).get(tournament_id)
+        access = Access(user=user, tournament=tournament, role=Role[role])
+        db.session.add(access)
+        db.session.commit()
+        share_result = googlesheet.share_sheet(
+                tournament.google_doc_id, email, notify=False)
+        if share_result == True:
+            flash('Scorer added successfully!', 'success')
         else:
-            flash('User already has access to this tournament.', 'warning')
+            flash(f'Failed to add scorer: {share_result}', 'danger')
+    else:
+        flash('Scorer is already attached this tournament.', 'success')
 
-        return redirect(url_for('run.add_user'))
+    return redirect(url_for('run.run_tournament'))
 
+@blueprint.route('/run/add_user', methods=['GET'])
+@login_required
+def add_user_get():
+    form = AddUserForm(request.form)
+    tournaments = current_user.get_tournaments(db.session)
+    form.tournament.choices = [(t.id, t.title) for t in tournaments]
     return render_template('add_user.html', form=form)

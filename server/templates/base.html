@@ -22,6 +22,17 @@
   <a href='{{ current_user.live_tournament }}'>Tournament info</a>
   <a href='{{ webroot }}projector.html'>Rankings for projector</a>
 </nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flashes">
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 <div id=main>
 {% block body %}{% endblock %}
 </div>

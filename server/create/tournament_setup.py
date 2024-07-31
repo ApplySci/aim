@@ -106,8 +106,8 @@ def google_doc_selected(doc):
     # TODO add to the firebase database too!
     # and then add the database document ID to our local db here
     title = request.form.get('submit')
-    _add_to_db(doc, title)
-    current_user.live_tournament_id = doc
+    tournament = _add_to_db(doc, title)
+    current_user.live_tournament_id = tournament.id
     db.session.commit()
     return redirect(url_for('run.run_tournament'))
 
@@ -123,15 +123,15 @@ def select_sheet():
         )
 
 
-def _add_to_db(id, title):
-    tournament = db.session.query(Tournament).get(id)
+def _add_to_db(doc, title):
+    tournament = db.session.query(Tournament).filter_by(google_doc_id=doc).first()
     if not tournament :
-        tournament = Tournament(id=id, title=title)
+        tournament = Tournament(google_doc_id=doc, title=title)
         db.session.add(tournament)
 
     access = db.session.query(Access).filter_by(
         user_email=current_user.email,
-        tournament_id=id,
+        tournament_id=tournament.id,
         ).first()
     if not access:
         access = Access(user=current_user, tournament=tournament, role=Role.admin)
@@ -167,7 +167,7 @@ def update_tournament():
 @blueprint.route('/create/metadata', methods=['GET'])
 @login_required
 def edit_tournament():
-    sheet = googlesheet.get_sheet(current_user.live_tournament_id)
+    sheet = googlesheet.get_sheet(current_user.live_tournament.google_doc_id)
     schedule = googlesheet.get_schedule(sheet)
     docId = current_user.live_tournament.firebase_doc or 'None'
     doc_ref = firestore_client.collection('tournaments').document(docId)

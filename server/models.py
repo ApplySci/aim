@@ -26,7 +26,7 @@ class Access(Base):
     __tablename__ = "access"
     user_email: Mapped[str] = mapped_column(
         ForeignKey("user.email"), primary_key=True)
-    tournament_id: Mapped[str] = mapped_column(
+    tournament_id: Mapped[int] = mapped_column(
         ForeignKey("tournament.id"), primary_key=True)
     role: Mapped[Role] = mapped_column(
         Enum(Role),
@@ -48,7 +48,7 @@ class Hanchan(Base):
         primary_key=True,
         autoincrement=True,
         )
-    tournament_id: Mapped[str] = mapped_column(ForeignKey("tournament.id"))
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
     hanchan_number: Mapped[int] = mapped_column(Integer)
     start_time: Mapped[Optional[datetime]]
     tournament: Mapped["Tournament"] = relationship(
@@ -59,7 +59,8 @@ class Hanchan(Base):
 
 class Tournament(Base):
     __tablename__ = "tournament"
-    id: Mapped[str] = mapped_column(String, primary_key=True) # google sheet id
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    google_doc_id: Mapped[str] # google sheet id
     title: Mapped[str]
     web_directory: Mapped[Optional[str]]
     firebase_doc: Mapped[Optional[str]]
@@ -73,7 +74,7 @@ class Tournament(Base):
 class User(Base, UserMixin):
     __tablename__ = "user"
     email: Mapped[str] = mapped_column(String, primary_key=True)
-    live_tournament_id: Mapped[Optional[str]] = mapped_column(
+    live_tournament_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey(Tournament.id),)
     tournaments: Mapped[List[Access]] = relationship(back_populates="user")
     live_tournament: Mapped[Tournament] = relationship(
@@ -81,3 +82,7 @@ class User(Base, UserMixin):
 
     def get_id(self):
         return self.email
+
+    def get_tournaments(self, session):
+        return session.query(Tournament).join(Access).filter(
+            Access.user_email == self.email).all()
