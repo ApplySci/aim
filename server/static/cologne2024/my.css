@@ -1,0 +1,11 @@
+.seatwind {
+    display: none;
+}
+
+nav {
+    background-image: url("/static/cologne2024/wrc.png");
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    background-position: top center;
+    padding-top: 11em;
+}

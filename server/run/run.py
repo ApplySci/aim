@@ -59,7 +59,10 @@ def _ranking_to_web(scores, games, players, done, schedule):
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
     title = current_user.live_tournament.title
-    roundName = schedule['rounds'][done-1]['name']
+    if done > 0:
+        roundName = f"Scores after {schedule['rounds'][done-1]['name']}"
+    else:
+        roundName = 'End-of-round scores will appear here'
     html = render_template('projector.html',
                            title=title,
                            scores=sorted_scores,
@@ -219,9 +222,9 @@ def _get_one_round_results(sheet, rnd: int):
             player_id = vals[row + i][1]
             tables[table][f"{i}"] = [
                 player_id,                         # player_id: int
-                round(10 * vals[row + i][3] or 0), # chombo: int
-                round(10* vals[row + i][4]),       # game score: int
-                vals[row + i][5],                  # placement: int
+                round(10 * vals[row + i][5] or 0), # chombo: int
+                round(10* vals[row + i][3]),       # game score: int
+                vals[row + i][4],                  # placement: int
                 round(10 * vals[row + i][6]),      # final score: int
                 ]
 
@@ -317,11 +320,10 @@ def update_ranking_and_scores():
         done : int = googlesheet.count_completed_hanchan(sheet)
         ranking = _ranking_to_cloud(sheet, done)
         players = _get_players(sheet, False)
-        if done > 0:
-            games = _games_to_cloud(sheet, done)
-            _games_to_web(games, schedule, players)
-            _ranking_to_web(ranking, games, players, done, schedule)
-            _message_player_topics(ranking, done, players)
+        games = _games_to_cloud(sheet, done)
+        _games_to_web(games, schedule, players)
+        _ranking_to_web(ranking, games, players, done, schedule)
+        _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()

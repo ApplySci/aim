@@ -30,6 +30,10 @@ def index():
 @blueprint.route('/create/results', methods=['GET', 'POST', 'PUT'])
 @login_required
 def results_create():
+    # TODO we need to add into the for a field for the web_directory
+    # Once we've got the field, we need to see if the folder exists
+    # on the server. If it doesn't, create it, and ./players and ./rounds
+    # subdirectories.
     owner = current_user.email
     form = GameParametersForm()
     if not form.validate_on_submit():
