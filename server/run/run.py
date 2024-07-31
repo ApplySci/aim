@@ -124,7 +124,7 @@ def run_tournament():
             'run_tournament.html',
             webroot=webroot(),
             )
-    return redirect(url_for('create.index'))
+    return redirect(url_for('run.select_tournament'))
 
 
 @login_required
