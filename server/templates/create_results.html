@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Create a new tournament</title>
-    <link rel=stylesheet type='text/css' href='/static/clean.css'>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
+{% extends "runbase.html" %}
+
+{% block title %}Create a new tournament{% endblock %}
+
+{% block content %}
     <h1>Preparing your google sheet for tournament scoring</h1>
     <p>When you press the button on the form below, a new google spreadsheet will
     be created. You ({{ current_user.email }}) will be given write-permissions:
@@ -62,8 +58,10 @@
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
-<script>
+{% endblock %}
 
+{% block scripts %}
+<script>
 var hanchanField = document.getElementById('hanchan_name');
 var otherField = document.getElementById('other_name');
 
@@ -86,16 +84,26 @@ function setDefaultDateTime(input, roundNumber) {
 
 
 function set_datetime_fields() {
-  // TODO either don't delete existing fields, or at least save their values
-  //      and put them back into the new fields
   var hanchan_count = document.getElementById('hanchan_count').value;
   var datetimeInputs = document.getElementById('datetimeInputs');
+  var existingValues = {};
+
+  // Save existing values
+  for (var i = 1; i <= hanchan_count; i++) {
+    var existingInput = document.getElementById(`round${i}`);
+    if (existingInput) {
+      existingValues[i] = existingInput.value;
+    }
+  }
+
+  // Clear and recreate inputs
   datetimeInputs.innerHTML = '';
-  for(var i = 1; i <= hanchan_count; i++) {
+  for (var i = 1; i <= hanchan_count; i++) {
     let label = getLabel(i);
+    var inputValue = existingValues[i] || '';
     datetimeInputs.innerHTML += `<label for=round${i}>${label}: `
        + `<input type="datetime-local" id=round${i} name=round${i} required`
-       + ` onfocus="setDefaultDateTime(this, ${i})" ></label>`;
+       + ` onfocus="setDefaultDateTime(this, ${i})" value="${inputValue}"></label>`;
   }
 }
 
@@ -129,8 +137,4 @@ function set_format_listener() {
   otherField.addEventListener('input', updateLabels);
 }
 </script>
-
-
-</script>
-</body>
-</html>
+{% endblock %}
