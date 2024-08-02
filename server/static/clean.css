@@ -252,7 +252,6 @@ input[type="submit"]:active {
 }
 
 nav {
-  background-color: #bfb;
   position: fixed;
   width: 10em;
 }
@@ -260,6 +259,8 @@ nav {
 #main {
     margin-left: 12em;
     padding-bottom: 2em;
+	border-left: 1px solid grey;
+	padding-left: 1em;
 }
 
 nav a {

@@ -168,12 +168,46 @@ class GSP:
         sheet.update(f'A4:A{player_count + 3}', seats)
 
 
-    def _make_scoresheets(self, template, hanchan_count: int) -> None:
+    def _duplicate_hanchan_table(self, sheet, table_count):
+        extra_rows = 7 * (table_count - 1)
+        sheet.insert_rows([['']] * extra_rows, 10)
+
+        body = {
+            "requests": [
+                {
+                    "copyPaste": {
+                        "source": {
+                            "sheetId": sheet.id,
+                            "startRowIndex": 3,
+                            "endRowIndex": 10,
+                        },
+                        "destination": {
+                            "sheetId": sheet.id,
+                            "startRowIndex": 10,
+                            "endRowIndex": 10 + extra_rows,
+                        },
+                    }
+                },                
+            ],
+        }
+        res = self.live_sheet.batch_update(body)
+
+
+    def _make_scoresheets(
+            self,
+            template,
+            hanchan_count: int,
+            table_count: int) -> None:
+        sheetname_to_copy = template.id
         for r in range(1, hanchan_count + 1):
             sheet = self.live_sheet.duplicate_sheet(
-                template.id, 5, new_sheet_name=f'R{r}')
+                sheetname_to_copy, 5, new_sheet_name=f'R{r}')
             # update cell B1 with the round number
             sheet.update([[r]], range_name='B1', raw=False)
+            if r == 1:
+              self._duplicate_hanchan_table(sheet, table_count)
+            else:
+                sheetname_to_copy = sheet.id
 
 
     def _set_permissions(self, owner : str, scorers, notify : bool) -> None:
@@ -203,16 +237,23 @@ class GSP:
         pattern = r'..*\@..*\....*'
         for scorer in scorers:
             if re.match(pattern, scorer):
-                self.live_sheet.share(
-                    scorer,
-                    perm_type='user',
-                    role='writer',
-                    notify=notify,
-                    email_message=f"{owner} has nominated you as a scorer " \
-                        "for their mahjong tournament. This is the google " \
-                        "scoring spreadsheet that will be used. " \
-                        "See the README sheet to find out how to use it."
-                    )
+                if notify:
+                    self.live_sheet.share(
+                        scorer,
+                        perm_type='user',
+                        role='writer',
+                        notify=notify,
+                        email_message=f"{owner} has nominated you as a scorer " \
+                            "for their mahjong tournament. This is the google " \
+                            "scoring spreadsheet that will be used. " \
+                            "See the README sheet to find out how to use it."
+                        )
+                else:
+                    self.live_sheet.share(
+                        scorer,
+                        perm_type='user',
+                        role='writer',
+                        )
         #
         # Google prevents us from transferring ownership of a sheet.
         # So the line below, has been commented out, because it doesn't work.
@@ -313,6 +354,8 @@ class GSP:
         self.live_sheet : gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID, title=title, copy_comments=True,)
 
+        self._set_permissions(owner, ['mj.apply.sci@gmail.com'], False)
+
         template : gspread.worksheet.Worksheet = self.live_sheet.worksheet(
             'template')
         results: gspread.worksheet.Worksheet = self.live_sheet.worksheet(
@@ -325,7 +368,7 @@ class GSP:
         if hanchan_count < MAX_HANCHAN:
             self._reduce_hanchan_count(results, hanchan_count)
 
-        self._make_scoresheets(template, hanchan_count)
+        self._make_scoresheets(template, hanchan_count, table_count)
 
         self._set_seating(table_count, hanchan_count)
 
