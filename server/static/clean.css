@@ -315,6 +315,10 @@ nav a.active {
     position: relative;
 }
 
+#ranking a, .gameresults a {
+  text-decoration: none;
+}
+
 #ranking thead th {
     position: sticky;
     top: 0;

@@ -63,10 +63,15 @@ def _ranking_to_web(scores, games, players, done, schedule):
         roundName = f"Scores after {schedule['rounds'][done-1]['name']}"
     else:
         roundName = 'End-of-round scores will appear here'
+    try:
+        nextName = schedule['rounds'][done]['name']
+    except:
+        nextName = ""
     html = render_template('projector.html',
                            title=title,
                            scores=sorted_scores,
                            round_name=roundName,
+                           next_roundname=nextName,
                            players=players,
                            webroot=webroot(),
                            )
@@ -336,6 +341,7 @@ def _games_to_cloud(sheet, done: int):
     for this_round in range(1, done + 1):
         one = _get_one_round_results(sheet, this_round)
         results.update(one)
+    print(results)
     _save_to_cloud('scores', results, force_set=True)
     return results
 

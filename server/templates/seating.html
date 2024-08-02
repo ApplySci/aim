@@ -9,7 +9,7 @@
     <div id=seatingBody>
     {% for r in schedule['rounds'] %}
     <section>
-    <h2>{{ r['name'] }}</h2>
+    <h2><a name="{{ r['name'] | urlsafe }}">{{ r['name'] }}</a></h2>
       {% for tname, t in seating[loop.index0]['tables'].items() %}
         <table class=seating>
           <thead>

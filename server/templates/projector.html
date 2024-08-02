@@ -6,7 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <a id=home href='{{webroot}}ranking.html'>Home</a>
+    <div id=home>
+        <a href='{{webroot}}ranking.html'>Home</a>
+        <br>
+        <br>
+        <a href='{{webroot}}seating.html#{{ next_roundname | urlsafe }}'>Seating</a>
+    </div>
     <div id=scoreHeader>
         <h2>{{ title }} - {{ round_name }} <span id=paginator></span></h2>
     </div>

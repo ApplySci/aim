@@ -23,13 +23,17 @@
         <td class={{score | scoreClass}}>{{ score | prettyScore }}
         <td>{{ playerLink(players, pid) }}
         {% for r in range(done, 0, -1) %}
-            {% set score=games[pid][r][0] %}
-            {% set table=games[pid][r][1] %}
-            <td class={{score | scoreClass}}>
-                <a href='{{webroot}}rounds/{{r}}.html#{{
-                        roundNames[''~r]|urlsafe
-                    }}_{{table}}'>{{score | prettyScore}}
-                </a>
+            {% if games[pid][r] is defined %}
+                {% set score=games[pid][r][0] %}
+                {% set table=games[pid][r][1] %}
+                <td class={{score | scoreClass}}>
+                    <a href='{{webroot}}rounds/{{r}}.html#{{
+                            roundNames[''~r]|urlsafe
+                        }}_{{table}}'>{{score | prettyScore}}
+                    </a>
+            {% else %}
+                <td></td>
+            {% endif %}
         {% endfor %}
         {% set score=p[1]['p'] %}
         <td class={{score | scoreClass}}>{{ score | prettyScore }}
