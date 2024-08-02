@@ -54,13 +54,13 @@ class GameParametersForm(FlaskForm):
         default='Europe/Dublin',
         )
     table_count = IntegerField(
-        'Number of tables [4-20] (players divided by 4)',
+        'Number of tables (players divided by 4)',
         default = 10,
-        validators=[DataRequired(), NumberRange(min=4, max=20)])
+        validators=[DataRequired(), NumberRange(min=1)])
     hanchan_count = IntegerField(
         'Number of hanchan [1-20]',
         default = 7,
-        validators=[DataRequired(), NumberRange(min=1, max=20)])
+        validators=[DataRequired(), NumberRange(min=1)])
     title = StringField('Spreadsheet Title',
                         default = 'Riichi Tournament Scoresheet',
                         validators=[DataRequired()],

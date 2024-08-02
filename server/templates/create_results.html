@@ -86,6 +86,8 @@ function setDefaultDateTime(input, roundNumber) {
 
 
 function set_datetime_fields() {
+  // TODO either don't delete existing fields, or at least save their values
+  //      and put them back into the new fields
   var hanchan_count = document.getElementById('hanchan_count').value;
   var datetimeInputs = document.getElementById('datetimeInputs');
   datetimeInputs.innerHTML = '';

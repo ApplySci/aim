@@ -193,6 +193,16 @@ class GSP:
         res = self.live_sheet.batch_update(body)
 
 
+    def _fix_score_checksum(self, sheet, table_count):
+        sum_formula = "=ROUND(SUMSQ("
+        plus = ""
+        for i in range(table_count):
+            sum_formula += f"{plus}g{i*7+9}"
+            plus = "+"
+        sum_formula += "),4)"
+        sheet.update([[sum_formula]], range_name="G2", raw=False)
+
+
     def _make_scoresheets(
             self,
             template,
@@ -201,13 +211,13 @@ class GSP:
         sheetname_to_copy = template.id
         for r in range(1, hanchan_count + 1):
             sheet = self.live_sheet.duplicate_sheet(
-                sheetname_to_copy, 5, new_sheet_name=f'R{r}')
+                sheetname_to_copy, 6, new_sheet_name=f'R{r}')
             # update cell B1 with the round number
             sheet.update([[r]], range_name='B1', raw=False)
             if r == 1:
               self._duplicate_hanchan_table(sheet, table_count)
-            else:
-                sheetname_to_copy = sheet.id
+              self._fix_score_checksum(sheet, table_count)
+              sheetname_to_copy = sheet.id
 
 
     def _set_permissions(self, owner : str, scorers, notify : bool) -> None:
@@ -276,6 +286,8 @@ class GSP:
             None
 
         '''
+        # TODO catch this if we can't import a pre-determined seating number,
+        #  and then create one from scratch
         seats_module = importlib.import_module(
             f"seating.seats_{table_count*4}x{hanchan_count}")
         seats = getattr(seats_module, 'seats')
