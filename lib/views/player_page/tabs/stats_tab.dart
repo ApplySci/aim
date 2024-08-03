@@ -15,6 +15,11 @@ class PlayerStatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (player.scores.isEmpty) {
+      return const Center(
+        child: Text('No scores available yet'),
+      );
+    }
     return ListView(children: [
       ListTile(
         title: const Text('Current Overall Score'),

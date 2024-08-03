@@ -49,24 +49,37 @@ final roundScoreListWidthsProvider = StreamProvider.autoDispose
     final negSign = ref.watch(negSignProvider);
     final roundScoreList =
         await ref.watch(roundScoreListProvider(roundId).future);
-    yield (
-      (
-        maxNameWidth: roundScoreList.map((e) => textSize(e.name).width).max,
-        maxPlacementWidth: roundScoreList
-            .map((e) => textSize('${e.score.placement}').width)
-            .max,
-        maxGameScoreWidth: roundScoreList
-            .map((e) => scoreSize(e.score.gameScore, negSign).width)
-            .max,
-        maxFinalScoreWidth: roundScoreList
-            .map((e) => scoreSize(e.score.finalScore, negSign).width)
-            .max,
-        maxPenaltiesWith: roundScoreList
-            .map((e) => scoreSize(e.score.penalties, negSign).width)
-            .max,
-      ),
-      roundScoreList,
-    );
+    // roundScoreList might be empty - handle this correctly
+    if (roundScoreList.isEmpty) {
+      yield ((
+        maxNameWidth: 0,
+        maxPlacementWidth: 0,
+        maxGameScoreWidth: 0,
+        maxFinalScoreWidth: 0,
+        maxPenaltiesWith: 0,
+        ),
+        [],
+      );
+    } else {
+      yield (
+        (
+          maxNameWidth: roundScoreList.map((e) => textSize(e.name).width).max,
+          maxPlacementWidth: roundScoreList
+              .map((e) => textSize('${e.score.placement}').width)
+              .max,
+          maxGameScoreWidth: roundScoreList
+              .map((e) => scoreSize(e.score.gameScore, negSign).width)
+              .max,
+          maxFinalScoreWidth: roundScoreList
+              .map((e) => scoreSize(e.score.finalScore, negSign).width)
+              .max,
+          maxPenaltiesWith: roundScoreList
+              .map((e) => scoreSize(e.score.penalties, negSign).width)
+              .max,
+        ),
+        roundScoreList,
+      );
+    }
   },
 );
 
@@ -89,6 +102,11 @@ class RoundScoresTab extends ConsumerWidget {
       ),
       data: (data) {
         final (widths, players) = data;
+        if (players.isEmpty) {
+          return const Center(
+            child: Text('No scores available yet'),
+          );
+        }
         return DataTable2(
           minWidth: double.infinity,
           columnSpacing: 8,

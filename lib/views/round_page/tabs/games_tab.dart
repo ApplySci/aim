@@ -117,7 +117,7 @@ class RoundGamesTab extends ConsumerWidget {
       data: (data) {
         if (data == null) {
           return const Center(
-            child: Text('No game results available yet for this player'),
+            child: Text('No game results available yet'),
           );
         }
         final (widths, tables) = data;
