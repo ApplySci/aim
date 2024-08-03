@@ -262,30 +262,33 @@ def _games_to_web(games, schedule, players):
 
     for pid, name in players.items():
         # for each player, create a page with all their games
-        player_games = {}
-        for r in games:
-            for t in games[r]:
-                present = False
-                for p, s in games[r][t].items():
-                    if s[0] == pid:
-                        present = True
-                        break
-                if (present):
-                    player_games[r] = {t: games[r][t]}
+        try:
+            player_games = {}
+            for r in games:
+                for t in games[r]:
+                    present = False
+                    for p, s in games[r][t].items():
+                        if s[0] == pid:
+                            present = True
+                            break
+                    if (present):
+                        player_games[r] = {t: games[r][t]}
 
-        html = render_template('player_page.html',
-                               games=player_games,
-                               players=players,
-                               roundNames=roundNames,
-                               done=len(games),
-                               webroot=webroot(),
-                               pid=pid,
-                               title=current_user.live_tournament.title,
-                               )
+            html = render_template('player_page.html',
+                                games=player_games,
+                                players=players,
+                                roundNames=roundNames,
+                                done=len(games),
+                                webroot=webroot(),
+                                pid=pid,
+                                title=current_user.live_tournament.title,
+                                )
 
-        fn = os.path.join(player_dir, f"{pid}.html")
-        with open(fn, 'w', encoding='utf-8') as f:
-            f.write(html)
+            fn = os.path.join(player_dir, f"{pid}.html")
+            with open(fn, 'w', encoding='utf-8') as f:
+                    f.write(html)
+        except Exception as e:
+            print(f"Error writing player page for {pid} ({name}): {e}")
 
     # =======================================================
 
@@ -325,7 +328,7 @@ def update_ranking_and_scores():
         done : int = googlesheet.count_completed_hanchan(sheet)
         ranking = _ranking_to_cloud(sheet, done)
         players = _get_players(sheet, False)
-        games = _games_to_cloud(sheet, done)
+        games = _games_to_cloud(sheet, done, players)
         _games_to_web(games, schedule, players)
         _ranking_to_web(ranking, games, players, done, schedule)
         _message_player_topics(ranking, done, players)
@@ -336,13 +339,29 @@ def update_ranking_and_scores():
 
 
 @login_required
-def _games_to_cloud(sheet, done: int):
+def _games_to_cloud(sheet, done: int, players):
     results = {}
     for this_round in range(1, done + 1):
         one = _get_one_round_results(sheet, this_round)
         results.update(one)
-    print(results)
-    _save_to_cloud('scores', results, force_set=True)
+    cleaned_scores = results.copy()
+    for r in cleaned_scores:
+        # if any players didn't play in a round, we need to add a fake score for them
+        has_score = []
+        for t in cleaned_scores[r]:
+            for s in cleaned_scores[r][t]:
+                has_score.append(cleaned_scores[r][t][s][0])
+        missed = 0
+        for p in players:
+            if not p in has_score:
+                if missed == 0:
+                    cleaned_scores[r]["missing"] = {}
+                cleaned_scores[r]["missing"][str(missed)] = [p, 0, 0, 0, 0, 0]
+                missed += 1
+        if missed > 0 and missed < 3:
+            for i in range(missed, 4):
+                cleaned_scores[r]["missing"][str(i)] = cleaned_scores[r]["missing"]["0"]
+    _save_to_cloud('scores', cleaned_scores, force_set=True)
     return results
 
 

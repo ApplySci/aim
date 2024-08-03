@@ -98,6 +98,7 @@ class ScoreTable extends ConsumerWidget {
                 onTap: () => onTap(context, selectedScore.id),
                 color: WidgetStateProperty.all<Color>(selectedHighlight),
               ),
+            // TODO what if a player doesn't have a score for a particular round?
             for (final score in playerScores.playerScores)
               ScoreRow(
                 selected: selectedPlayerId == score.id,

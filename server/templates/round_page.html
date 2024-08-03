@@ -7,8 +7,10 @@
 <h2>Results for {{ roundname }}</h2>
 <table class=gameresults>
     {% for tablenumber in games %}
-        {% set scores = games[tablenumber] %}
-        {% include 'game_part.html' %}
+        {% if tablenumber != "missing" %}
+            {% set scores = games[tablenumber] %}
+            {% include 'game_part.html' %}
+        {% endif %}
     {% endfor %}
 </table>
 {% endblock %}
