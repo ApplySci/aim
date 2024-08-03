@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/data_table_2_top_and_tail.dart' show DataTable2TopAndTail;
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/rank_text.dart';
@@ -55,13 +56,19 @@ class ScoreTable extends ConsumerWidget {
         stackTrace: stackTrace,
       ),
       data: (playerScores) {
-        final selectedScore = playerScores.playerScores.firstWhereOrNull(
-          (e) => e.id == selectedPlayerId,
-        );
+
+        int? selectedIndex;
+        for (int i = 0; i < playerScores.playerScores.length; i++) {
+          if (playerScores.playerScores[i].id == selectedPlayerId) {
+            selectedIndex = i;
+            break;
+          }
+        }
         final int rounds = playerScores.playerScores[0].scores.length;
-        return DataTable2(
+        return DataTable2TopAndTail(
           minWidth: double.infinity,
-          fixedTopRows: selectedPlayerId != null ? 2 : 1,
+          fixedTopRows: 1,
+          alwaysOnScreenRow: selectedIndex,
           columns: [
             DataColumn2(
               label: const Text('#', maxLines: 1),
@@ -90,14 +97,6 @@ class ScoreTable extends ConsumerWidget {
             ),
           ],
           rows: [
-            if (selectedScore case PlayerScore score)
-              ScoreRow(
-                selected: true,
-                score: score,
-                rounds: rounds,
-                onTap: () => onTap(context, selectedScore.id),
-                color: WidgetStateProperty.all<Color>(selectedHighlight),
-              ),
             // TODO what if a player doesn't have a score for a particular round?
             for (final score in playerScores.playerScores)
               ScoreRow(
