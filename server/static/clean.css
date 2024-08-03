@@ -345,8 +345,12 @@ nav a.active {
     background-color: #ccf;
 }
 
-#ranking tbody td {
-    padding: 3px;
+#ranking tbody td, #ranking thead th {
+  padding: 0.5em 0.1em;
+}
+
+#ranking td:nth-child(2) {
+  font-weight: bolder;
 }
 
 .flashes {

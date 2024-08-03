@@ -207,7 +207,7 @@ def _message_player_topics(scores: dict, done: int, players):
         _send_topic_fcm(
             f"{firebase_id}-{k}",
             f"{name} is now in position {('','=')[v['t']]}{v['r']}",
-            f"with {v['total']} points after {done} round(s)",
+            f"with {v['total']/10} points after {done} round(s)",
             )
 
 @login_required
@@ -419,7 +419,7 @@ def _seating_to_map(sheet, schedule):
     for t in raw:
         this_round = str(t[0])
         table = str(t[1])
-        players = t[2:]
+        players = t[2:6]
         if this_round != previous_round:
             previous_round = this_round
             seating.append({
@@ -493,11 +493,11 @@ def add_user_post():
 def add_user_get():
     tournaments = current_user.get_tournaments(db.session)
     tournament_choices = [(str(t.id), t.title) for t in tournaments]
-    
+
     form = AddUserForm(request.form)
     form.tournament.choices = tournament_choices
-    
+
     if current_user.live_tournament_id:
         form.tournament.data = str(current_user.live_tournament_id)
-    
+
     return render_template('add_user.html', form=form)
