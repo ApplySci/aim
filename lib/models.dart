@@ -347,9 +347,9 @@ class GameData extends Equatable {
   final RoundId roundId;
   final List<Hanchan> tables;
 
-  factory GameData.fromMap(MapEntry data) {
-    final roundId = data.key as RoundId;
-    final tables = (data.value as Map).entries.map((e) {
+  factory GameData.fromMap(key, Map value) {
+    final roundId = key as RoundId;
+    final tables = value.entries.map((e) {
       final tableId = e.key as TableId;
       return Hanchan(
         roundId: roundId,

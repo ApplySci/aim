@@ -339,7 +339,7 @@ nav a.active {
 }
 
 #ranking tr:nth-child(even) {
-    background-color: #d8d8ff;
+    background-color: #ffffd8;
 }
 #ranking thead th {
     background-color: #ccf;

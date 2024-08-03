@@ -139,7 +139,11 @@ final gameProvider = StreamProvider<List<GameData>>((ref) async* {
       .snapshots()
       .map((snapshot) {
     Map<String, Map> data = (snapshot.data() ?? {}).cast();
-    List<GameData> out = data.entries.map(GameData.fromMap).toList();
+    List<GameData> out = [];
+    for (int i = 1; i <= data.entries.length; i++) {
+      final String key = i.toString();
+       out.add(GameData.fromMap(key, data[key] as Map));
+    }
     return out;
   });
 });

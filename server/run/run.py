@@ -400,7 +400,7 @@ def _ranking_to_cloud(sheet, done : int) -> dict:
 def _get_players(sheet, to_cloud=True):
     raw : list(list) = googlesheet.get_players(sheet)
     if len(raw) and len(raw[0]) > 2:
-        players = [{'id': p[0], 'name': p[2]} for p in raw]
+        players = [{'id': p[0] or p[1], 'regId': p[1], 'name': p[2]} for p in raw]
         player_map = {p[0]: p[2] for p in raw}
     else:
         players = []
