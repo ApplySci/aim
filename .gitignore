@@ -56,3 +56,5 @@ app.*.map.json
 /macos/Runner/GoogleService-Info.plist
 /server/create/fcm-admin.json
 /server/tournaments.sqlite3
+
+/certs/
