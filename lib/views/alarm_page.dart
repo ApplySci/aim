@@ -16,8 +16,7 @@ class AlarmPage extends StatelessWidget {
     Log.debug('building alarm page');
     Log.debug(settings.toString());
     return PopScope(
-      onPopInvoked: (didPop) => Alarm.stop(settings.id),
-      // onPopInvokedWithResult: (didPop, _) => Alarm.stop(settings.id), // breaking change, not yet in Flutter release
+      onPopInvokedWithResult: (didPop, _) => Alarm.stop(settings.id),
       child: Dialog(
         child: InkWell(
           onTap: () => Navigator.pop(context),

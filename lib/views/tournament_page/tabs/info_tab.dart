@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -60,7 +61,7 @@ class TournamentInfo extends ConsumerWidget {
           },
           ListTile(
             leading: const Icon(Icons.location_on),
-            title: const Text('Location'),
+            title: const Text('Location (tap for map)'),
             subtitle: Text(tournament.address),
             onTap: () => openMap(context, tournament.address),
             onLongPress: () async {
@@ -73,6 +74,14 @@ class TournamentInfo extends ConsumerWidget {
             },
             visualDensity: VisualDensity.compact,
           ),
+           if (tournament.htmlnotes != null && tournament.htmlnotes!.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.notes),
+              title: const Text('Notes'),
+              subtitle: Html(
+                data: tournament.htmlnotes,
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.calendar_month),
             title: const Text('Event Date'),
