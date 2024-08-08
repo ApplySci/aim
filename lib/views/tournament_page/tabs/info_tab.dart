@@ -53,11 +53,13 @@ class TournamentInfo extends ConsumerWidget {
                     const SnackBar(content: Text('Copied url to clipboard')),
                   );
                 },
-              ),
+              visualDensity: VisualDensity.compact,
+            ),
             _ => ListTile(
-                leading: const Icon(Icons.public),
+                leading: const Text(""),
                 title: Text(tournament.name),
-              ),
+                visualDensity: VisualDensity.compact,
+            ),
           },
           ListTile(
             leading: const Icon(Icons.location_on),
@@ -80,7 +82,15 @@ class TournamentInfo extends ConsumerWidget {
               title: const Text('Notes'),
               subtitle: Html(
                 data: tournament.htmlnotes,
+                style: {
+                  "body": Style(
+                    margin: Margins.zero,
+                    padding: HtmlPaddings.zero,
+                  ),
+                },
+                shrinkWrap: true,
               ),
+              visualDensity: VisualDensity.compact,
             ),
           ListTile(
             leading: const Icon(Icons.calendar_month),
