@@ -46,11 +46,14 @@ def logout():
 def authorized():
     # we're not going to use the auth token outside this call,
     #     so we don't need to save it to a variable here
-    oauth.google.authorize_access_token()
-    resp = oauth.google.get('userinfo')
-    user_info = resp.json()
-    user = db.session.query(User).get(user_info['email'])
-    if user and user.is_active:
-        login_user(user)
-        return redirect(url_for('create.index'))
+    try:
+        oauth.google.authorize_access_token()
+        resp = oauth.google.get('userinfo')
+        user_info = resp.json()
+        user = db.session.query(User).get(user_info['email'])
+        if user and user.is_active:
+            login_user(user)
+            return redirect(url_for('create.index'))
+    except:
+        pass
     return logout()
