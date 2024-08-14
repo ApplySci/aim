@@ -187,7 +187,7 @@ class GSP:
                             "endRowIndex": 10 + extra_rows,
                         },
                     }
-                },                
+                },
             ],
         }
         res = self.live_sheet.batch_update(body)
@@ -215,9 +215,9 @@ class GSP:
             # update cell B1 with the round number
             sheet.update([[r]], range_name='B1', raw=False)
             if r == 1:
-              self._duplicate_hanchan_table(sheet, table_count)
-              self._fix_score_checksum(sheet, table_count)
-              sheetname_to_copy = sheet.id
+                self._duplicate_hanchan_table(sheet, table_count)
+                self._fix_score_checksum(sheet, table_count)
+                sheetname_to_copy = sheet.id
 
 
     def _set_permissions(self, owner : str, scorers, notify : bool) -> None:
@@ -291,7 +291,6 @@ class GSP:
         seats_module = importlib.import_module(
             f"seating.seats_{table_count*4}x{hanchan_count}")
         seats = getattr(seats_module, 'seats')
-        # randomize each table; all tables each round; & all rounds
         destcells = []
         for round in range(0, hanchan_count):
             for table in range(0, table_count):
@@ -414,7 +413,8 @@ class GSP:
             )
             return True
         except Exception as e:
-            return (f"Error sharing sheet: {str(e)}")
+            return f"Error sharing sheet: {str(e)}"
+
 
 googlesheet = GSP()
 
