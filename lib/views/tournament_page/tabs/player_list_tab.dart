@@ -36,6 +36,11 @@ class _PlayersState extends ConsumerState<Players> {
     super.dispose();
   }
 
+  void resetSearch() {
+    textController.clear();
+    ref.read(searchProvider.notifier).state = '';
+  }
+
   @override
   Widget build(context) {
     final isSearching = ref.watch(
@@ -53,7 +58,7 @@ class _PlayersState extends ConsumerState<Players> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: isSearching
                     ? IconButton(
-                        onPressed: () => textController.clear(),
+                        onPressed: resetSearch,
                         icon: const Icon(Icons.clear),
                       )
                     : null,
