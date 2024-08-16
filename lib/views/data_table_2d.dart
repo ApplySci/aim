@@ -143,8 +143,8 @@ class DataRow2 extends DataRow {
 /// By using [DataColumn2] instead of [DataColumn] it is possible to control
 /// relative column sizes (setting them to S, M and L). [DataRow2] provides
 /// row-level tap event handlers.
-class DataTable2 extends DataTable {
-  DataTable2({
+class DataTable2d extends DataTable {
+  DataTable2d({
     super.key,
     required super.columns,
     super.sortColumnIndex,

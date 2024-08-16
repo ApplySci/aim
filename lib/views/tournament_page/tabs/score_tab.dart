@@ -1,12 +1,11 @@
 import 'package:collection/collection.dart';
-import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
-// import '/views/data_table_2_top_and_tail.dart' show DataTable2TopAndTail;
+import '/views/data_table_2d.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/rank_text.dart';
@@ -60,7 +59,7 @@ class ScoreTable extends ConsumerWidget {
               (e) => e.id == selectedPlayerId,
         );
         final int rounds = playerScores.playerScores[0].scores.length;
-        return DataTable2(
+        return DataTable2d(
           minWidth: double.infinity,
           fixedTopRows: selectedPlayerId != null ? 2 : 1,
           columns: [
