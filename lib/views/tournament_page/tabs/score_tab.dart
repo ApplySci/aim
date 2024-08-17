@@ -61,7 +61,8 @@ class ScoreTable extends ConsumerWidget {
         final int rounds = playerScores.playerScores[0].scores.length;
         return DataTable2d(
           minWidth: double.infinity,
-          fixedTopRows: selectedPlayerId != null ? 2 : 1,
+          fixedTopRows: selectedPlayerId == null ? 1 : 2,
+          fixedBottomRows: selectedPlayerId == null ? 0 : 1,
           columns: [
             DataColumn2(
               label: const Text('#', maxLines: 1),
@@ -108,6 +109,14 @@ class ScoreTable extends ConsumerWidget {
                 color: selectedPlayerId == score.id
                     ? WidgetStateProperty.all<Color>(selectedHighlight)
                     : null,
+              ),
+            if (selectedScore case PlayerScore score)
+              ScoreRow(
+                selected: true,
+                score: score,
+                rounds: rounds,
+                onTap: () => onTap(context, selectedScore.id),
+                color: WidgetStateProperty.all<Color>(selectedHighlight),
               ),
           ],
           columnSpacing: 10,
