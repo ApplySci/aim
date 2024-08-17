@@ -29,9 +29,16 @@ class PlayerStatsTab extends ConsumerWidget {
         ),
       ),
       ListTile(
-        title: const Text('Penalty'),
+        title: const Text('Out-of-game penalties'),
         trailing: ScoreText(
           player.penalty,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+      ),
+      ListTile(
+        title: const Text('In-game penalties'),
+        trailing: ScoreText(
+          player.scores.map((e) => e.penalties).sum,
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
