@@ -1,11 +1,13 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:data_table_2/data_table_2.dart';
 
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
-import '/views/data_table_2d.dart';
+import '/views/datatable2_fixed_line.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/rank_text.dart';
@@ -55,14 +57,16 @@ class ScoreTable extends ConsumerWidget {
         stackTrace: stackTrace,
       ),
       data: (playerScores) {
-        final selectedScore = playerScores.playerScores.firstWhereOrNull(
-              (e) => e.id == selectedPlayerId,
-        );
+        int? indexSelected;
+        if (selectedPlayerId != null) {
+          indexSelected = playerScores.playerScores.indexWhere(
+                (e) => e.id == selectedPlayerId,
+          );
+        }
         final int rounds = playerScores.playerScores[0].scores.length;
-        return DataTable2d(
+        return DataTable2FixedLine(
           minWidth: double.infinity,
-          fixedTopRows: selectedPlayerId == null ? 1 : 2,
-          fixedBottomRows: selectedPlayerId == null ? 0 : 1,
+          fixedRow: indexSelected,
           columns: [
             DataColumn2(
               label: const Text('#', maxLines: 1),
@@ -91,14 +95,6 @@ class ScoreTable extends ConsumerWidget {
             ),
           ],
           rows: [
-            if (selectedScore case PlayerScore score)
-              ScoreRow(
-                selected: true,
-                score: score,
-                rounds: rounds,
-                onTap: () => onTap(context, selectedScore.id),
-                color: WidgetStateProperty.all<Color>(selectedHighlight),
-              ),
             // TODO what if a player doesn't have a score for a particular round?
             for (final score in playerScores.playerScores)
               ScoreRow(
@@ -109,14 +105,6 @@ class ScoreTable extends ConsumerWidget {
                 color: selectedPlayerId == score.id
                     ? WidgetStateProperty.all<Color>(selectedHighlight)
                     : null,
-              ),
-            if (selectedScore case PlayerScore score)
-              ScoreRow(
-                selected: true,
-                score: score,
-                rounds: rounds,
-                onTap: () => onTap(context, selectedScore.id),
-                color: WidgetStateProperty.all<Color>(selectedHighlight),
               ),
           ],
           columnSpacing: 10,
