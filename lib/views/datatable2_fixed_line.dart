@@ -69,9 +69,9 @@ class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
   RowLocation _calculateFixedRowLocation() {
     final int idx = widget.fixedRow! - 1;
     final double scroll = _verticalController.offset;
-    final double idxPos = widget.rowHeight * (idx - fixedTopRows + 1);
+    final double idxPos = widget.rowHeight * (idx - fixedTopRows + 4);
 
-    if (idxPos < scroll + fixedTopRows * widget.rowHeight) return RowLocation.top;
+    if (idxPos < scroll + (fixedTopRows + 1) * widget.rowHeight) return RowLocation.top;
     if (idxPos > scroll + viewportHeight) return RowLocation.bottom;
     return RowLocation.middle;
   }
