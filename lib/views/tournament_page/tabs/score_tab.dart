@@ -106,7 +106,7 @@ class ScoreTable extends ConsumerWidget {
                     ? BoxDecoration(
                       border: Border.all(
                         color: Colors.green, // Border color
-                        width: 1.0,         // Border width
+                        width: 2.0,         // Border width
                       ))
                     : null,
               ),
