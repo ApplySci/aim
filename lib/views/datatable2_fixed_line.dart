@@ -48,7 +48,6 @@ class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
 
       viewportHeight = tableRenderBox.size.height;
     });
-    print('initialised DataTable2_fixed_line');
   }
 
   @override
