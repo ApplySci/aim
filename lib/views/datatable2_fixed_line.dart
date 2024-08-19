@@ -9,6 +9,7 @@ class DataTable2FixedLine extends StatefulWidget {
   final List<DataColumn> columns;
   final List<DataRow> rows;
   final double? columnSpacing;
+  final double rowHeight;
 
   const DataTable2FixedLine({
     super.key,
@@ -17,6 +18,7 @@ class DataTable2FixedLine extends StatefulWidget {
     required this.columns,
     required this.rows,
     this.columnSpacing,
+    this.rowHeight = 56.0,
   })
       : assert(fixedRow == null || fixedRow >= 0),
         assert(fixedRow == null || fixedRow < rows.length);
@@ -28,31 +30,25 @@ class DataTable2FixedLine extends StatefulWidget {
 class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
   final ScrollController _verticalController = ScrollController();
   RowLocation rowLocation = RowLocation.middle;
-  late double rowHeight;
   late double viewportHeight;
   final int fixedTopRows = 1;
   final GlobalKey rowKey = GlobalKey();
   final GlobalKey tableKey = GlobalKey();
 
+
   @override
   void initState() {
-    print('initialising DataTable2_fixed_line');
     super.initState();
     _verticalController.addListener(_handleScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
 
-      final RenderBox rowRenderBox =
-          rowKey.currentContext?.findRenderObject() as RenderBox;
-
-      rowHeight = rowRenderBox.size.height;
-
       final RenderBox tableRenderBox =
-          rowKey.currentContext?.findRenderObject() as RenderBox;
+        tableKey.currentContext?.findRenderObject() as RenderBox;
 
       viewportHeight = tableRenderBox.size.height;
     });
-
+    print('initialised DataTable2_fixed_line');
   }
 
   @override
@@ -73,9 +69,9 @@ class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
   RowLocation _calculateFixedRowLocation() {
     final int idx = widget.fixedRow! - 1;
     final double scroll = _verticalController.offset;
-    final double idxPos = rowHeight * (idx - fixedTopRows + 1);
+    final double idxPos = widget.rowHeight * (idx - fixedTopRows + 1);
 
-    if (idxPos < scroll + fixedTopRows * rowHeight) return RowLocation.top;
+    if (idxPos < scroll + fixedTopRows * widget.rowHeight) return RowLocation.top;
     if (idxPos > scroll + viewportHeight) return RowLocation.bottom;
     return RowLocation.middle;
   }
@@ -101,8 +97,11 @@ class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
     }
 
     return DataTable2d(
+      key: tableKey,
       scrollController: _verticalController,
       columns: widget.columns,
+      dataRowHeight: widget.rowHeight,
+      headingRowHeight: widget.rowHeight,
       rows: rows,
       columnSpacing: widget.columnSpacing,
       minWidth: widget.minWidth,

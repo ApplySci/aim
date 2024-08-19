@@ -330,6 +330,9 @@ class DataTable2d extends DataTable {
   /// Default is 0.
   final int fixedBottomRows;
 
+  /// a public object to access the top row if we need it
+  DataRow? exampleRow;
+
   /// Number of sticky columns fixed at the left side of the table.
   /// Check box column (if enabled) is also counted
   final int fixedLeftColumns;
@@ -645,6 +648,7 @@ class DataTable2d extends DataTable {
 
     final int topRowsToSkip =
         actualFixedTopRows > 0 ? actualFixedTopRows - 1 : 0;
+
     List<TableRow>? coreRows = rows.isEmpty ||
             actualFixedColumns >= columns.length + (showCheckboxColumn ? 1 : 0)
         ? null
@@ -847,6 +851,8 @@ class DataTable2d extends DataTable {
                 ? actualFixedTopRows - 1
                 : -1;
 
+            final int coreRowCount = coreRows == null ? 0 : coreRows.length;
+
             // File empty cells in created rows with actual widgets
             for (int dataColumnIndex = 0;
                 dataColumnIndex < columns.length;
@@ -954,9 +960,8 @@ class DataTable2d extends DataTable {
                   final int thisCol = displayColumnIndex - actualFixedColumns;
                   if (rowIndex + 1 < actualFixedTopRows) {
                     fixedTopTableRows![rowIndex + 1].children[thisCol] = c;
-                  } else if (rowIndex >= skipRows +
-                      (coreRows == null ? 0 : coreRows.length)) {
-                    fixedBottomTableRows![rowIndex - coreRows.length - skipRows]
+                  } else if (rowIndex >= skipRows + coreRowCount) {
+                    fixedBottomTableRows![rowIndex - coreRowCount - skipRows]
                         .children[thisCol] = c;
                   } else {
                     coreRows![rowIndex - skipRows].children[thisCol] = c;
@@ -1438,9 +1443,14 @@ class DataTable2d extends DataTable {
       WidgetStateProperty<Color?> defaultRowColor,
       TableRow? headingRow,
       [int skipRows = 0,
-      int takeRows = 0,
-      bool forceEffectiveDataRowColor = false]) {
+        int takeRows = 0,
+        bool forceEffectiveDataRowColor = false,
+        Key? firstRowKey
+      ]
+      ) {
+
     final rowStartIndex = skipRows;
+    bool useKey = firstRowKey != null;
     final List<TableRow> tableRows = List<TableRow>.generate(
       (takeRows <= 0 ? rows.length - skipRows : takeRows) +
           (headingRow == null ? 0 : 1),

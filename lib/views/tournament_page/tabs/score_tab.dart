@@ -2,11 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:data_table_2/data_table_2.dart';
 
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/data_table_2d.dart';
 import '/views/datatable2_fixed_line.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
