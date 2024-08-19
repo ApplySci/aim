@@ -841,6 +841,12 @@ class DataTable2d extends DataTable {
             final widths = _calculateDataColumnSizes(
                 constraints, checkBoxWidth, effectiveHorizontalMargin);
 
+            final int skipRows = actualFixedTopRows == 1
+                ? 0
+                : actualFixedTopRows > 1
+                ? actualFixedTopRows - 1
+                : -1;
+
             // File empty cells in created rows with actual widgets
             for (int dataColumnIndex = 0;
                 dataColumnIndex < columns.length;
@@ -906,11 +912,6 @@ class DataTable2d extends DataTable {
               }
 
               var rowIndex = 0;
-              var skipRows = actualFixedTopRows == 1
-                  ? 0
-                  : actualFixedTopRows > 1
-                      ? actualFixedTopRows - 1
-                      : -1;
 
               for (final DataRow row in rows) {
                 final DataCell cell = row.cells[dataColumnIndex];
@@ -950,19 +951,17 @@ class DataTable2d extends DataTable {
                         .children[displayColumnIndex] = c;
                   }
                 } else {
+                  final int thisCol = displayColumnIndex - actualFixedColumns;
                   if (rowIndex + 1 < actualFixedTopRows) {
-                    fixedTopTableRows![rowIndex + 1]
-                        .children[displayColumnIndex - actualFixedColumns] = c;
-                  } else if (coreRows != null &&
-                      rowIndex > coreRows.length - skipRows + 1) {
+                    fixedTopTableRows![rowIndex + 1].children[thisCol] = c;
+                  } else if (rowIndex >= skipRows +
+                      (coreRows == null ? 0 : coreRows.length)) {
                     fixedBottomTableRows![rowIndex - coreRows.length - skipRows]
-                        .children[displayColumnIndex - actualFixedColumns] = c;
+                        .children[thisCol] = c;
                   } else {
-                    coreRows![rowIndex - skipRows]
-                        .children[displayColumnIndex - actualFixedColumns] = c;
+                    coreRows![rowIndex - skipRows].children[thisCol] = c;
                   }
                 }
-
                 rowIndex += 1;
               }
               displayColumnIndex += 1;
@@ -1105,69 +1104,10 @@ class DataTable2d extends DataTable {
                       : t;
 
               var scrollBarTheme = Theme.of(context).scrollbarTheme;
-              // flutter/lib/src/material/scrollbar.dart, scrollbar decides whther to create  Cupertino or Material scrollbar, Cupertino ignores themes
+              // flutter/lib/src/material/scrollbar.dart, scrollbar decides
+              // whether to create  Cupertino or Material scrollbar,
+              // Cupertino ignores themes
               var isiOS = Theme.of(context).platform == TargetPlatform.iOS;
-
-              List<Widget> stack = [
-                ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context)
-                        .copyWith(scrollbars: false),
-                    child: SingleChildScrollView(
-                      controller: fixedRowsHorizontalController,
-                      scrollDirection: Axis.horizontal,
-                      child: (fixedTopRowsTable == null)
-                          // Workaround for a bug when there's no horizontal scrollbar
-                          // should there be no this SingleChildScrollView.
-                          // i.e. originally this part was omitted and
-                          // not scrollable was added to the column
-                          // if not fixed top row was visible
-                          ? SizedBox(
-                              height: 0,
-                              width: widths.fold<double>(
-                                  0,
-                                  (previousValue, value) =>
-                                      previousValue + value),
-                            )
-                          : fixedTopRowsTable,
-                    )),
-                Flexible(
-                  fit: FlexFit.tight,
-                  child: Scrollbar(
-                    thumbVisibility: isVerticalScrollBarVisible ??
-                        (isiOS
-                            ? scrollBarTheme.thumbVisibility
-                                ?.resolve({WidgetState.hovered})
-                            : null),
-                    thickness: (isiOS
-                        ? scrollBarTheme.thickness
-                            ?.resolve({WidgetState.hovered})
-                        : null),
-                    controller: coreVerticalController,
-                    child: SingleChildScrollView(
-                      controller: coreVerticalController,
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        controller: coreHorizontalController,
-                        scrollDirection: Axis.horizontal,
-                        child: (fixedBottomRowsTable == null)
-                            ? addBottomMargin(coreTable)
-                            : coreTable,
-                      ),
-                    ),
-                  ),
-                ),
-              ];
-
-              if (fixedBottomRowsTable != null) {
-                stack.add(ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context)
-                        .copyWith(scrollbars: false),
-                    child: SingleChildScrollView(
-                      controller: fixedRowsHorizontalController,
-                      scrollDirection: Axis.horizontal,
-                      child: addBottomMargin(fixedBottomRowsTable),
-                    )));
-              }
 
               // For iOS/Cupertino scrollbar
               fixedRowsAndCoreCol = Scrollbar(
@@ -1182,7 +1122,65 @@ class DataTable2d extends DataTable {
                   controller: coreHorizontalController,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: stack,
+                    children: [
+                      ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context)
+                              .copyWith(scrollbars: false),
+                          child: SingleChildScrollView(
+                            controller: fixedRowsHorizontalController,
+                            scrollDirection: Axis.horizontal,
+                            child: (fixedTopRowsTable == null)
+                            // Workaround for a bug when there's no horizontal scrollbar
+                            // should there be no this SingleChildScrollView.
+                            // i.e. originally this part was omitted and
+                            // not scrollable was added to the column
+                            // if not fixed top row was visible
+                                ? SizedBox(
+                              height: 0,
+                              width: widths.fold<double>(
+                                  0,
+                                      (previousValue, value) =>
+                                  previousValue + value),
+                            )
+                                : fixedTopRowsTable,
+                          )),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Scrollbar(
+                          thumbVisibility: isVerticalScrollBarVisible ??
+                              (isiOS
+                                  ? scrollBarTheme.thumbVisibility
+                                  ?.resolve({WidgetState.hovered})
+                                  : null),
+                          thickness: (isiOS
+                              ? scrollBarTheme.thickness
+                              ?.resolve({WidgetState.hovered})
+                              : null),
+                          controller: coreVerticalController,
+                          child: SingleChildScrollView(
+                            controller: coreVerticalController,
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              controller: coreHorizontalController,
+                              scrollDirection: Axis.horizontal,
+                              child: (fixedBottomRowsTable == null)
+                                  ? addBottomMargin(coreTable)
+                                  : coreTable,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (fixedBottomRowsTable != null)
+                        ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context)
+                                .copyWith(scrollbars: false),
+                            child: SingleChildScrollView(
+                              controller: fixedRowsHorizontalController,
+                              scrollDirection: Axis.horizontal,
+                              child: addBottomMargin(fixedBottomRowsTable),
+                            ),
+                        )
+                    ],
                   ));
 
               fixedColumnAndCornerCol = fixedTopLeftCornerTable == null &&
