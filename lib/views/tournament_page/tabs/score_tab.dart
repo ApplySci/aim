@@ -102,8 +102,12 @@ class ScoreTable extends ConsumerWidget {
                 score: score,
                 rounds: rounds,
                 onTap: () => onTap(context, score.id),
-                color: selectedPlayerId == score.id
-                    ? WidgetStateProperty.all<Color>(selectedHighlight)
+                decoration: selectedPlayerId == score.id
+                    ? BoxDecoration(
+                      border: Border.all(
+                        color: Colors.green, // Border color
+                        width: 1.0,         // Border width
+                      ))
                     : null,
               ),
           ],
@@ -121,6 +125,7 @@ class ScoreRow extends DataRow2 {
     required int rounds,
     super.color,
     super.selected,
+    super.decoration,
   }) : super(cells: [
           DataCell(RankText(
             rank: score.rank,
