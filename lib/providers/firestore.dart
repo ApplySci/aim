@@ -89,30 +89,40 @@ final selectedPlayerProvider = Provider((ref) {
       ?.firstWhereOrNull((player) => player.id == selectedPlayerId);
 });
 
-final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
+final allRankingsProvider = StreamProvider<Map<String, dynamic>>((ref) async* {
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
   yield* collection.doc('ranking').snapshots().map((snapshot) {
-    Map? data = snapshot.data();
-    if (data == null) return [];
-    if (data.containsKey('roundDone')) {
-      String done = data['roundDone'];
-      if (data.containsKey(done)) {
-        List<PlayerRankData> scores = [];
-        Map<String, dynamic> scoreList = data[done];
-        for (final s in scoreList.entries) {
-          scores.add(PlayerRankData.fromMap(int.parse(s.key), s.value));
-        }
-        scores.sort((a, b) => b.total.compareTo(a.total));
-        return scores;
-      } else {
-        return [];
-      }
-    } else {
-      return [];
-    }
+    return snapshot.data() ?? {};
   });
+});
+
+final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
+  final allRankings = ref.watch(allRankingsProvider);
+
+  yield* allRankings.when(
+    data: (data) async* {
+      if (data.containsKey('roundDone')) {
+        String done = data['roundDone'];
+        if (data.containsKey(done)) {
+          List<PlayerRankData> scores = [];
+          Map<String, dynamic> scoreList = data[done];
+          for (final s in scoreList.entries) {
+            scores.add(PlayerRankData.fromMap(int.parse(s.key), s.value));
+          }
+          scores.sort((a, b) => b.total.compareTo(a.total));
+          yield scores;
+        } else {
+          yield [];
+        }
+      } else {
+        yield [];
+      }
+    },
+    loading: () => Stream.value([]),
+    error: (_, __) => Stream.value([]),
+  );
 });
 
 final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
@@ -142,7 +152,7 @@ final gameProvider = StreamProvider<List<GameData>>((ref) async* {
     List<GameData> out = [];
     for (int i = 1; i <= data.entries.length; i++) {
       final String key = i.toString();
-       out.add(GameData.fromMap(key, data[key] as Map));
+      out.add(GameData.fromMap(key, data[key] as Map));
     }
     return out;
   });
@@ -206,4 +216,36 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
         ],
       ),
   ];
+});
+
+typedef PlayerRankings = ({
+  List<int> rankings,
+  List<int> totalScores,
+  PlayerScore games,
+});
+
+final playerScoreProvider = StreamProvider.family
+    .autoDispose<PlayerRankings, PlayerId>((ref, playerId) async* {
+  final playerScoreList = await ref.watch(playerScoreListProvider.future);
+  final rankingList = await ref.watch(allRankingsProvider.future);
+
+  PlayerScore games = playerScoreList.firstWhere((e) => e.id == playerId);
+
+  List<int> rankings = [];
+  List<int> totalScores = [];
+  // extract from rankingList just the rankings and totals for this player
+  if (rankingList.containsKey('roundDone')) {
+    int endRound = int.parse(rankingList['roundDone']);
+    for (int i=1; i <= endRound; i++) {
+      rankings.add(rankingList["$i"]["$playerId"]['r']);
+      totalScores.add(rankingList["$i"]["$playerId"]['total']);
+    }
+  }
+
+  PlayerRankings out = (
+    games: games,
+    rankings: rankings,
+    totalScores: totalScores,
+  );
+  yield out;
 });

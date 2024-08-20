@@ -19,8 +19,8 @@ class MySparkChart extends StatelessWidget {
   });
 
   final MySparkChartType chartType;
-  final List<double> data;
-  final Text Function(double) labelTextCallback;
+  final List<num> data;
+  final Widget Function(double) labelTextCallback;
   final Color? axisLineColor;
 
   @override
@@ -28,7 +28,7 @@ class MySparkChart extends StatelessWidget {
     CartesianSeries series;
     List<ChartData> chartData = [];
     for (int i = 0; i < data.length; i++) {
-      chartData.add(ChartData(i, data[i]));
+      chartData.add(ChartData(i, 1.0 * data[i]));
     }
     switch (chartType) {
       case MySparkChartType.line:
@@ -57,6 +57,7 @@ class MySparkChart extends StatelessWidget {
           markerSettings: const MarkerSettings(isVisible: true),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.outer,
             builder: (dynamic data, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               return labelTextCallback(point.y);

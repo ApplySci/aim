@@ -10,12 +10,6 @@ import 'tabs/schedule_tab.dart';
 import 'tabs/scores_tab.dart';
 import 'tabs/stats_tab.dart';
 
-final playerScoreProvider = StreamProvider.family
-    .autoDispose<PlayerScore, PlayerId>((ref, playerId) async* {
-  final playerScoreList = await ref.watch(playerScoreListProvider.future);
-  yield playerScoreList.firstWhere((e) => e.id == playerId);
-});
-
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({
     super.key,
@@ -45,7 +39,7 @@ class PlayerPage extends ConsumerWidget {
         length: 4,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(player.name),
+            title: Text(player.games.name),
             actions: [
               IconButton(
                 onPressed: () {
@@ -54,7 +48,7 @@ class PlayerPage extends ConsumerWidget {
                   if (isSelected) {
                     selectedPlayerIdNotifier.set(null);
                   } else {
-                    selectedPlayerIdNotifier.set(player.id);
+                    selectedPlayerIdNotifier.set(player.games.id);
                   }
                 },
                 icon: isSelected
@@ -71,9 +65,9 @@ class PlayerPage extends ConsumerWidget {
           ),
           body: TabBarView(children: [
             PlayerStatsTab(player: player),
-            PlayerScheduleTab(player: player),
-            PlayerScoreTab(player: player),
-            PlayerGameTab(player: player),
+            PlayerScheduleTab(player: player.games),
+            PlayerScoreTab(player: player.games),
+            PlayerGameTab(player: player.games),
           ]),
         ),
       ),
