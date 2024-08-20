@@ -1,39 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class ChartData {
   ChartData(this.x, this.y);
-
   final int x;
   final double y;
 }
 
+enum MySparkChartType { bar, line }
+
 class MySparkChart extends StatelessWidget {
-  MySparkChart({
+  const MySparkChart({
     super.key,
+    this.axisLineColor,
+    this.chartType = MySparkChartType.line,
     required this.data,
     required this.labelTextCallback,
-  }) {
-    chartData = [];
-    for (int i = 0; i < data.length; i++) {
-      chartData.add(ChartData(i, data[i]));
-    }
-  }
+  });
 
+  final MySparkChartType chartType;
   final List<double> data;
-  late List<ChartData> chartData;
   final Text Function(double) labelTextCallback;
+  final Color? axisLineColor;
 
   @override
   Widget build(BuildContext context) {
-    return SfCartesianChart(
-      borderWidth: 0,
-      plotAreaBorderWidth: 0,
-      primaryXAxis: NumericAxis(isVisible: false),
-      primaryYAxis: NumericAxis(isVisible: false),
-      series: <CartesianSeries>[
-        LineSeries<ChartData, int>(
+    CartesianSeries series;
+    List<ChartData> chartData = [];
+    for (int i = 0; i < data.length; i++) {
+      chartData.add(ChartData(i, data[i]));
+    }
+    switch (chartType) {
+      case MySparkChartType.line:
+        series = LineSeries<ChartData, int>(
           dataSource: chartData,
           xValueMapper: (ChartData data, _) => data.x,
           yValueMapper: (ChartData data, _) => data.y,
@@ -45,8 +44,46 @@ class MySparkChart extends StatelessWidget {
               return labelTextCallback(point.y);
             },
           ),
-        ),
-      ],
+        );
+        break;
+      case MySparkChartType.bar:
+        series = BarSeries<ChartData, int>(
+          dataSource: chartData,
+          xValueMapper: (ChartData data, _) => data.x,
+          yValueMapper: (ChartData data, _) => data.y,
+          pointColorMapper: (ChartData data, _) => data.y < 0
+              ? Colors.red
+              : Colors.blue,
+          markerSettings: const MarkerSettings(isVisible: true),
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            builder: (dynamic data, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              return labelTextCallback(point.y);
+            },
+          ),
+        );
+        break;
+    }
+    return SfCartesianChart(
+      borderWidth: 0,
+      plotAreaBorderWidth: 0,
+      primaryXAxis: axisLineColor == null
+          ? CategoryAxis(isVisible: false)
+          : CategoryAxis(
+              isVisible: true,
+              axisLine: AxisLine(
+                color: axisLineColor,
+              ),
+              crossesAt: 0,
+        majorTickLines: const MajorTickLines(width: 0),
+        minorTickLines: const MinorTickLines(width: 0),
+        majorGridLines: const MajorGridLines(width: 0),
+        minorGridLines: const MinorGridLines(width: 0),
+        labelStyle: const TextStyle(fontSize: 0),
+            ),
+      primaryYAxis: NumericAxis(isVisible: false),
+      series: <CartesianSeries>[series],
     );
   }
 }

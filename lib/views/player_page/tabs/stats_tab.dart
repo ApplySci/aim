@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
 import '/providers.dart';
 import '/views/score_text.dart';
@@ -31,6 +30,10 @@ class PlayerStatsTab extends ConsumerWidget {
     }
 
     // TODO prepare List<int> of ranks, and List<double> of scores
+    List<double> scores = [-20.5, 40.2, 60.0, 120.8, 75.4, 20.1, -30.4];
+    List<int> rankings = [1,20,29,30,15,40,45];
+    List<double> totals = [-20.5, 40.2, 60.0, 120.8, 75.4, 20.1, -30.4];
+
     return ListView(
       children: [
         ListTile(
@@ -84,7 +87,7 @@ class PlayerStatsTab extends ConsumerWidget {
           child: SizedBox(
             height: 150,
             child: MySparkChart(
-              data: const [-5,-40,-8,-20,-24,-12,-2],
+              data: [for (int r in rankings) -1.0 * r],
               labelTextCallback: (y) => Text('${y.abs().toInt()}'),
             ),
           ),
@@ -96,14 +99,11 @@ class PlayerStatsTab extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: SizedBox(
-            height: 100,
-            child: SfSparkLineChart(
+            height: 200,
+            child: MySparkChart(
               axisLineColor: Colors.green,
-              labelDisplayMode: SparkChartLabelDisplayMode.all,
-              data: const [-20.5, 40.2, 60.0, 120.8, 75.4, 20.1, -30.4],
-              marker: const SparkChartMarker(
-                displayMode: SparkChartMarkerDisplayMode.all,
-              ),
+              data: totals,
+              labelTextCallback: (y) => Text('${y>0 ? "+" : ""}$y'),
             ),
           ),
         ),
@@ -114,11 +114,11 @@ class PlayerStatsTab extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: SizedBox(
-            height: 150,
-            child: SfSparkBarChart (
-              labelDisplayMode: SparkChartLabelDisplayMode.all,
-              negativePointColor: Colors.red,
-              data: const [-25.5, 40.2, 60.0, 120.8, 75.4, 20.1, -30.4],
+            height: 200,
+            child: MySparkChart(
+              chartType: MySparkChartType.bar,
+              data: scores,
+              labelTextCallback: (y) => Text('${y>0 ? "+" : ""}$y'),
             ),
           ),
         ),
