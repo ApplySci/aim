@@ -330,9 +330,6 @@ class DataTable2d extends DataTable {
   /// Default is 0.
   final int fixedBottomRows;
 
-  /// a public object to access the top row if we need it
-  DataRow? exampleRow;
-
   /// Number of sticky columns fixed at the left side of the table.
   /// Check box column (if enabled) is also counted
   final int fixedLeftColumns;
@@ -1445,12 +1442,10 @@ class DataTable2d extends DataTable {
       [int skipRows = 0,
         int takeRows = 0,
         bool forceEffectiveDataRowColor = false,
-        Key? firstRowKey
       ]
       ) {
 
     final rowStartIndex = skipRows;
-    bool useKey = firstRowKey != null;
     final List<TableRow> tableRows = List<TableRow>.generate(
       (takeRows <= 0 ? rows.length - skipRows : takeRows) +
           (headingRow == null ? 0 : 1),
