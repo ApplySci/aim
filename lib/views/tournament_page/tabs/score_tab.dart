@@ -66,6 +66,7 @@ class ScoreTable extends ConsumerWidget {
         }
         final int rounds = playerScores.playerScores[0].scores.length;
         return DataTable2FixedLine(
+          key: ValueKey(selectedPlayerId),
           minWidth: double.infinity,
           fixedRow: indexSelected,
           columns: [
