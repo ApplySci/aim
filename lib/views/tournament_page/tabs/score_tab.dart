@@ -32,6 +32,7 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 
   yield (
     playerScores: playerScores,
+    // TOFIX getting a No Element error on tournament-select here at startup sometimes:
     maxRankWidth: playerScores.map((e) => rankSize(e.rank, e.tied).width).max,
     maxNameWidth: playerScores.map((e) => textSize(e.name).width).max,
     maxScoreWidth:

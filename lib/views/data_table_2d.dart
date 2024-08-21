@@ -7,14 +7,6 @@
 
 // TODO: add the code needed to make it work with fixed bottom rows combined with fixed columns
 
-/* TODO TOFIX: getting error "ScrollController attached to multiple scroll views
-               when there's a fixed bottom row visible, and we pan horizontally.
-               The bottom row does not scroll horizontally, nor does the header row.
-               The body of the scoretable does scroll horizontally ok.
-               The problem does not appear when there's a fixed top row:
-               in that case, everything scrolls horizontally ok.
-
- */
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -806,8 +798,8 @@ class DataTable2d extends DataTable {
                 actualFixedColumns,
                 defaultRowColor,
                 null,
-                0,
-                -actualFixedBottomRows,
+                rows.length - actualFixedBottomRows,
+                actualFixedBottomRows,
                 true)
             : null;
 
@@ -823,6 +815,8 @@ class DataTable2d extends DataTable {
         coreRows,
         fixedTopTableRows,
         fixedTopCornerRows,
+        fixedBottomTableRows,
+        fixedBottomCornerRows,
         fixedTopColumnsRows,
         rows,
         actualFixedTopRows,
@@ -1033,6 +1027,7 @@ class DataTable2d extends DataTable {
             Table? fixedBottomRowsTable;
             Table? fixedColumnsTable;
             Table? fixedTopLeftCornerTable;
+            Table? fixedBottomLeftCornerTable;
             Widget? fixedColumnAndCornerCol;
             Widget? fixedRowsAndCoreCol;
 
@@ -1106,6 +1101,23 @@ class DataTable2d extends DataTable {
                                 verticalInside: border!.verticalInside,
                                 horizontalInside: border!.horizontalInside,
                                 borderRadius: border!.borderRadius));
+              }
+
+              if (fixedBottomCornerRows != null &&
+                  !isRowsEmpty(fixedBottomCornerRows)) {
+                fixedBottomLeftCornerTable = Table(
+                    columnWidths: leftWidthsAsMap,
+                    children: fixedBottomCornerRows,
+                    border: border == null
+                        ? null
+                        : TableBorder(
+                            top: border!.top,
+                            left: border!.left,
+                            right: border!.right,
+                            bottom: border!.bottom,
+                            verticalInside: border!.verticalInside,
+                            horizontalInside: border!.horizontalInside,
+                            borderRadius: border!.borderRadius));
               }
 
               Widget addBottomMargin(Table t) =>
@@ -1196,9 +1208,12 @@ class DataTable2d extends DataTable {
                   ));
 
               fixedColumnAndCornerCol = fixedTopLeftCornerTable == null &&
-                      fixedColumnsTable == null
+                      fixedColumnsTable == null &&
+                      fixedBottomLeftCornerTable == null
                   ? null
-                  : Column(mainAxisSize: MainAxisSize.min, children: [
+                  : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       if (fixedTopLeftCornerTable != null)
                         fixedTopLeftCornerTable,
                       if (fixedColumnsTable != null)
@@ -1210,8 +1225,14 @@ class DataTable2d extends DataTable {
                                 child: SingleChildScrollView(
                                     controller: leftColumnVerticalContoller,
                                     scrollDirection: Axis.vertical,
-                                    child: addBottomMargin(fixedColumnsTable))))
-                    ]);
+                                    child: addBottomMargin(fixedColumnsTable),
+                                ),
+                            ),
+                        ),
+                        if (fixedBottomLeftCornerTable != null)
+                          fixedBottomLeftCornerTable,
+                    ],
+                  );
             }
 
             var completeWidget = Container(
@@ -1270,6 +1291,8 @@ class DataTable2d extends DataTable {
       List<TableRow>? coreRows,
       List<TableRow>? fixedTopTableRows,
       List<TableRow>? fixedTopCornerRows,
+      List<TableRow>? fixedBottomTableRows,
+      List<TableRow>? fixedBottomCornerRows,
       List<TableRow>? fixedColumnRows,
       List<DataRow> rows,
       int actualFixedTopRows,
@@ -1335,6 +1358,7 @@ class DataTable2d extends DataTable {
                 ? (rows[rowIndex] as DataRow2).specificRowHeight
                 : null);
 
+
         if (fixedTopCornerRows != null &&
             rowIndex < fixedTopCornerRows.length - 1) {
           fixedTopCornerRows[rowIndex + 1].children[0] = x;
@@ -1343,6 +1367,12 @@ class DataTable2d extends DataTable {
         } else if (fixedTopTableRows != null &&
             rowIndex < fixedTopTableRows.length - 1) {
           fixedTopTableRows[rowIndex + 1].children[0] = x;
+        } else if (fixedBottomCornerRows != null &&
+            rowIndex >= rows.length - fixedBottomCornerRows.length) {
+          fixedBottomCornerRows[rowIndex - (rows.length - fixedBottomCornerRows.length)].children[0] = x;
+        } else if (fixedBottomTableRows != null &&
+            rowIndex >= rows.length - fixedBottomTableRows.length) {
+          fixedBottomTableRows[rowIndex - (rows.length - fixedBottomTableRows.length)].children[0] = x;
         } else {
           coreRows![rowIndex - skipRows].children[0] = x;
         }
@@ -1803,7 +1833,7 @@ class SyncedScrollControllersState extends State<SyncedScrollControllers> {
         initialScrollOffset:
             widget.sc22toSc21Position ? horizontalOffset : 0.0);
     _sc23 = ScrollController(
-        initialScrollOffset: widget.sc23toSc21Position 
+        initialScrollOffset: widget.sc23toSc21Position
         ? horizontalOffset : 0.0);
 
     _syncScrollControllers(_sc11!, _sc12);
