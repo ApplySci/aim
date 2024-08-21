@@ -4,8 +4,17 @@
 
 // Copyright 2021 Maxim Saplin - changes and modifications to original Flutter implementation of DataTable
 // Copyright 2024 Andrew ZP Smith - add fixed bottom rows to DataTable2
-// TODO: add the code needed to make it work with fixed bottom rows AND fixed columns
 
+// TODO: add the code needed to make it work with fixed bottom rows combined with fixed columns
+
+/* TODO TOFIX: getting error "ScrollController attached to multiple scroll views
+               when there's a fixed bottom row visible, and we pan horizontally.
+               The bottom row does not scroll horizontally, nor does the header row.
+               The body of the scoretable does scroll horizontally ok.
+               The problem does not appear when there's a fixed top row:
+               in that case, everything scrolls horizontally ok.
+
+ */
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -825,11 +834,12 @@ class DataTable2d extends DataTable {
           sc12toSc11Position: true,
           horizontalScrollController: horizontalScrollController,
           sc22toSc21Position: true,
-          builder: (context, sc11, sc12, sc21, sc22) {
+          builder: (context, sc11, sc12, sc21, sc22, sc23) {
             var coreVerticalController = sc11;
             var leftColumnVerticalContoller = sc12;
             var coreHorizontalController = sc21;
-            var fixedRowsHorizontalController = sc22;
+            var fixedTopRowsHorizontalController = sc22;
+            var fixedBottomRowsHorizontalController = sc23;
 
             var displayColumnIndex = 0;
 
@@ -1129,7 +1139,7 @@ class DataTable2d extends DataTable {
                           behavior: ScrollConfiguration.of(context)
                               .copyWith(scrollbars: false),
                           child: SingleChildScrollView(
-                            controller: fixedRowsHorizontalController,
+                            controller: fixedTopRowsHorizontalController,
                             scrollDirection: Axis.horizontal,
                             child: (fixedTopRowsTable == null)
                             // Workaround for a bug when there's no horizontal scrollbar
@@ -1177,7 +1187,7 @@ class DataTable2d extends DataTable {
                             behavior: ScrollConfiguration.of(context)
                                 .copyWith(scrollbars: false),
                             child: SingleChildScrollView(
-                              controller: fixedRowsHorizontalController,
+                              controller: fixedBottomRowsHorizontalController,
                               scrollDirection: Axis.horizontal,
                               child: addBottomMargin(fixedBottomRowsTable),
                             ),
@@ -1699,7 +1709,9 @@ class SyncedScrollControllers extends StatefulWidget {
       this.scrollController,
       this.sc12toSc11Position = false,
       this.horizontalScrollController,
-      this.sc22toSc21Position = false});
+      this.sc22toSc21Position = false,
+      this.sc23toSc21Position = false,
+    });
 
   /// One of the controllers (sc11) won't be created by this widget
   /// but rather use externally provided one
@@ -1715,14 +1727,19 @@ class SyncedScrollControllers extends StatefulWidget {
   /// Whether to set sc22 initial offset to the value from sc21
   final bool sc22toSc21Position;
 
-  /// Positions of 2 pairs of scroll controllers (sc11|sc12 and sc21|sc22)
+  /// Whether to set sc23 initial offset to the value from sc21
+  final bool sc23toSc21Position;
+
+  /// Positions of groups of scroll controllers (sc11|sc12 and sc21|sc22/sc23)
   /// will be synchronized, attached scrollables will copy the positions
   final Widget Function(
       BuildContext context,
       ScrollController sc11,
       ScrollController sc12,
       ScrollController sc21,
-      ScrollController sc22) builder;
+      ScrollController sc22,
+      ScrollController sc23,
+    ) builder;
 
   @override
   SyncedScrollControllersState createState() => SyncedScrollControllersState();
@@ -1733,6 +1750,7 @@ class SyncedScrollControllersState extends State<SyncedScrollControllers> {
   late ScrollController _sc12;
   ScrollController? _sc21;
   late ScrollController _sc22;
+  late ScrollController _sc23;
 
   final List<void Function()> _listeners = [];
 
@@ -1784,9 +1802,13 @@ class SyncedScrollControllersState extends State<SyncedScrollControllers> {
     _sc22 = ScrollController(
         initialScrollOffset:
             widget.sc22toSc21Position ? horizontalOffset : 0.0);
+    _sc23 = ScrollController(
+        initialScrollOffset: widget.sc23toSc21Position 
+        ? horizontalOffset : 0.0);
 
     _syncScrollControllers(_sc11!, _sc12);
     _syncScrollControllers(_sc21!, _sc22);
+    _syncScrollControllers(_sc21!, _sc23);
   }
 
   void _disposeOrUnsubscribe() {
@@ -1803,7 +1825,7 @@ class SyncedScrollControllersState extends State<SyncedScrollControllers> {
       _sc21?.dispose();
     }
     _sc22.dispose();
-
+_sc23.dispose();
     _listeners.clear();
   }
 
@@ -1833,5 +1855,5 @@ class SyncedScrollControllersState extends State<SyncedScrollControllers> {
 
   @override
   Widget build(BuildContext context) =>
-      widget.builder(context, _sc11!, _sc12, _sc21!, _sc22);
+      widget.builder(context, _sc11!, _sc12, _sc21!, _sc22, _sc23);
 }
