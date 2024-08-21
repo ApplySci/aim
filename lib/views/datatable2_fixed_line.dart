@@ -47,6 +47,7 @@ class _DataTable2FixedLineState extends State<DataTable2FixedLine> {
         tableKey.currentContext?.findRenderObject() as RenderBox;
 
       viewportHeight = tableRenderBox.size.height;
+      _handleScroll();
     });
   }
 
