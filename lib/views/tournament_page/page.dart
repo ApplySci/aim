@@ -33,22 +33,22 @@ class TournamentPage extends ConsumerWidget {
       ),
       data: (tournament) {
         final navItems = [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.airline_seat_recline_normal_outlined),
-            label: 'Seating',
-          ),
           if (tournamentStatus != WhenTournament.upcoming)
             const BottomNavigationBarItem(
               icon: Icon(Icons.score),
               label: 'Scores',
             ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Players',
-          ),
-          const BottomNavigationBarItem(
             icon: Icon(Icons.info),
             label: 'Info',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.airline_seat_recline_normal_outlined),
+            label: 'Seating',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Players',
           ),
         ];
 
@@ -65,11 +65,11 @@ class TournamentPage extends ConsumerWidget {
           body: IndexedStack(
             index: page,
             children: [
-              const Seating(),
               if (tournamentStatus != WhenTournament.upcoming)
                 const ScoreTable(),
-              const Players(),
               const TournamentInfo(),
+              const Seating(),
+              const Players(),
             ],
           ),
           bottomNavigationBar: BottomNavigationBar(
