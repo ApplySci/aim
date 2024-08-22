@@ -24,6 +24,13 @@ enum LOG {
   error,
 }
 
+enum WhenTournament {
+  all,
+  live,
+  upcoming,
+  past,
+}
+
 final enableAlarm = kReleaseMode || !Platform.isIOS;
 
 final GlobalKey<NavigatorState> globalNavigatorKey =

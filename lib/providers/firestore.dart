@@ -1,32 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 
 import '/models.dart';
+import '/utils.dart';
 import 'shared_preferences.dart';
 
 final firebaseProvider = Provider((ref) => FirebaseFirestore.instance);
 
-final tournamentListProvider = StreamProvider((ref) {
+final allTournamentsListProvider = StreamProvider((ref) {
   final db = ref.watch(firebaseProvider);
-  final snapshots = switch (kDebugMode) {
-    true => db.collection('tournaments').snapshots(),
-    false => db
-        .collection('tournaments')
-        .where('status', isEqualTo: 'live')
-        .snapshots(),
-  };
+  final snapshots = db.collection('tournaments').snapshots();
 
   return snapshots.map((query) => [
-        for (final doc in query.docs)
-          TournamentData.fromMap({
-            'id': doc.id,
-            'address': '',
-            ...(doc.data() as Map).cast(),
-          }),
-      ]);
+    for (final doc in query.docs)
+      TournamentData.fromMap({
+        'id': doc.id,
+        'address': '',
+        ...(doc.data() as Map).cast(),
+      }),
+  ]);
+});
+
+final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournament>((ref, when) {
+  final allTournaments = ref.watch(allTournamentsListProvider).value ?? [];
+
+  return allTournaments.where((tournament) {
+    return switch (when) {
+      WhenTournament.all => true,
+      WhenTournament.live => tournament.status == 'live',
+      WhenTournament.upcoming => tournament.status == 'upcoming',
+      WhenTournament.past => tournament.status == 'past',
+    };
+  }).toList();
 });
 
 final tournamentProvider = StreamProvider<TournamentData>((ref) async* {
