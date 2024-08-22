@@ -10,8 +10,9 @@ class SettingsPage extends ConsumerWidget {
   Widget build(context, ref) {
     final alarmPref = ref.watch(alarmPrefProvider);
     final timezonePref = ref.watch(timezonePrefProvider);
-    final scorePref = ref.watch(scorePrefProvider);
-    final seatingPref = ref.watch(seatingPrefProvider);
+    //final vibratePref = ref.watch(vibratePrefProvider);
+    //final scorePref = ref.watch(scorePrefProvider);
+    //final seatingPref = ref.watch(seatingPrefProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -26,6 +27,14 @@ class SettingsPage extends ConsumerWidget {
                 .read(alarmPrefProvider.notifier) //
                 .set(value),
           ),
+          /*SwitchListTile(
+            title:
+            const Text('Vibrate on alarm'),
+            value: vibratePref,
+            onChanged: (value) => ref
+                .read(vibratePrefProvider.notifier) //
+                .set(value),
+          ),*/
           SwitchListTile(
             title:
                 const Text('Use event timezone (rather than device timezone)'),
