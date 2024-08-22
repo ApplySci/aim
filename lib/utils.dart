@@ -154,13 +154,14 @@ Future<void> setAlarm(
   String title,
   String body,
   int id,
+  bool vibrate,
 ) async {
   final alarmSettings = AlarmSettings(
     id: id,
     dateTime: when,
     assetAudioPath: 'assets/audio/notif.mp3',
     loopAudio: false,
-    vibrate: true,
+    vibrate: vibrate,
     volume: null,
     fadeDuration: 0,
     notificationTitle: title,

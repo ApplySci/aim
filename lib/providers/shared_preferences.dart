@@ -120,7 +120,7 @@ class SharedPreferencesBoolNNotifier
   });
 }
 
-class SharedPreferencesBoolNotifier //
+class SharedPreferencesBoolNotifier
     extends SharedPreferencesValueNotifier<bool>
     with SharedPreferencesBoolMixin {
   SharedPreferencesBoolNotifier({
@@ -203,3 +203,7 @@ final tournamentPlayerIdProvider = Provider((ref) {
     playerId: playerId,
   );
 });
+
+final vibratePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
+  () => SharedPreferencesBoolNotifier(key: 'vibrate', fallback: true),
+);

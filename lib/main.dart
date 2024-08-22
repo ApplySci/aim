@@ -109,6 +109,8 @@ class _MyApp extends ConsumerWidget {
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
+        final vibratePref = ref.read(vibratePrefProvider);
+
         // set one alarm for each round
         for (final (index, (id: _, :name, :alarm, :player)) in next.indexed) {
           if (now.isBefore(alarm)) {
@@ -116,7 +118,7 @@ class _MyApp extends ConsumerWidget {
             final body = player != null
                 ? '${player.name} is at table ${player.table}'
                 : '';
-            await setAlarm(alarm, title, body, index + 1);
+            await setAlarm(alarm, title, body, index + 1, vibratePref);
             await Future<void>.delayed(const Duration(milliseconds: 100));
           }
         }

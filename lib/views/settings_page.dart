@@ -10,7 +10,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(context, ref) {
     final alarmPref = ref.watch(alarmPrefProvider);
     final timezonePref = ref.watch(timezonePrefProvider);
-    //final vibratePref = ref.watch(vibratePrefProvider);
+    final vibratePref = ref.watch(vibratePrefProvider);
     //final scorePref = ref.watch(scorePrefProvider);
     //final seatingPref = ref.watch(seatingPrefProvider);
 
@@ -27,14 +27,13 @@ class SettingsPage extends ConsumerWidget {
                 .read(alarmPrefProvider.notifier) //
                 .set(value),
           ),
-          /*SwitchListTile(
-            title:
-            const Text('Vibrate on alarm'),
+          SwitchListTile(
+            title: const Text('Vibrate on alarm'),
             value: vibratePref,
             onChanged: (value) => ref
-                .read(vibratePrefProvider.notifier) //
+                .read(vibratePrefProvider.notifier)
                 .set(value),
-          ),*/
+          ),
           SwitchListTile(
             title:
                 const Text('Use event timezone (rather than device timezone)'),
