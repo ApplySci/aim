@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
+import '/views/utils.dart';
 import '/views/error_view.dart';
 import 'loading_view.dart';
 
 typedef Round = ({
   String id,
   String name,
-  TZDateTime start,
+  tz.TZDateTime start,
   List<RoundTable> tables,
 });
 
@@ -66,7 +67,7 @@ final roundListProvider = StreamProvider((ref) async* {
           ],
         ),
       )
-      .sortedBy((round) => round.start);
+      .sortedBy<DateTime>((round) => round.start.toLocal());
 }, dependencies: [
   showAllProvider,
   filterByPlayerProvider,
@@ -90,7 +91,7 @@ final orderedRoundList =
   roundListProvider,
 ]);
 
-bool isRoundOver(round, TZDateTime now, int endRound) {
+bool isRoundOver(round, tz.TZDateTime now, int endRound) {
   return now.isAfter(round.start.add(const Duration(minutes: 45)))
         || (round.id is int ? round.id : int.parse(round.id)) <= endRound;
 }
@@ -104,9 +105,9 @@ final filteredRoundList = StreamProvider.family<Iterable<Round>, When>(
        : 0;
 
     final roundList = await ref.watch(orderedRoundList(when).future);
-    TZDateTime? now;
+    tz.TZDateTime? now;
     yield roundList.where((round) {
-      now ??= TZDateTime.now(round.start.location);
+      now ??= tz.TZDateTime.now(round.start.location);
       return switch (when) {
         When.all => true,
         When.upcoming => !isRoundOver(round, now!, endRound),
@@ -130,6 +131,8 @@ class ScheduleList extends ConsumerWidget {
   @override
   Widget build(context, ref) {
     final roundList = ref.watch(filteredRoundList(when));
+    final useEventTimezone = ref.watch(timezonePrefProvider);
+
     return roundList.when(
       skipLoadingOnReload: true,
       loading: () => const LoadingView(),
@@ -151,8 +154,15 @@ class ScheduleList extends ConsumerWidget {
                   child: ListTile(
                     leading: const Icon(Icons.watch_later_outlined),
                     title: Text(round.name),
-                    subtitle: Text(
-                      DateFormat('EEEE d MMMM HH:mm').format(round.start),
+                    subtitle: useEventTimezone
+                        ? Text(
+                          '${DateFormat('EEEE d MMMM').format(round.start)}\n'
+                          '${formatTimeWithDifference(round.start, tz.local)}'
+                          )
+                        : Text(
+                          '${DateFormat('HH:mm').format(tz.TZDateTime.from(
+                              round.start, tz.local))}'
+                          ' (phone time)',
                     ),
                     visualDensity: VisualDensity.compact,
                     onTap: () => Navigator.of(context).pushNamed(

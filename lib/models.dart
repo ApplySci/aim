@@ -162,7 +162,7 @@ class RoundScheduleData extends Equatable {
 
   final RoundId id;
   final String name;
-  final DateTime start;
+  final TZDateTime start;
 
   @override
   List<Object?> get props => [
