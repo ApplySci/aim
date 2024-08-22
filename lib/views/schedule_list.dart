@@ -132,6 +132,7 @@ class ScheduleList extends ConsumerWidget {
   Widget build(context, ref) {
     final roundList = ref.watch(filteredRoundList(when));
     final useEventTimezone = ref.watch(timezonePrefProvider);
+    final localTimeZoneAsync = ref.watch(localLocationProvider);
 
     return roundList.when(
       skipLoadingOnReload: true,
@@ -144,53 +145,62 @@ class ScheduleList extends ConsumerWidget {
         if (roundList.isEmpty) {
           return const Center(child: Text('No seating schedule available'));
         }
-        return CustomScrollView(
-          slivers: [
-            for (final round in roundList)
-              SliverStickyHeader(
-                header: Material(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  elevation: 1,
-                  child: ListTile(
-                    leading: const Icon(Icons.watch_later_outlined),
-                    title: Text(round.name),
-                    subtitle: useEventTimezone
-                        ? Text(
-                          '${DateFormat('EEEE d MMMM').format(round.start)}\n'
-                          '${formatTimeWithDifference(round.start, tz.local)}'
-                          )
-                        : Text(
-                          '${DateFormat('HH:mm').format(tz.TZDateTime.from(
-                              round.start, tz.local))}'
-                          ' (phone time)',
+        return localTimeZoneAsync.when(
+          loading: () => const LoadingView(),
+          error: (error, stackTrace) => ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+          ),
+          data: (localTimeZone) {
+            return CustomScrollView(
+              slivers: [
+                for (final round in roundList)
+                  SliverStickyHeader(
+                    header: Material(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      elevation: 1,
+                      child: ListTile(
+                        leading: const Icon(Icons.watch_later_outlined),
+                        title: Text(round.name),
+                        subtitle: useEventTimezone
+                            ? Text(
+                                '${DateFormat('EEEE d MMMM').format(round.start)}\n'
+                                '${formatTimeWithDifference(round.start, localTimeZone)}'
+                              )
+                            : Text(
+                                '${DateFormat('HH:mm').format(tz.TZDateTime.from(
+                                    round.start, localTimeZone))}'
+                                ' (phone time)',
+                              ),
+                        visualDensity: VisualDensity.compact,
+                        onTap: () => Navigator.of(context).pushNamed(
+                          ROUTES.round,
+                          arguments: round.id,
+                        ),
+                      ),
                     ),
-                    visualDensity: VisualDensity.compact,
-                    onTap: () => Navigator.of(context).pushNamed(
-                      ROUTES.round,
-                      arguments: round.id,
-                    ),
-                  ),
-                ),
-                sliver: SliverPadding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      for (final table in round.tables)
-                        Column(children: [
-                          ListTile(
-                            leading: const Icon(Icons.table_restaurant),
-                            title: Text(table.name),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: AssignedTable(players: table.players),
-                          ),
+                    sliver: SliverPadding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          for (final table in round.tables)
+                            Column(children: [
+                              ListTile(
+                                leading: const Icon(Icons.table_restaurant),
+                                title: Text(table.name),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: AssignedTable(players: table.players),
+                              ),
+                            ]),
                         ]),
-                    ]),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
