@@ -239,7 +239,7 @@ class AssignedTable extends ConsumerWidget {
           TableRow(
             decoration: BoxDecoration(
               color: player?.id == filterByPlayerId
-                  ? selectedHighlight
+                  ? Theme.of(context).colorScheme.inversePrimary
                   : Colors.transparent,
             ),
             children: [

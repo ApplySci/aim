@@ -64,8 +64,6 @@ class ROUTES {
   static const String round = '/round';
 }
 
-const Color selectedHighlight = Color.fromARGB(135, 1, 1, 3);
-
 class Log {
   static List<List<dynamic>> logs = [];
 
