@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:timezone/timezone.dart' as tz;
 
 Size textSize(String text, {TextStyle? style}) {
