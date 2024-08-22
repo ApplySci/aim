@@ -19,6 +19,7 @@ class TournamentPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final page = ref.watch(pageProvider);
     final tournament = ref.watch(tournamentProvider);
+    final tournamentStatus = ref.watch(tournamentStatusProvider);
 
     return tournament.when(
       skipLoadingOnReload: true,
@@ -30,51 +31,55 @@ class TournamentPage extends ConsumerWidget {
         error: error,
         stackTrace: stackTrace,
       ),
-      data: (tournament) => Scaffold(
-        appBar: AppBar(
-          title: Text(tournament.name),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
-            ),
-          ],
-        ),
-        body: IndexedStack(
-          index: page,
-          children: const [
-            Seating(),
-            ScoreTable(),
-            Players(),
-            TournamentInfo(),
-          ],
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: page,
-          onTap: (index) => ref
-              .read(pageProvider.notifier) //
-              .state = index,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.airline_seat_recline_normal_outlined),
-              label: 'Seating',
-            ),
-            BottomNavigationBarItem(
+      data: (tournament) {
+        final navItems = [
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.airline_seat_recline_normal_outlined),
+            label: 'Seating',
+          ),
+          if (tournamentStatus != WhenTournament.upcoming)
+            const BottomNavigationBarItem(
               icon: Icon(Icons.score),
               label: 'Scores',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people),
-              label: 'Players',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.info),
-              label: 'Info',
-            ),
-          ],
-        ),
-      ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Players',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.info),
+            label: 'Info',
+          ),
+        ];
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(tournament.name),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+              ),
+            ],
+          ),
+          body: IndexedStack(
+            index: page,
+            children: [
+              const Seating(),
+              if (tournamentStatus != WhenTournament.upcoming)
+                const ScoreTable(),
+              const Players(),
+              const TournamentInfo(),
+            ],
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: page,
+            onTap: (index) => ref.read(pageProvider.notifier).state = index,
+            items: navItems,
+          ),
+        );
+      },
     );
   }
 }

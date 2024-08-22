@@ -256,3 +256,16 @@ final playerScoreProvider = StreamProvider.family
   );
   yield out;
 });
+
+// Add this provider after the tournamentProvider
+final tournamentStatusProvider = Provider<WhenTournament>((ref) {
+  final tournamentData = ref.watch(tournamentProvider).valueOrNull;
+  if (tournamentData == null) return WhenTournament.upcoming;
+
+  return switch (tournamentData.status) {
+    'upcoming' => WhenTournament.upcoming,
+    'live' => WhenTournament.live,
+    'past' => WhenTournament.past,
+    _ => WhenTournament.upcoming,
+  };
+});
