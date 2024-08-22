@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart';
 
 import '/models.dart';
 import '/providers.dart';
@@ -13,7 +14,7 @@ import 'loading_view.dart';
 typedef Round = ({
   String id,
   String name,
-  DateTime start,
+  TZDateTime start,
   List<RoundTable> tables,
 });
 
@@ -81,23 +82,35 @@ final orderedRoundList =
     StreamProvider.family<Iterable<Round>, When>((ref, when) async* {
   final roundList = await ref.watch(roundListProvider.future);
   yield switch (when) {
-    When.all => roundList,
-    When.upcoming => roundList,
-    When.past => roundList.reversed,
+    When.all => roundList.cast<Round>(),
+    When.upcoming => roundList.cast<Round>(),
+    When.past => roundList.reversed.cast<Round>(),
   };
 }, dependencies: [
   roundListProvider,
 ]);
 
+bool isRoundOver(round, TZDateTime now, int endRound) {
+  return now.isAfter(round.start.add(const Duration(minutes: 45)))
+        || (round.id is int ? round.id : int.parse(round.id)) <= endRound;
+}
+
 final filteredRoundList = StreamProvider.family<Iterable<Round>, When>(
   (ref, when) async* {
-    final now = DateTime.now();
+
+    final rankingList = await ref.watch(allRankingsProvider.future);
+    final int endRound = (rankingList.containsKey('roundDone'))
+       ? int.parse(rankingList['roundDone'])
+       : 0;
+
     final roundList = await ref.watch(orderedRoundList(when).future);
+    TZDateTime? now;
     yield roundList.where((round) {
+      now ??= TZDateTime.now(round.start.location);
       return switch (when) {
         When.all => true,
-        When.upcoming => round.start.isAfter(now),
-        When.past => !round.start.isAfter(now),
+        When.upcoming => !isRoundOver(round, now!, endRound),
+        When.past => isRoundOver(round, now!, endRound),
       };
     });
   },
