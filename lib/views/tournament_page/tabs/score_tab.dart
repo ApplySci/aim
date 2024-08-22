@@ -32,7 +32,6 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 
   yield (
     playerScores: playerScores,
-    // TOFIX getting a No Element error on tournament-select here at startup sometimes:
     maxRankWidth: playerScores.map((e) => rankSize(e.rank, e.tied).width).max,
     maxNameWidth: playerScores.map((e) => textSize(e.name).width).max,
     maxScoreWidth:
@@ -49,7 +48,18 @@ class ScoreTable extends ConsumerWidget {
   @override
   Widget build(context, ref) {
     final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
-    final playerScores = ref.watch(scoreWidthProvider);
+    AsyncValue<({
+        double maxNameWidth,
+        double maxRankWidth,
+        double maxScoreWidth,
+        List<PlayerScore> playerScores
+      })> playerScores;
+    try {
+      playerScores = ref.watch(scoreWidthProvider);
+    }
+    catch (e) {
+      return const LoadingView();
+    }
     return playerScores.when(
       skipLoadingOnReload: true,
       loading: () => const LoadingView(),
