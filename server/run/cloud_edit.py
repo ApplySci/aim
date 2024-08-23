@@ -21,8 +21,12 @@ blueprint = Blueprint('edit', __name__)
 
 
 def url_ok(form, field):
+    print(f'url_ok, url={field.data}')
+    if field.data == "":
+        return
     try:
         response = requests.get(field.data)
+        print(f"request for {field.data} is {response.status_code}")
         if response.status_code != 200:
             raise ValidationError('URL must be valid and return a 200 status code.')
     except requests.exceptions.RequestException:
@@ -121,6 +125,7 @@ def edit_tournament():
             'url': form.url.data,
             'url_icon': form.url_icon.data
         }
+        print(f'validated ok, saving {updated_data}')
         update_tournament_data(firebase_id, updated_data)
 
         # Update local database
@@ -130,5 +135,5 @@ def edit_tournament():
 
         flash('Tournament data updated successfully', 'success')
         return redirect(url_for('edit_tournament'))
-
+    flash('validation failed')
     return render_template('cloud_edit.html', form=form, firebase_id=firebase_id)
