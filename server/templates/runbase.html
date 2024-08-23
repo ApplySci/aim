@@ -13,10 +13,10 @@
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('run.select_tournament') }}">Select Tournament</a>
             <a href="{{ url_for('run.run_tournament') }}">Run Tournament</a>
+            <a href="{{ url_for('edit.edit_tournament') }}">Edit Tournament Metadata</a>
             <a href="{{ url_for('run.add_user_get') }}">Add Scorer</a>
             {% if current_user.email in "mj.apply.sci@gmail.com" %}
-                <a href="{{ url_for('create.edit_metadata') }}">Edit Metadata</a>
-                <a href="{{ url_for('create.results_create') }}">Create Tournament</a>
+                <a href="{{ url_for('create.results_create') }}">Create New Tournament</a>
                 <a href="{{ url_for('admin.superuser') }}">Superuser admin</a>
             {% endif %}
             <a href="{{ url_for('accounts.logout') }}">Logout</a>

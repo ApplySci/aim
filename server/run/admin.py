@@ -4,7 +4,7 @@ from flask import Blueprint, render_template
 from flask_login import current_user, login_required
 
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
-from create.write_sheet import googlesheet
+from write_sheet import googlesheet
 
 blueprint = Blueprint('admin', __name__)
 

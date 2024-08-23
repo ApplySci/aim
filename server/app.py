@@ -4,7 +4,7 @@
 import inspect
 import os
 import sys
- 
+
 from flask import Flask
 
 # add directory of this file, to the start of the path,
@@ -20,12 +20,13 @@ from run.admin import blueprint as bp_admin
 from create.tournament_setup import blueprint as bp_create
 from root import blueprint as bp_root
 from run.run import blueprint as bp_run
+from run.cloud_edit import blueprint as bp_edit
 from oauth_setup import config_oauth, config_login_manager, config_db, \
                         config_jinja
 
 def create_app():
     app = Flask(__name__)
-    for bp in (bp_accounts, bp_create, bp_root, bp_run, bp_admin):
+    for bp in (bp_accounts, bp_create, bp_root, bp_run, bp_admin, bp_edit):
         app.register_blueprint(bp)
 
     app.config.from_object('config')

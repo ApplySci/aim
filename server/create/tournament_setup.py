@@ -8,10 +8,9 @@ from flask import Blueprint, jsonify, redirect, request, url_for, \
     render_template, current_app, copy_current_request_context
 from flask_login import login_required, current_user
 
-from .write_sheet import googlesheet
+from write_sheet import googlesheet
 from .form_create_results import GameParametersForm
-from .cloud_edit import TournamentForm
-from oauth_setup import db, firestore_client
+from oauth_setup import db
 from config import GOOGLE_CLIENT_EMAIL
 from models import Access, Role, Tournament
 
@@ -142,53 +141,3 @@ def _add_to_db(doc, title):
         db.session.add(access)
     db.session.commit()
     return tournament
-
-
-@blueprint.route('/create/metadata', methods=['POST'])
-@login_required
-def update_tournament():
-    docId = current_user.live_tournament.firebase_doc or 'None'
-    doc_ref = firestore_client.collection('tournaments').document(docId)
-    form = TournamentForm(request.form)
-    if not form.validate_on_submit():
-        print('cloud_edit form failed validation')
-        return render_template('cloud_edit.html', form=form)
-    if docId == None:
-        # TODO create doc
-        print('no docId present')
-    doc_ref.set({
-        'start_date': form.start_date.data,
-        'end_date': form.end_date.data,
-        'address': form.address.data,
-        'country': form.country.data,
-        'name': form.name.data,
-        'status': form.status.data,
-        'url': form.url.data,
-        'url_icon': form.url_icon.data
-    })
-    return render_template('cloud_edit.html', form=form)
-
-@blueprint.route('/edit/metadata', methods=['GET'])
-@login_required
-def edit_metadata():
-    sheet = googlesheet.get_sheet(current_user.live_tournament.google_doc_id)
-    schedule = googlesheet.get_schedule(sheet)
-    docId = current_user.live_tournament.firebase_doc or 'None'
-    doc_ref = firestore_client.collection('tournaments').document(docId)
-    doc = doc_ref.get()
-    form = TournamentForm()
-    if doc.exists:
-        data = doc.to_dict()
-        form.start_date.data = data['start_date']
-        form.end_date.data = data['end_date']
-        form.address.data = data['address']
-        form.country.data = data['country']
-        form.name.data = data['name']
-        form.status.data = data['status']
-        form.url.data = data.get('url', '')
-        form.url_icon.data = data.get('url_icon', '')
-    else:
-        # get start and end date from schedule
-        form.tournament.data = current_user.live_tournament.title
-
-    return render_template('cloud_edit.html', form=form)

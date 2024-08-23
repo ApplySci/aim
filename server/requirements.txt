@@ -9,3 +9,4 @@ email_validator
 flask_sqlalchemy
 alembic
 pytz
+pycountry

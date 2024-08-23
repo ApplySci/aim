@@ -11,15 +11,13 @@
 <form method="POST">
     {{ form.hidden_tag() }}
 
-    <p> TBD: extra text here: first hanchan start time - last hanchan end time.
+    <p>
+        Firebase Document ID: <code>{{ firebase_id }}</code> (This cannot be changed)
+    </p>
 
-    Say which data should be updated in spreadsheet, not here - eg hanchan times.
-
-    show google doc id, and say it shouldn't be changed.
-
-    show firebase doc id. don't allow it to change
-
-    show timezone, and specify that date/times must be given local to that timezone
+    <p>
+        Note: Hanchan times should be updated in the spreadsheet, not here.
+        All date/times must be given local to the tournament's timezone.
     </p>
 
     <p>
@@ -56,7 +54,7 @@
 
     <p>
         {{ form.country.label }}<br>
-        {{ form.country(size=25) }}
+        {{ form.country }}
         {% for error in form.country.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -65,9 +63,19 @@
     <p>
         {{ form.status.label }}<br>
         {% for subfield in form.status %}
-            {{ subfield }} {{ subfield.label }}
+            {{ subfield }} {{ subfield.label }}<br>
         {% endfor %}
         {% for error in form.status.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.rules.label }}<br>
+        {% for subfield in form.rules %}
+            {{ subfield }} {{ subfield.label }}<br>
+        {% endfor %}
+        {% for error in form.rules.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
     </p>
@@ -86,6 +94,22 @@
         {{ form.url_icon(id="url_icon", size=80) }}
         <span id="icon_status"></span>
         {% for error in form.url_icon.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.google_doc_id.label }}<br>
+        {{ form.google_doc_id(size=80) }}
+        {% for error in form.google_doc_id.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.web_directory.label }}<br>
+        /home/model/{{ form.web_directory(size=80) }}
+        {% for error in form.web_directory.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
     </p>

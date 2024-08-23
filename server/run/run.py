@@ -13,7 +13,7 @@ from flask import Blueprint, redirect, url_for, render_template, \
     copy_current_request_context, request, flash
 from flask_login import login_required, current_user
 
-from create.write_sheet import googlesheet
+from write_sheet import googlesheet
 from models import Access, User, Tournament, Role
 from oauth_setup import db, firestore_client
 from run.userform import AddUserForm
