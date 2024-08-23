@@ -21,12 +21,10 @@ blueprint = Blueprint('edit', __name__)
 
 
 def url_ok(form, field):
-    print(f'url_ok, url={field.data}')
     if field.data == "":
         return
     try:
         response = requests.get(field.data)
-        print(f"request for {field.data} is {response.status_code}")
         if response.status_code != 200:
             raise ValidationError('URL must be valid and return a 200 status code.')
     except requests.exceptions.RequestException:
@@ -34,12 +32,14 @@ def url_ok(form, field):
 
 
 def start_date_check(form, field):
+    return
     given_datetime = datetime(2024, 6, 14)  # replace with your datetime
     if field.data > given_datetime:
         raise ValidationError('Start date must be earlier than or equal to start of first hanchan:')
 
 
 def end_date_check(form, field):
+    return
     given_datetime = datetime(2024, 6, 20)  # replace with your datetime
     if field.data < given_datetime:
         raise ValidationError('End date must be later than or equal to given datetime.')
@@ -98,9 +98,10 @@ def update_tournament_data(firebase_id, data):
     ref.update(data)
 
 
-@blueprint.route('/run/edit', methods=['GET', 'POST'])
+
+@blueprint.route('/run/edit', methods=['GET'])
 @login_required
-def edit_tournament():
+def create_edit_tournament_form():
     firebase_id = current_user.live_tournament.firebase_doc
     form = TournamentForm()
 
@@ -112,6 +113,15 @@ def edit_tournament():
         # Populate form with local database data
         form.google_doc_id.data = current_user.live_tournament.google_doc_id
         form.web_directory.data = current_user.live_tournament.web_directory.replace('/home/model/', '')
+
+    return render_template('cloud_edit.html', form=form, firebase_id=firebase_id)
+
+
+@blueprint.route('/run/edit', methods=['POST'])
+@login_required
+def edit_tournament():
+    firebase_id = current_user.live_tournament.firebase_doc
+    form = TournamentForm()
 
     if form.validate_on_submit():
         updated_data = {
@@ -134,6 +144,7 @@ def edit_tournament():
         db.session.commit()
 
         flash('Tournament data updated successfully', 'success')
-        return redirect(url_for('edit_tournament'))
+        return redirect(url_for('run.run_tournament'))
+
     flash('validation failed')
     return render_template('cloud_edit.html', form=form, firebase_id=firebase_id)
