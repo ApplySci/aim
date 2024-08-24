@@ -16,10 +16,12 @@
     </p>
 
     <p>
-        Note: Hanchan times should be updated in the spreadsheet, not here.
-        All date/times must be given local to the tournament's timezone.
+        Note: Hanchan times should be updated in the google sheet, not here.
+        All date/times must be given local to the tournament's timezone:
+        <code>{{ timezone }}</code>
     </p>
 
+    <p>Google sheet says the tournament is {{span}}</p>
     <p>
         {{ form.name.label }}<br>
         {{ form.name(size=80) }}
@@ -60,7 +62,7 @@
         {% endfor %}
     </p>
 
-    <p>
+    <fieldset>
         {{ form.status.label }}<br>
         {% for subfield in form.status %}
             {{ subfield }} {{ subfield.label }}<br>
@@ -68,9 +70,9 @@
         {% for error in form.status.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
-    </p>
+    </fieldset>
 
-    <p>
+    <fieldset>
         {{ form.rules.label }}<br>
         {% for subfield in form.rules %}
             {{ subfield }} {{ subfield.label }}<br>
@@ -78,7 +80,7 @@
         {% for error in form.rules.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
-    </p>
+    </fieldset>
 
     <p>
         {{ form.url.label }}<br>
@@ -126,25 +128,33 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function(){
-    $('#url').change(function(){
-        $.get(this.value).done(function() {
-            $('#url_status').html('<span style="color:green;">✔️</span>');
-        }).fail(function() {
-            $('#url_status').html('<span style="color:red;">❌</span>');
-        });
+function checkUrl() {
+    $.get(this.value).done(function() {
+        $('#url_status').html('<span style="color:green;">✔️</span>');
+    }).fail(function() {
+        $('#url_status').html('<span style="color:red;">❌</span>');
     });
+}
+function checkImg(){
+    var img = new Image();
+    img.src = this.value;
+    console.log(this.value);
+    img.onload = function() {
+        $('#icon_status').html('<img src="' + img.src + '" width="50" height="50">');
+    }
+    img.onerror = function() {
+        $('#icon_status').html('<span style="color:red;">❌</span>');
+    }
+}
+var urlField = $('#url');
+var iconField =$('#url_icon') ;
 
-    $('#url_icon').change(function(){
-        var img = new Image();
-        img.src = this.value;
-        img.onload = function() {
-            $('#icon_status').html('<img src="' + img.src + '" width="50" height="50">');
-        }
-        img.onerror = function() {
-            $('#icon_status').html('<span style="color:red;">❌</span>');
-        }
-    });
+$(document).ready(function(){
+    urlField.change(checkUrl);
+    iconField.change(checkImg);
+    checkUrl.call(urlField.get()[0]);
+    checkImg.call(iconField.get()[0]);
 });
+
 </script>
 {% endblock %}

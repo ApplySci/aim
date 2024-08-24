@@ -6,3 +6,22 @@ span.formError {
   color: red;
   font-weight: bold;
 }
+
+fieldset {
+  display: inline-block;
+  vertical-align: top;
+}
+
+input[type="radio"] {
+  margin-top: 0.5em;
+}
+
+
+input[type="radio"]:checked + label {
+  color:green;
+  font-weight: bold;
+}
+
+#icon_status img {
+  vertical-align: bottom;
+}
