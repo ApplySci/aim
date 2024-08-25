@@ -102,7 +102,11 @@
 
     <p>
         {{ form.google_doc_id.label }}<br>
-        {{ form.google_doc_id(size=80) }}
+        {{ form.google_doc_id(size=80, disabled=true, id="google_doc_id") }}
+        <button type="button" id="unlock_google_doc">Unlock</button>
+        <button type="button" id="revert_google_doc" style="display:none;">Revert</button>
+        <span id="google_doc_status"></span>
+        <a id="google_doc_link" target="_blank" style="display:none;">View Sheet</a>
         {% for error in form.google_doc_id.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -154,6 +158,54 @@ $(document).ready(function(){
     iconField.change(checkImg);
     checkUrl.call(urlField.get()[0]);
     checkImg.call(iconField.get()[0]);
+});
+
+var googleDocField = $('#google_doc_id');
+var unlockButton = $('#unlock_google_doc');
+var revertButton = $('#revert_google_doc');
+var originalGoogleDocId = googleDocField.val();
+
+function checkGoogleDoc() {
+    var docId = googleDocField.val();
+    
+    $.ajax({
+        url: '/run/validate_google_doc',
+        method: 'POST',
+        data: { doc_id: docId },
+        success: function(response) {
+            if (response.valid) {
+                $('#google_doc_status').html('<span style="color:green;">✔️</span>');
+                var url = 'https://docs.google.com/spreadsheets/d/' + docId;
+                $('#google_doc_link').attr('href', url).show();
+            } else {
+                $('#google_doc_status').html('<span style="color:red;">❌</span>');
+                $('#google_doc_link').hide();
+            }
+        },
+        error: function() {
+            $('#google_doc_status').html('<span style="color:red;">❌</span>');
+            $('#google_doc_link').hide();
+        }
+    });
+}
+
+unlockButton.click(function() {
+    if (confirm("It is dangerous to change this field. Are you sure you want to proceed?")) {
+        googleDocField.prop('disabled', false);
+        unlockButton.hide();
+        revertButton.show();
+    }
+});
+
+revertButton.click(function() {
+    googleDocField.val(originalGoogleDocId);
+    checkGoogleDoc();
+});
+
+googleDocField.change(checkGoogleDoc);
+
+$(document).ready(function(){
+    checkGoogleDoc();
 });
 
 </script>

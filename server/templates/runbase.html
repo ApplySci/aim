@@ -25,6 +25,13 @@
         {% endif %}
     </nav>
     <div id=main>
+        {% if current_user.is_authenticated %}
+            <h1>Currently managing {{ current_user.live_tournament.title }}</h1>
+            <p>Logged in as: {{ current_user.email }}</p>
+        {% else %}
+            <p>Not logged in</p>
+        {% endif %}
+
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="flashes">
@@ -34,12 +41,7 @@
         </div>
         {% endif %}
         {% endwith %}
-        {% if current_user.is_authenticated %}
-            <h1>Currently managing {{ current_user.live_tournament.title }}</h1>
-            <p>Logged in as: {{ current_user.email }}</p>
-        {% else %}
-            <p>Not logged in</p>
-        {% endif %}
+
         {% block content %}{% endblock %}
     </div>
 {% block scripts %}{% endblock %}

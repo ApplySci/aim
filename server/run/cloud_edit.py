@@ -6,7 +6,7 @@ TODO get tournament hanchan times, and timezone, from googlesheet
 from datetime import datetime
 import os
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for, jsonify
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
 import pycountry
@@ -176,3 +176,13 @@ def edit_tournament():
         timezone=dates[0],
         span= f"{dates[1]} - {dates[2]}",
         )
+
+@blueprint.route('/run/validate_google_doc', methods=['POST'])
+@login_required
+def validate_google_doc():
+    doc_id = request.form.get('doc_id')
+    try:
+        googlesheet.get_sheet(doc_id)
+        return jsonify({'valid': True})
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)})
