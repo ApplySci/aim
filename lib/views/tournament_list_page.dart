@@ -13,6 +13,8 @@ class TournamentListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final allTournamentsAsync = ref.watch(allTournamentsListProvider);
+    final testMode = ref.watch(testModePrefProvider);
+
     return allTournamentsAsync.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(
@@ -22,27 +24,47 @@ class TournamentListPage extends ConsumerWidget {
       data: (_) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Tournaments'),
+            title: GestureDetector(
+              onTap: () {
+                // Toggle test mode on triple tap
+                if (DateTime.now().difference(_lastTap).inMilliseconds < 500) {
+                  _tapCount++;
+                  if (_tapCount > 2) {
+                    ref.read(testModePrefProvider.notifier).set(!testMode);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Test mode ${testMode ? 'disabled' : 'enabled'}'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                    _tapCount = 0;
+                  }
+                } else {
+                  _tapCount = 1;
+                }
+                _lastTap = DateTime.now();
+              },
+              child: const Text('Tournaments'),
+            ),
           ),
           body: DefaultTabController(
-            length: 3,
+            length: testMode ? 4 : 3,
             child: Column(children: [
               Material(
-                color: Theme
-                    .of(context)
-                    .colorScheme
-                    .inversePrimary,
-                child: const TabBar(tabs: [
-                  Tab(text: 'Live'),
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Past'),
+                color: Theme.of(context).colorScheme.inversePrimary,
+                child: TabBar(tabs: [
+                  const Tab(text: 'Live'),
+                  const Tab(text: 'Upcoming'),
+                  const Tab(text: 'Past'),
+                  if (testMode) const Tab(text: 'Test'),
                 ]),
               ),
-              const Expanded(
+              Expanded(
                 child: TabBarView(children: [
-                  TournamentList(when: WhenTournament.live),
-                  TournamentList(when: WhenTournament.upcoming),
-                  TournamentList(when: WhenTournament.past),
+                  const TournamentList(when: WhenTournament.live),
+                  const TournamentList(when: WhenTournament.upcoming),
+                  const TournamentList(when: WhenTournament.past),
+                  if (testMode) const TournamentList(when: WhenTournament.test),
                 ]),
               ),
             ]),
@@ -51,6 +73,9 @@ class TournamentListPage extends ConsumerWidget {
       },
     );
   }
+
+  static DateTime _lastTap = DateTime.now();
+  static int _tapCount = 0;
 }
 
 class TournamentList extends ConsumerWidget {

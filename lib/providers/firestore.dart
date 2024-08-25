@@ -25,6 +25,7 @@ final allTournamentsListProvider = StreamProvider((ref) {
 
 final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournament>((ref, when) {
   final allTournaments = ref.watch(allTournamentsListProvider).value ?? [];
+  final testMode = ref.watch(testModePrefProvider);
 
   return allTournaments.where((tournament) {
     return switch (when) {
@@ -32,6 +33,7 @@ final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournam
       WhenTournament.live => tournament.status == 'live',
       WhenTournament.upcoming => tournament.status == 'upcoming',
       WhenTournament.past => tournament.status == 'past',
+      WhenTournament.test => testMode && tournament.status == 'test',
     };
   }).toList();
 });
@@ -266,6 +268,7 @@ final tournamentStatusProvider = Provider<WhenTournament>((ref) {
     'upcoming' => WhenTournament.upcoming,
     'live' => WhenTournament.live,
     'past' => WhenTournament.past,
+    'test' => WhenTournament.test,
     _ => WhenTournament.upcoming,
   };
 });

@@ -28,6 +28,7 @@ enum WhenTournament {
   all,
   live,
   upcoming,
+  test,
   past,
 }
 

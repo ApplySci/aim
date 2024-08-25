@@ -257,3 +257,7 @@ final tournamentPlayerIdProvider = Provider((ref) {
 final vibratePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
   () => SharedPreferencesBoolNotifier(key: 'vibrate', fallback: true),
 );
+
+final testModePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
+  () => SharedPreferencesBoolNotifier(key: 'testMode', fallback: false),
+);
