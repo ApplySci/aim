@@ -164,10 +164,11 @@ var googleDocField = $('#google_doc_id');
 var unlockButton = $('#unlock_google_doc');
 var revertButton = $('#revert_google_doc');
 var originalGoogleDocId = googleDocField.val();
+var alertWasShown = false;
 
 function checkGoogleDoc() {
     var docId = googleDocField.val();
-    
+
     $.ajax({
         url: '/run/validate_google_doc',
         method: 'POST',
@@ -177,6 +178,7 @@ function checkGoogleDoc() {
                 $('#google_doc_status').html('<span style="color:green;">✔️</span>');
                 var url = 'https://docs.google.com/spreadsheets/d/' + docId;
                 $('#google_doc_link').attr('href', url).show();
+                $('#google_doc_link').next('.formError').hide();
             } else {
                 $('#google_doc_status').html('<span style="color:red;">❌</span>');
                 $('#google_doc_link').hide();
@@ -190,16 +192,22 @@ function checkGoogleDoc() {
 }
 
 unlockButton.click(function() {
-    if (confirm("It is dangerous to change this field. Are you sure you want to proceed?")) {
+    let goodToGo = alertWasShown || confirm("It is dangerous to change this field. "
+        + " Are you sure you want to proceed?");
+    if (goodToGo) {
         googleDocField.prop('disabled', false);
         unlockButton.hide();
         revertButton.show();
     }
+    alertWasShown = true;
 });
 
 revertButton.click(function() {
     googleDocField.val(originalGoogleDocId);
+    googleDocField.prop('disabled', true);
     checkGoogleDoc();
+    unlockButton.show();
+    revertButton.hide();
 });
 
 googleDocField.change(checkGoogleDoc);
