@@ -1,10 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError(),
 );
+
+extension Let<T> on T {
+  R let<R>(R Function(T) block) => block(this);
+}
 
 mixin SharedPreferencesValueMixin<T> {
   SharedPreferences get _prefs;
@@ -129,29 +134,6 @@ class SharedPreferencesBoolNotifier
   });
 }
 
-mixin SharedPreferencesIntMixin implements SharedPreferencesValueMixin<int> {
-  @override
-  int? _getValue() => _prefs.getInt(_key);
-
-  @override
-  Future<void> _setValue(int value) => _prefs.setInt(_key, value);
-}
-
-class SharedPreferencesIntNNotifier extends SharedPreferencesValueNNotifier<int>
-    with SharedPreferencesIntMixin {
-  SharedPreferencesIntNNotifier({
-    required super.key,
-  });
-}
-
-class SharedPreferencesIntNotifier extends SharedPreferencesValueNotifier<int>
-    with SharedPreferencesIntMixin {
-  SharedPreferencesIntNotifier({
-    required super.key,
-    required super.fallback,
-  });
-}
-
 final alarmPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
   () => SharedPreferencesBoolNotifier(key: 'alarm', fallback: kReleaseMode || false),
 );
@@ -170,15 +152,83 @@ final timezonePrefProvider =
   () => SharedPreferencesBoolNotifier(key: 'tz', fallback: true),
 );
 
-final tournamentIdProvider =
-    NotifierProvider<SharedPreferencesStringNNotifier, String?>(
-  () => SharedPreferencesStringNNotifier(key: 'tournamentId'),
+final tournamentIdProvider = NotifierProvider<TournamentIdNotifier, String?>(
+  () => TournamentIdNotifier(),
 );
 
-final selectedPlayerIdProvider =
-    NotifierProvider<SharedPreferencesIntNNotifier, int?>(
-  () => SharedPreferencesIntNNotifier(key: 'selected'),
+class TournamentIdNotifier extends Notifier<String?> {
+  late SharedPreferences _prefs;
+
+  @override
+  String? build() {
+    _prefs = ref.watch(sharedPreferencesProvider);
+    return _getValue();
+  }
+
+  String get _key => 'tournamentId';
+
+  String? _getValue() => _prefs.getString(_key);
+
+  Future<void> set(String? value) async {
+    if (value != null) {
+      await _prefs.setString(_key, value);
+    } else {
+      await _prefs.remove(_key);
+    }
+    state = value;
+  }
+}
+
+final selectedPlayerIdProvider = NotifierProvider<SelectedPlayerIdNotifier, int?>(
+  () => SelectedPlayerIdNotifier(),
 );
+
+class SelectedPlayerIdNotifier extends Notifier<int?> {
+  late SharedPreferences _prefs;
+
+  @override
+  int? build() {
+    _prefs = ref.watch(sharedPreferencesProvider);
+    final tournamentId = ref.watch(tournamentIdProvider);
+    return _getValueForTournament(tournamentId);
+  }
+
+  String get _key => 'selectedPlayer';
+
+  int? _getValueForTournament(String? tournamentId) {
+    if (tournamentId == null) return null;
+    final String? jsonString = _prefs.getString(_key);
+    if (jsonString == null) return null;
+    final Map<String, dynamic> selectedPlayers = 
+        (jsonDecode(jsonString) as Map<String, dynamic>?) ?? {};
+    return selectedPlayers[tournamentId] as int?;
+  }
+
+  Future<void> set(int? value) async {
+    final tournamentId = ref.read(tournamentIdProvider);
+    if (tournamentId == null) return;
+    if (value != null) {
+      await _setValue(value);
+    } else {
+      final String? jsonString = _prefs.getString(_key);
+      final Map<String, dynamic> selectedPlayers = 
+          (jsonDecode(jsonString ?? '{}') as Map<String, dynamic>?) ?? {};
+      selectedPlayers.remove(tournamentId);
+      await _prefs.setString(_key, jsonEncode(selectedPlayers));
+    }
+    state = value;
+  }
+
+  Future<void> _setValue(int value) async {
+    final tournamentId = ref.read(tournamentIdProvider);
+    if (tournamentId == null) return;
+    final String? jsonString = _prefs.getString(_key);
+    final Map<String, dynamic> selectedPlayers = 
+        (jsonDecode(jsonString ?? '{}') as Map<String, dynamic>?) ?? {};
+    selectedPlayers[tournamentId] = value;
+    await _prefs.setString(_key, jsonEncode(selectedPlayers));
+  }
+}
 
 final japaneseNumbersProvider =
     NotifierProvider<SharedPreferencesBoolNotifier, bool>(
