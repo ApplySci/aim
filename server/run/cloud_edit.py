@@ -88,9 +88,9 @@ class TournamentForm(FlaskForm):
     country = SelectField('Country', choices=countries)
     name = StringField('Name', validators=[DataRequired()])
     status = RadioField('Status', choices=[
-        ('pending', 'Pending'), ('live', 'Live'),
-        ('done', 'Finished'), ('test', 'Testing')
-        ], default='pending', validators=[DataRequired()])
+        ('upcoming', 'Upcoming'), ('live', 'Live'),
+        ('past', 'Finished'), ('test', 'Testing')
+        ], default='upcoming', validators=[DataRequired()])
 
     rules = RadioField('Rules', default='WRC', choices=[
         ('WRC', 'WRC'), ('EMA', 'EMA'), ('custom', 'custom')
