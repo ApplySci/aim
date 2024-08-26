@@ -11,6 +11,7 @@ export 'providers/fcm.dart';
 export 'providers/firestore.dart';
 export 'providers/location.dart';
 export 'providers/shared_preferences.dart';
+export 'providers/seat_map.dart';
 
 typedef AlarmInfo = ({
   RoundId id,
@@ -48,7 +49,7 @@ final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
           ? (
               id: selectedPlayer.id,
               name: selectedPlayer.name,
-              table: round.tableNameForPlayerId(selectedPlayer.id),
+              table: round.tableNameForSeat(selectedPlayer.seat),
             )
           : null,
     );

@@ -43,7 +43,7 @@ final roundListProvider = StreamProvider((ref) async* {
   final showAll = ref.watch(showAllProvider);
   final filterByPlayer = ref.watch(filterByPlayerProvider);
   final roundMap = await ref.watch(roundMapProvider.future);
-  final playerMap = await ref.watch(playerMapProvider.future);
+  final seatMap = await ref.watch(seatMapProvider.future);
 
   final roundList = await ref.watch(seatingProvider.future);
   yield roundList
@@ -56,13 +56,20 @@ final roundListProvider = StreamProvider((ref) async* {
             for (final table in round.tables)
               if (showAll ||
                   filterByPlayer == null ||
-                  table.players.contains(filterByPlayer.id))
+                  table.seats.contains(filterByPlayer.seat))
                 (
                   name: table.name,
                   players: {
                     for (final wind in Wind.values)
-                      wind: playerMap[table.players[wind.index]]!,
-                  },
+                        wind: seatMap.putIfAbsent(
+                        table.seats[wind.index],
+                        () => PlayerData({
+                          'seating_id': table.seats[wind.index],
+                          'registration_id': '',
+                          'name': 'seat ${table.seats[wind.index]}',
+                        }),
+                        )
+                    },
                 )
           ],
         ),
@@ -215,8 +222,8 @@ class AssignedTable extends ConsumerWidget {
 
   final Map<Wind, PlayerData> players;
 
-  void onTap(BuildContext context, PlayerId playerId) =>
-      Navigator.of(context).pushNamed(ROUTES.player, arguments: playerId);
+  void onTap(BuildContext context, PlayerData player) =>
+      Navigator.of(context).pushNamed(ROUTES.player, arguments: {'playerId': player.id});
 
   @override
   Widget build(context, ref) {
@@ -254,7 +261,7 @@ class AssignedTable extends ConsumerWidget {
                 ),
               ),
               InkWell(
-                onTap: player != null ? () => onTap(context, player.id) : null,
+                onTap: player != null ? () => onTap(context, player) : null,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text(player?.name ?? ''),

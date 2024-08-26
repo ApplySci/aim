@@ -159,7 +159,6 @@ def _seating_to_web(sheet, seating):
     done : int = googlesheet.count_completed_hanchan(sheet)
     players = _get_players(sheet, False)
     schedule: dict = googlesheet.get_schedule(sheet)
-    # TODO would be nice to get & show timezone
 
     html : str = render_template('seating.html',
         done=done,
@@ -403,14 +402,18 @@ def _get_players(sheet, to_cloud=True):
     player_map = {}
     if len(raw) and len(raw[0]) > 2:
         for p in raw:
-            if p[0]=="":
-                key = p[1]
-                name = f"seat {p[1]}"
-            else:
-                key = p[0]
-                name = p[2]
-            player_map[key] = name
-            players.append({'id': key, 'name': name})
+            registration_id = p[1]
+            seating_id = p[0] if p[0] != "" else None
+            name = p[2]
+            player_map[registration_id] = {
+                'name': name,
+                'seating_id': seating_id
+            }
+            players.append({
+                'registration_id': str(registration_id),
+                'seating_id': seating_id,
+                'name': name
+            })
     if to_cloud:
         _save_to_cloud('players', {'players': players})
     return player_map
@@ -435,7 +438,7 @@ def _seating_to_map(sheet, schedule):
                 'tables': {},
                 })
             hanchan_number = hanchan_number + 1
-        seating[-1]['tables'][table] = players
+        seating[-1]['tables'][table] = [f"Player {p}" if p == "" else p for p in players]
 
     return seating
 
@@ -444,7 +447,7 @@ def _seating_to_map(sheet, schedule):
 def _save_to_cloud(document: str, data: dict, force_set = False):
     firebase_id : str = current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments").document(
-        f"{firebase_id}/v2/{document}")
+        f"{firebase_id}/v3/{document}")
 
     doc = ref.get()
     if doc.exists and not force_set:

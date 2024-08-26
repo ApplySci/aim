@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
 import '/views/data_table_2d.dart';
@@ -42,12 +41,12 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
 class ScoreTable extends ConsumerWidget {
   const ScoreTable({super.key});
 
-  void onTap(BuildContext context, PlayerId playerId) =>
-      Navigator.of(context).pushNamed(ROUTES.player, arguments: playerId);
+  void onTap(BuildContext context, int seat) =>
+      Navigator.of(context).pushNamed(ROUTES.player, arguments: {seat: seat});
 
   @override
   Widget build(context, ref) {
-    final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
+    final selectedSeat = ref.watch(selectedSeatProvider);
     AsyncValue<({
         double maxNameWidth,
         double maxRankWidth,
@@ -69,14 +68,14 @@ class ScoreTable extends ConsumerWidget {
       ),
       data: (playerScores) {
         int? indexSelected;
-        if (selectedPlayerId != null) {
+        if (selectedSeat != null) {
           indexSelected = playerScores.playerScores.indexWhere(
-                (e) => e.id == selectedPlayerId,
+                (e) => e.seat == selectedSeat,
           );
         }
         final int rounds = playerScores.playerScores[0].scores.length;
         return DataTable2FixedLine(
-          key: ValueKey(selectedPlayerId),
+          key: ValueKey(selectedSeat),
           minWidth: double.infinity,
           fixedRow: indexSelected,
           columns: [
@@ -110,11 +109,11 @@ class ScoreTable extends ConsumerWidget {
             // TODO what if a player doesn't have a score for a particular round?
             for (final score in playerScores.playerScores)
               ScoreRow(
-                selected: selectedPlayerId == score.id,
+                selected: selectedSeat == score.seat,
                 score: score,
                 rounds: rounds,
-                onTap: () => onTap(context, score.id),
-                decoration: selectedPlayerId == score.id
+                onTap: () => onTap(context, score.seat),
+                decoration: selectedSeat == score.seat
                     ? BoxDecoration(
                       border: Border.all(
                         color: Colors.green, // Border color

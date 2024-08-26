@@ -11,7 +11,7 @@ import '/views/score_text.dart';
 import '/views/utils.dart';
 
 typedef PlayerRoundScore = ({
-  PlayerId id,
+  int seat,
   String name,
   HanchanScore score,
 });
@@ -20,15 +20,15 @@ final roundScoreListProvider =
     StreamProvider.autoDispose.family<List<PlayerRoundScore>, RoundId>(
   (ref, roundId) async* {
     final games = await ref.watch(gameProvider.future);
-    final playerMap = await ref.watch(playerMapProvider.future);
+    final seatMap = await ref.watch(seatMapProvider.future);
     yield [
       for (final game in games)
         if (game.roundId == roundId)
           for (final table in game.tables)
             for (final score in table.scores)
               (
-                id: score.playerId,
-                name: playerMap[score.playerId]!.name,
+                seat: score.seat,
+                name: seatMap[score.seat]!.name,
                 score: score,
               ),
     ];

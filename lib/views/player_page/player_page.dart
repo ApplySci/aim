@@ -15,15 +15,28 @@ class PlayerPage extends ConsumerWidget {
     super.key,
   });
 
-  PlayerId playerId(BuildContext context) {
-    return ModalRoute.of(context)?.settings.arguments as PlayerId;
+  Map<String, dynamic> playerKeys(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as Map;
+    PlayerId? playerId;
+    int? seat;
+    if (args.containsKey('playerId')) {
+      playerId = args['playerId'];
+      // TODO now get seat
+    } else {
+      seat = args['seat'];
+      // TODO now got playerId
+    }
+    return {'playerId': playerId, 'seat': seat};
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final player = ref.watch(playerScoreProvider(playerId(context)));
+    final keys = playerKeys(context);
+    final PlayerId playerId = keys['playerId'];
+    final int seat = keys['seat'];
+    final player = ref.watch(playerScoreProvider(seat));
     final isSelected = ref.watch(
-      selectedPlayerIdProvider.select((id) => id == playerId(context)),
+      selectedPlayerIdProvider.select((id) => id == playerId),
     );
     return player.when(
       skipLoadingOnReload: true,
@@ -48,7 +61,7 @@ class PlayerPage extends ConsumerWidget {
                   if (isSelected) {
                     selectedPlayerIdNotifier.set(null);
                   } else {
-                    selectedPlayerIdNotifier.set(player.games.id);
+                    selectedPlayerIdNotifier.set(playerId);
                   }
                 },
                 icon: isSelected

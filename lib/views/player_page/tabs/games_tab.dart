@@ -19,11 +19,11 @@ typedef PlayerRounds = ({
 });
 
 final playerScoresProvider =
-    StreamProvider.autoDispose.family<List<PlayerRounds>, PlayerId>(
-  (ref, playerId) async* {
-    final games = (await ref.watch(gameProvider.future)).withPlayerId(playerId);
+    StreamProvider.autoDispose.family<List<PlayerRounds>, int>(
+  (ref, seat) async* {
+    final games = (await ref.watch(gameProvider.future)).withSeat(seat);
     final roundMap = await ref.watch(roundMapProvider.future);
-    final playerMap = await ref.watch(playerMapProvider.future);
+    final seatMap = await ref.watch(seatMapProvider.future);
     yield [
       for (final game in games)
         (
@@ -31,7 +31,7 @@ final playerScoresProvider =
           players: [
             for (final score in game.scores)
               (
-                player: playerMap[score.playerId]!,
+                player: seatMap[score.seat]!,
                 score: score,
               )
           ]
@@ -41,10 +41,10 @@ final playerScoresProvider =
 );
 
 final playerGamesWithWidthsProvider = StreamProvider.autoDispose
-    .family<(TableScoreWidths, List<PlayerRounds>)?, PlayerId>(
-  (ref, playerId) async* {
+    .family<(TableScoreWidths, List<PlayerRounds>)?, int>(
+  (ref, seat) async* {
     final negSign = ref.watch(negSignProvider);
-    final scores = await ref.watch(playerScoresProvider(playerId).future);
+    final scores = await ref.watch(playerScoresProvider(seat).future);
     if (scores.isEmpty) {
       yield null;
       return;
@@ -108,7 +108,7 @@ class PlayerGameTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final games = ref.watch(playerGamesWithWidthsProvider(player.id));
+    final games = ref.watch(playerGamesWithWidthsProvider(player.seat));
     return games.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(

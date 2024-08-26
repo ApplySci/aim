@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
@@ -11,7 +12,7 @@ final searchProvider = StateProvider((_) => '');
 
 final searchPlayerList = StreamProvider((ref) async* {
   final search = ref.watch(searchProvider);
-  final playerList = await ref.watch(playerScoreListProvider.future);
+  final playerList = await ref.watch(playerListProvider.future);
   yield playerList
       .where(
         (player) => player.name.toLowerCase().contains(search),
@@ -103,12 +104,12 @@ class PlayerTile extends ConsumerWidget {
     super.key,
   });
 
-  final PlayerScore player;
+  final PlayerData player;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSelected = ref.watch(
-      selectedPlayerIdProvider.select((id) => id == player.id),
+      selectedSeatProvider.select((id) => id == player.seat),
     );
     return ListTile(
       selected: isSelected,
@@ -119,7 +120,6 @@ class PlayerTile extends ConsumerWidget {
         color: Colors.green,
       ),
       title: Text(player.name),
-      subtitle: Text('Rank: ${player.rank}'),
       trailing: IconButton(
         onPressed: () {
           final selectedPlayerIdNotifier =
@@ -127,7 +127,7 @@ class PlayerTile extends ConsumerWidget {
           if (isSelected) {
             selectedPlayerIdNotifier.set(null);
           } else {
-            selectedPlayerIdNotifier.set(player.id);
+            selectedPlayerIdNotifier.setBySeat(player.seat);
           }
         },
         icon: isSelected
@@ -135,7 +135,7 @@ class PlayerTile extends ConsumerWidget {
             : const Icon(Icons.favorite_border),
       ),
       onTap: () =>
-          Navigator.of(context).pushNamed(ROUTES.player, arguments: player.id),
+          Navigator.of(context).pushNamed(ROUTES.player, arguments: {'playerId': player.id}),
     );
   }
 }

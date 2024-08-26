@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '/models.dart';
+import 'seat_map.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError(),
@@ -179,15 +181,15 @@ class TournamentIdNotifier extends Notifier<String?> {
   }
 }
 
-final selectedPlayerIdProvider = NotifierProvider<SelectedPlayerIdNotifier, int?>(
+final selectedPlayerIdProvider = NotifierProvider<SelectedPlayerIdNotifier, PlayerId?>(
   () => SelectedPlayerIdNotifier(),
 );
 
-class SelectedPlayerIdNotifier extends Notifier<int?> {
+class SelectedPlayerIdNotifier extends Notifier<PlayerId?> {
   late SharedPreferences _prefs;
 
   @override
-  int? build() {
+  PlayerId? build() {
     _prefs = ref.watch(sharedPreferencesProvider);
     final tournamentId = ref.watch(tournamentIdProvider);
     return _getValueForTournament(tournamentId);
@@ -195,23 +197,38 @@ class SelectedPlayerIdNotifier extends Notifier<int?> {
 
   String get _key => 'selectedPlayer';
 
-  int? _getValueForTournament(String? tournamentId) {
+  PlayerId? _getValueForTournament(String? tournamentId) {
     if (tournamentId == null) return null;
     final String? jsonString = _prefs.getString(_key);
     if (jsonString == null) return null;
-    final Map<String, dynamic> selectedPlayers = 
+    final Map<String, dynamic> selectedPlayers =
         (jsonDecode(jsonString) as Map<String, dynamic>?) ?? {};
-    return selectedPlayers[tournamentId] as int?;
+    return selectedPlayers[tournamentId] as PlayerId?;
   }
 
-  Future<void> set(int? value) async {
+  Future<void> setBySeat(int seat) async {
+    final tournamentId = ref.read(tournamentIdProvider);
+    if (tournamentId == null) return;
+
+    final seatMapAsync = ref.read(seatMapProvider);
+    
+    seatMapAsync.whenData((seatMap) {
+      final player = seatMap[seat];
+      if (player != null) {
+        _setValue(player.id);
+        state = player.id;
+      }
+    });
+  }
+
+  Future<void> set(PlayerId? value) async {
     final tournamentId = ref.read(tournamentIdProvider);
     if (tournamentId == null) return;
     if (value != null) {
       await _setValue(value);
     } else {
       final String? jsonString = _prefs.getString(_key);
-      final Map<String, dynamic> selectedPlayers = 
+      final Map<String, dynamic> selectedPlayers =
           (jsonDecode(jsonString ?? '{}') as Map<String, dynamic>?) ?? {};
       selectedPlayers.remove(tournamentId);
       await _prefs.setString(_key, jsonEncode(selectedPlayers));
@@ -219,11 +236,11 @@ class SelectedPlayerIdNotifier extends Notifier<int?> {
     state = value;
   }
 
-  Future<void> _setValue(int value) async {
+  Future<void> _setValue(PlayerId value) async {
     final tournamentId = ref.read(tournamentIdProvider);
     if (tournamentId == null) return;
     final String? jsonString = _prefs.getString(_key);
-    final Map<String, dynamic> selectedPlayers = 
+    final Map<String, dynamic> selectedPlayers =
         (jsonDecode(jsonString ?? '{}') as Map<String, dynamic>?) ?? {};
     selectedPlayers[tournamentId] = value;
     await _prefs.setString(_key, jsonEncode(selectedPlayers));

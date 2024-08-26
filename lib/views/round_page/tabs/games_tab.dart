@@ -20,7 +20,7 @@ final roundScoresProvider =
     StreamProvider.autoDispose.family<List<RoundTableScores>, RoundId>(
   (ref, roundId) async* {
     final games = await ref.watch(gameProvider.future);
-    final playerMap = await ref.watch(playerMapProvider.future);
+    final seatMap = await ref.watch(seatMapProvider.future);
     yield [
       for (final game in games)
         if (game.roundId == roundId)
@@ -30,7 +30,7 @@ final roundScoresProvider =
               players: [
                 for (final score in table.scores)
                   (
-                    player: playerMap[score.playerId]!,
+                    player: seatMap[score.seat]!,
                     score: score,
                   ),
               ],

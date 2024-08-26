@@ -76,23 +76,26 @@ class TournamentData extends Equatable {
       ];
 }
 
-typedef PlayerId = int;
+typedef PlayerId = String;
 
 class PlayerData extends Equatable implements Comparable<PlayerData> {
   final PlayerId id;
+  final int seat;
   final String name;
 
   PlayerData(Map<String, dynamic> playerMap)
-      : id = playerMap['id'],
+      : id = playerMap['registration_id'],
+        seat = playerMap['seating_id'] ?? -1,
         name = playerMap['name'];
 
   @override
-  int compareTo(PlayerData other) => name.compareTo(other.name);
+  int compareTo(PlayerData other) => id.compareTo(other.id);
 
   @override
   List<Object?> get props => [
         id,
         name,
+        seat,
       ];
 }
 
@@ -174,23 +177,23 @@ class RoundScheduleData extends Equatable {
 class PlayerRankData extends Equatable {
   // one player's score
   const PlayerRankData({
-    required this.id,
+    required this.seat,
     required this.rank,
     required this.tied,
     required this.total,
     required this.penalty,
   });
 
-  factory PlayerRankData.fromMap(int id, Map<String, dynamic> data) =>
+  factory PlayerRankData.fromMap(int seat, Map<String, dynamic> data) =>
       PlayerRankData(
-        id: id,
+        seat: seat,
         rank: data['r'] as int,
         tied: data['t'] == 1,
         total: data['total'] as int,
         penalty: data['p'] as int,
       );
 
-  final PlayerId id;
+  final int seat;
   final int rank;
   final bool tied;
   final int total;
@@ -198,7 +201,7 @@ class PlayerRankData extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
+        seat,
         rank,
         tied,
         total,
@@ -208,13 +211,13 @@ class PlayerRankData extends Equatable {
 
 extension RoundDataList on List<RoundData> {
   // seating
-  Iterable<RoundData> withPlayerId(PlayerId? playerId) => playerId == null
+  Iterable<RoundData> withSeat(int? seat) => seat == null
       ? this
       : map((round) => RoundData(
             id: round.id,
             tables: [
               for (final table in round.tables)
-                if (table.players.contains(playerId)) table,
+                if (table.seats.contains(seat)) table,
             ],
           ));
 }
@@ -232,7 +235,7 @@ class RoundData extends Equatable {
           for (final MapEntry(:key, :value) in (data['tables'] as Map).entries)
             TableData(
               name: key,
-              players: (value as List).cast(),
+              seats: (value as List).cast(),
             ),
         ] : [],
       );
@@ -240,8 +243,8 @@ class RoundData extends Equatable {
   final String id;
   final List<TableData> tables;
 
-  String tableNameForPlayerId(PlayerId playerId) =>
-      tables.firstWhere((e) => e.players.contains(playerId)).name;
+  String tableNameForSeat(int seat) =>
+      tables.firstWhere((e) => e.seats.contains(seat)).name;
 
   @override
   List<Object?> get props => [
@@ -253,41 +256,41 @@ class RoundData extends Equatable {
 class TableData extends Equatable {
   const TableData({
     required this.name,
-    required this.players,
+    required this.seats,
   });
 
   final String name;
-  final List<PlayerId> players;
+  final List<int> seats;
 
   @override
   List<Object?> get props => [
         name,
-        players,
+        seats,
       ];
 }
 
 extension HanchanList on List<GameData> {
   // List of detailed results for a given player
-  List<Hanchan> withPlayerId(PlayerId playerId) {
+  List<Hanchan> withSeat(int seat) {
     // get one game for each round for the given player
     return [
       for (final hanchan in this)
         for (final table in hanchan.tables)
-          if (table.hasPlayerId(playerId)) table,
+          if (table.hasSeat(seat)) table,
     ];
   }
 }
 
 class HanchanScore extends Equatable {
   // detailed score for one player at one table in one round
-  final PlayerId playerId;
+  final int seat;
   final int placement;
   final int gameScore;
   final int finalScore;
   final int penalties;
 
   const HanchanScore({
-    required this.playerId,
+    required this.seat,
     required this.placement,
     required this.gameScore,
     required this.finalScore,
@@ -296,7 +299,7 @@ class HanchanScore extends Equatable {
 
   factory HanchanScore.fromList(List<int> values) {
     return HanchanScore(
-      playerId: values[0],
+      seat: values[0],
       penalties: values[1],
       gameScore: values[2],
       placement: values[3],
@@ -308,7 +311,7 @@ class HanchanScore extends Equatable {
 
   @override
   List<Object?> get props => [
-        playerId,
+        seat,
         penalties,
         gameScore,
         placement,
@@ -328,8 +331,8 @@ class Hanchan extends Equatable {
     required this.scores,
   });
 
-  bool hasPlayerId(PlayerId playerId) =>
-      scores.any((e) => e.playerId == playerId);
+  bool hasSeat(int seat) =>
+      scores.any((e) => e.seat == seat);
 
   @override
   List<Object?> get props => [

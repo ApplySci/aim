@@ -15,11 +15,11 @@ information about which table they are on next, and who they'll be playing with.
 And they'll get tailored notifications if that information changes.
 
 A tournament admin is able to do everything through a web interface.
-I envisage them using 3 browser tabs:
+It's designed in a way that a browser with 3 tabs can do everything:
 
-- the admin interface
+- the admin web interface
 - the google scoring sheet; and
-- the live web page; and
+- the live web page;
 
 ## Programming platforms, frameworks & languages used
 
@@ -34,7 +34,7 @@ scoresheet, to create the live score web page, and to put the data into the
 cloud, for onward transmission to the app
 
 App notifications are by **Firebase Cloud Messaging**.
-And via **APN**, for IOS (not tested yet).
+And via **APN**, for IOS.
 Live tournament data is stored in **Google Cloud Firestore**.
 
 When the app has a connection, and is in foreground or background, any update to

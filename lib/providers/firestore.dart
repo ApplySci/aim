@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart';
 import '/models.dart';
 import '/utils.dart';
 import 'shared_preferences.dart';
+import 'seat_map.dart';
 
 final firebaseProvider = Provider((ref) => FirebaseFirestore.instance);
 
@@ -59,7 +60,7 @@ final tournamentCollectionProvider = Provider((ref) {
   final tournamentId = ref.watch(tournamentIdProvider);
   if (tournamentId == null) return null;
 
-  return db.collection('tournaments').doc(tournamentId).collection('v2');
+  return db.collection('tournaments').doc(tournamentId).collection('v3');
 });
 
 final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
@@ -88,6 +89,7 @@ final playerMapProvider = StreamProvider((ref) async* {
     for (final player in playerList) player.id: player,
   };
 });
+
 
 final selectedPlayerProvider = Provider((ref) {
   final selectedPlayerId = ref.watch(selectedPlayerIdProvider);
@@ -195,6 +197,7 @@ final roundMapProvider = StreamProvider((ref) async* {
 
 typedef PlayerScore = ({
   PlayerId id,
+  int seat,
   String name,
   int rank,
   bool tied,
@@ -205,14 +208,15 @@ typedef PlayerScore = ({
 
 final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
   final rankings = await ref.watch(rankingProvider.future);
-  final playerMap = await ref.watch(playerMapProvider.future);
+  final seatMap = await ref.watch(seatMapProvider.future);
   final games = await ref.watch(gameProvider.future);
 
   yield [
     for (final ranking in rankings)
       (
-        id: ranking.id,
-        name: playerMap[ranking.id]!.name,
+        id: seatMap[ranking.seat]!.id,
+        seat:ranking.seat,
+        name: seatMap[ranking.seat]!.name,
         rank: ranking.rank,
         tied: ranking.tied,
         total: ranking.total,
@@ -221,7 +225,7 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
           for (final game in games)
             for (final table in game.tables)
               for (final scores in table.scores)
-                if (scores.playerId == ranking.id) scores,
+                if (scores.seat == ranking.seat) scores,
         ],
       ),
   ];
@@ -234,11 +238,11 @@ typedef PlayerRankings = ({
 });
 
 final playerScoreProvider = StreamProvider.family
-    .autoDispose<PlayerRankings, PlayerId>((ref, playerId) async* {
+    .autoDispose<PlayerRankings, int>((ref, seat) async* {
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
   final rankingList = await ref.watch(allRankingsProvider.future);
 
-  PlayerScore games = playerScoreList.firstWhere((e) => e.id == playerId);
+  PlayerScore games = playerScoreList.firstWhere((e) => e.seat == seat);
 
   List<int> rankings = [];
   List<int> totalScores = [];
@@ -246,8 +250,8 @@ final playerScoreProvider = StreamProvider.family
   if (rankingList.containsKey('roundDone')) {
     int endRound = int.parse(rankingList['roundDone']);
     for (int i=1; i <= endRound; i++) {
-      rankings.add(rankingList["$i"]["$playerId"]['r']);
-      totalScores.add(rankingList["$i"]["$playerId"]['total']);
+      rankings.add(rankingList["$i"][seat]['r']);
+      totalScores.add(rankingList["$i"][seat]['total']);
     }
   }
 
