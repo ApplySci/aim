@@ -114,7 +114,7 @@
 
     <p>
         {{ form.web_directory.label }}<br>
-        /home/model/{{ form.web_directory(size=80) }}
+        {{BASEDIR}}{{ form.web_directory(size=80) }}
         {% for error in form.web_directory.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}

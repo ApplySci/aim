@@ -21,6 +21,7 @@ from oauth_setup import db, firestore_client
 
 blueprint = Blueprint('edit', __name__)
 
+BASEDIR = '/home/model/apps/tournaments/static/'
 
 def url_ok(form, field):
     if field.data == "":
@@ -60,7 +61,7 @@ def validate_google_doc_id(form, field):
 
 
 def validate_web_directory(form, field):
-    full_path = os.path.join('/home/model', field.data)
+    full_path = os.path.join(BASEDIR, field.data)
     if not os.path.isdir(full_path):
         raise ValidationError('Invalid directory path.')
 
@@ -142,7 +143,7 @@ def edit_tournament():
 
         # Populate form with local database data
         form.google_doc_id.data = current_user.live_tournament.google_doc_id
-        form.web_directory.data = current_user.live_tournament.web_directory.replace('/home/model/', '')
+        form.web_directory.data = current_user.live_tournament.web_directory.replace(BASEDIR, '')
     else:
         if form.validate_on_submit():
             updated_data = {
@@ -161,8 +162,13 @@ def edit_tournament():
 
             # Update local database
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
-            current_user.live_tournament.web_directory = os.path.join('/home/model', form.web_directory.data)
+            current_user.live_tournament.web_directory = os.path.join(
+                BASEDIR, form.web_directory.data)
             db.session.commit()
+
+            # TODO create the web directory if it doesn't exist
+            #      and if that fails, we need to abort. Perhaps we should do
+            #      this in a custom validator
 
             flash('Tournament data updated successfully', 'success')
             return redirect(url_for('run.run_tournament'))

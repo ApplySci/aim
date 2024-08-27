@@ -109,7 +109,7 @@ class PlayerTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSelected = ref.watch(
-      selectedSeatProvider.select((id) => id == player.seat),
+      selectedPlayerIdProvider.select((id) => id == player.id),
     );
     return ListTile(
       selected: isSelected,
@@ -127,7 +127,7 @@ class PlayerTile extends ConsumerWidget {
           if (isSelected) {
             selectedPlayerIdNotifier.set(null);
           } else {
-            selectedPlayerIdNotifier.setBySeat(player.seat);
+            selectedPlayerIdNotifier.set(player.id);
           }
         },
         icon: isSelected

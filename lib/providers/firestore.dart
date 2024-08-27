@@ -211,9 +211,12 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
   final seatMap = await ref.watch(seatMapProvider.future);
   final games = await ref.watch(gameProvider.future);
 
-  yield [
-    for (final ranking in rankings)
-      (
+  if (rankings.isEmpty || games.isEmpty || seatMap.length < 2) {
+    yield [];
+  } else {
+    yield [
+      for (final ranking in rankings)
+        (
         id: seatMap[ranking.seat]!.id,
         seat:ranking.seat,
         name: seatMap[ranking.seat]!.name,
@@ -227,8 +230,9 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
               for (final scores in table.scores)
                 if (scores.seat == ranking.seat) scores,
         ],
-      ),
-  ];
+        ),
+    ];
+  }
 });
 
 typedef PlayerRankings = ({
@@ -242,7 +246,19 @@ final playerScoreProvider = StreamProvider.family
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
   final rankingList = await ref.watch(allRankingsProvider.future);
 
-  PlayerScore games = playerScoreList.firstWhere((e) => e.seat == seat);
+  final List<HanchanScore> emptyList = [];
+  PlayerScore games = playerScoreList.isEmpty
+    ? (
+        id: 'unknown',
+        seat: seat,
+        name: '',
+        rank: 0,
+        tied: false,
+        total: 0,
+        penalty: 0,
+        scores: emptyList,
+      )
+    : playerScoreList.firstWhere((e) => e.seat == seat);
 
   List<int> rankings = [];
   List<int> totalScores = [];

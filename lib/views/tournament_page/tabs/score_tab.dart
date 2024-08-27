@@ -29,12 +29,22 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
       .map((playerScore) => playerScore.penalty)
       .map((score) => scoreSize(score, negSign).width);
 
+  double? maxRank, maxName, maxScore;
+  try {
+    maxRank = playerScores.map((e) => rankSize(e.rank, e.tied).width).max;
+    maxName = playerScores.map((e) => textSize(e.name).width).max;
+    maxScore = maxScoreWidth.followedBy(maxTotalWidth).followedBy(maxPenaltyWidth).max;
+  } catch(e) {
+    maxRank ??= 1;
+    maxName ??= 1;
+    maxScore ??= 1;
+  }
+
   yield (
     playerScores: playerScores,
-    maxRankWidth: playerScores.map((e) => rankSize(e.rank, e.tied).width).max,
-    maxNameWidth: playerScores.map((e) => textSize(e.name).width).max,
-    maxScoreWidth:
-        maxScoreWidth.followedBy(maxTotalWidth).followedBy(maxPenaltyWidth).max,
+    maxRankWidth: maxRank,
+    maxNameWidth: maxName,
+    maxScoreWidth: maxScore,
   );
 });
 
@@ -73,7 +83,12 @@ class ScoreTable extends ConsumerWidget {
                 (e) => e.seat == selectedSeat,
           );
         }
-        final int rounds = playerScores.playerScores[0].scores.length;
+        final int rounds = playerScores.playerScores.isEmpty
+            ? 0
+            : playerScores.playerScores[0].scores.length;
+        if (rounds==0) {
+          return const Center(child: Text('No scores available yet'),);
+        }
         return DataTable2FixedLine(
           key: ValueKey(selectedSeat),
           minWidth: double.infinity,

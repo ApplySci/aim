@@ -92,7 +92,10 @@ def _ranking_to_web(scores, games, players, done, schedule):
                 if p not in scores_by_player:
                     scores_by_player[p] = {}
                 scores_by_player[p][r] = (line[4], t)
-    html = render_template('ranking.html',
+    if done == 0:
+        render_template('noranking.html', title=title, done=done)
+    else:
+        html = render_template('ranking.html',
                            title=title,
                            scores=sorted_scores,
                            round_name=roundName,
@@ -200,6 +203,7 @@ def _message_player_topics(scores: dict, done: int, players):
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
     '''
+    if done==0: return
     firebase_id = current_user.live_tournament.firebase_doc
     for k,v in scores.items():
         name = players[int(k)]
