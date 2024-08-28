@@ -15,27 +15,58 @@ class PlayerPage extends ConsumerWidget {
     super.key,
   });
 
+  void abortBuild(BuildContext context, String msg) {
+
+    Future.delayed(Durations.short1, () {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+      Navigator.pop(context);
+    });
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // TODO Favouriting works inconsistently between player list and player profile page.
+    //      Player profile might be assigning by seat or something
     final args = ModalRoute.of(context)!.settings.arguments as Map;
-    PlayerId? playerId;
-    int? seat;
+    PlayerId? playerId = args['playerId'];
+    int? seat = args['seat'];
+    PlayerData? playerData;
+    AsyncValue<PlayerRankings> playerScore;
 
-    if (args.containsKey('playerId')) {
-      playerId = args['playerId'];
-      // Get seat from playerId using playerMapProvider
-      final playerMap = ref.watch(playerMapProvider).valueOrNull;
-      if (playerMap != null && playerMap.containsKey(playerId)) {
-        seat = playerMap[playerId]!.seat;
+    if (playerId == null) {
+      if (seat == null) {
+        abortBuild(context, 'No way to identify this player');
       } else {
-        return const Center(child: Text('No seating or scores available yet'));
+        final seatMap = ref.watch(seatMapProvider).valueOrNull;
+        if (seatMap != null && seatMap.containsKey(seat)) {
+          playerId = seatMap[seat]!.id;
+        } else {
+          abortBuild(context, 'No seating available yet');
+        }
       }
-    } else {
-      seat = args['seat'];
     }
 
-    // Use seat if available, otherwise fallback to the first player's seat
-    final playerScore = ref.watch(playerScoreProvider(seat ?? 1));
+    final playerMap = ref.watch(playerMapProvider).valueOrNull;
+    if (playerMap != null && playerMap.containsKey(playerId)) {
+      playerData = playerMap[playerId];
+    }
+    if (seat == null) {
+      try {
+        seat = playerData!.seat;
+      } catch(e) {
+        abortBuild(context, 'Player not found');
+      }
+    }
+
+    try {
+      playerScore = ref.watch(playerScoreProvider(seat!));
+    } catch(e) {
+      abortBuild(context, 'Scores not available');
+      return const Text('failed');
+    }
 
     return playerScore.when(
         skipLoadingOnReload: true,
@@ -48,7 +79,7 @@ class PlayerPage extends ConsumerWidget {
               stackTrace: stackTrace,
             ),
         data: (player) {
-          PlayerId playerId = player.games.id;
+
           final isSelected = ref.watch(
             selectedPlayerIdProvider.select((id) => id == playerId),
           );
@@ -57,7 +88,7 @@ class PlayerPage extends ConsumerWidget {
             length: 4,
             child: Scaffold(
               appBar: AppBar(
-                title: Text(player.games.name),
+                title: Text(playerData!.name, style: const TextStyle(fontSize: 16),),
                 actions: [
                   IconButton(
                     onPressed: () {

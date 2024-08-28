@@ -25,6 +25,7 @@ class Seating extends ConsumerWidget {
           .state = value,
     );
 
+    // TODO if there are no upcoming rounds, only show the past tab, & vice versa
     return(tournamentStatus == WhenTournament.live)
       ? DefaultTabController(
           length: 2,

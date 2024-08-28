@@ -243,12 +243,12 @@ typedef PlayerRankings = ({
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerRankings, int>((ref, seat) async* {
+  print("playerScoreProvider seat=$seat");
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
   final rankingList = await ref.watch(allRankingsProvider.future);
 
   final List<HanchanScore> emptyList = [];
-  PlayerScore games = playerScoreList.isEmpty
-    ? (
+  PlayerScore games = (
         id: 'unknown',
         seat: seat,
         name: '',
@@ -257,8 +257,14 @@ final playerScoreProvider = StreamProvider.family
         total: 0,
         penalty: 0,
         scores: emptyList,
-      )
-    : playerScoreList.firstWhere((e) => e.seat == seat);
+      );
+  if (seat >= 0 && playerScoreList.isNotEmpty) {
+    try {
+      games = playerScoreList.firstWhere((e) => e.seat == seat);
+    } catch (e) {
+      // pass
+    }
+  }
 
   List<int> rankings = [];
   List<int> totalScores = [];
@@ -266,8 +272,8 @@ final playerScoreProvider = StreamProvider.family
   if (rankingList.containsKey('roundDone')) {
     int endRound = int.parse(rankingList['roundDone']);
     for (int i=1; i <= endRound; i++) {
-      rankings.add(rankingList["$i"][seat]['r']);
-      totalScores.add(rankingList["$i"][seat]['total']);
+      rankings.add(rankingList["$i"]["$seat"]['r']);
+      totalScores.add(rankingList["$i"]["$seat"]['total']);
     }
   }
 
@@ -279,7 +285,6 @@ final playerScoreProvider = StreamProvider.family
   yield out;
 });
 
-// Add this provider after the tournamentProvider
 final tournamentStatusProvider = Provider<WhenTournament>((ref) {
   final tournamentData = ref.watch(tournamentProvider).valueOrNull;
   if (tournamentData == null) return WhenTournament.upcoming;
