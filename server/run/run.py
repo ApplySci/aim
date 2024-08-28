@@ -153,8 +153,13 @@ def update_schedule():
         'timezone': schedule['timezone'],
         })
     _seating_to_web(sheet=sheet, seating=seating)
-    _send_messages('seating & schedule updated')
-    return "SEATING & SCHEDULE updated, notifications sent", 200
+    
+    send_notifications = request.args.get('sendNotifications') == 'true'
+    if send_notifications:
+        _send_messages('seating & schedule updated')
+        return "SEATING & SCHEDULE updated, notifications sent", 200
+    else:
+        return "SEATING & SCHEDULE updated, notifications not sent", 200
 
 
 @login_required
@@ -185,8 +190,13 @@ def _seating_to_web(sheet, seating):
 def update_players():
     sheet = _get_sheet()
     _get_players(sheet, True)
-    _send_messages('player list updated')
-    return "PLAYERS updated, notifications sent", 200
+    
+    send_notifications = request.args.get('sendNotifications') == 'true'
+    if send_notifications:
+        _send_messages('player list updated')
+        return "PLAYERS updated, notifications sent", 200
+    else:
+        return "PLAYERS updated, notifications not sent", 200
 
 
 @login_required
@@ -323,6 +333,7 @@ def _games_to_web(games, schedule, players):
 @blueprint.route('/run/get_results')
 @login_required
 def update_ranking_and_scores():
+    send_notifications = request.args.get('sendNotifications') == 'true'
 
     @copy_current_request_context
     def _finish_sheet_to_cloud():
@@ -334,11 +345,16 @@ def update_ranking_and_scores():
         games = _games_to_cloud(sheet, done, players)
         _games_to_web(games, schedule, players)
         _ranking_to_web(ranking, games, players, done, schedule)
-        _message_player_topics(ranking, done, players)
+        if send_notifications:
+            _message_player_topics(ranking, done, players)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
-    return "SCORES are being updated, and notifications sent, now", 200
+    
+    if send_notifications:
+        return "SCORES are being updated, and notifications sent, now", 200
+    else:
+        return "SCORES are being updated, notifications not sent", 200
 
 
 @login_required

@@ -16,70 +16,84 @@
   <a href='{{ webroot }}seating.html' target='blank'>Seating</a>
 </p>
 <hr>
-<div id='runButtons'>
+<form>
+  <div>
+    <label for="sendNotifications">
+      <input type="checkbox" id="sendNotifications" name="sendNotifications" checked>
+      Send notifications to users on update
+    </label>
+  </div>
 
-  <button class="action" data-url="{{
-    url_for('run.update_ranking_and_scores')
-    }}">Update scores on web and app</button>
+<button class="action" data-url="{{
+  url_for('run.update_ranking_and_scores')
+  }}">Update scores on web and app</button>
 
-  <button class="action" data-url="{{
-    url_for('run.update_schedule')
-    }}">Update schedule & seating</button>
-  <p>
+<button class="action" data-url="{{
+  url_for('run.update_schedule')
+  }}">Update schedule & seating</button>
 
-  <button class="action" data-url="{{
-    url_for('run.update_players')
-    }}">Update list of players & seat-number assignments</button>
+<button class="action" data-url="{{
+  url_for('run.update_players')
+  }}">Update list of players & seat-number assignments</button>
 
+</form>
 
-</div>
 <div><button id="clearButton">Clear log</button></div>
 <div id="logMessageBox"></div>
+
 
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+
 <script>
-let buttons = document.querySelectorAll('button.action');
-let log = document.getElementById('logMessageBox');
-document.getElementById('clearButton').addEventListener('click', () =>
-    log.innerHTML = '');
+document.addEventListener('DOMContentLoaded', function() {
+  let buttons = document.querySelectorAll('button.action');
+  let log = document.getElementById('logMessageBox');
+  document.getElementById('clearButton').addEventListener('click', () =>
+      log.innerHTML = '');
 
-buttons.forEach(button => {
-    button.addEventListener('click', function() {
-        button.disabled = true;
-        let url = this.getAttribute('data-url');
-        url += '?t=' + new Date().getTime();
-        fetch(url)
-            .then(response => response.text())
-            .then(data => {
-                button.disabled = false;
-                let message = document.createElement('p');
+  buttons.forEach(button => {
+      button.addEventListener('click', function() {
+          button.disabled = true;
+          let url = this.getAttribute('data-url');
+          let sendNotifications = document.getElementById('sendNotifications').checked;
 
-                let timestampSpan = document.createElement('span');
-                timestampSpan.className = 'dateTimeStamp';
-                timestampSpan.textContent = new Date().toLocaleString('se');
+          url += '?t=' + new Date().getTime() 
+                  + '&sendNotifications=' + sendNotifications;
 
-                message.appendChild(timestampSpan);
-                message.appendChild(document.createTextNode(': ' + data));
+          fetch(url)
+              .then(response => response.text())
+              .then(data => {
+                  button.disabled = false;
+                  let message = document.createElement('p');
 
-                log.insertBefore(message, log.firstChild);
-            })
-            .catch(error => {
-                button.disabled = false;
-                let message = document.createElement('p');
+                  let timestampSpan = document.createElement('span');
+                  timestampSpan.className = 'dateTimeStamp';
+                  timestampSpan.textContent = new Date().toLocaleString('se');
 
-                let timestampSpan = document.createElement('span');
-                timestampSpan.className = 'dateTimeStamp';
-                timestampSpan.textContent = new Date().toLocaleString('se') +
-                    'ERROR';
+                  message.appendChild(timestampSpan);
+                  message.appendChild(document.createTextNode(': ' + data));
 
-                message.appendChild(timestampSpan);
-                message.appendChild(document.createTextNode(': ' + data));
+                  log.insertBefore(message, log.firstChild);
+              })
+              .catch(error => {
+                  button.disabled = false;
+                  let message = document.createElement('p');
 
-                log.insertBefore(message, log.firstChild);
-            });
-    });
+                  let timestampSpan = document.createElement('span');
+                  timestampSpan.className = 'dateTimeStamp';
+                  timestampSpan.textContent = new Date().toLocaleString('se') +
+                      'ERROR';
+
+                  message.appendChild(timestampSpan);
+                  message.appendChild(document.createTextNode(': ' + data));
+
+                  log.insertBefore(message, log.firstChild);
+              });
+      });
+  });
 });
 </script>
 {% endblock %}
