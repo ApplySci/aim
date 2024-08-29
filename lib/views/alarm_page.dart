@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 
 import '/utils.dart';
 
-class AlarmPage extends StatelessWidget {
+class AlarmPage extends StatefulWidget {
   const AlarmPage({
     required this.settings,
     super.key,
@@ -12,11 +13,34 @@ class AlarmPage extends StatelessWidget {
   final AlarmSettings settings;
 
   @override
+  State<AlarmPage> createState() => _AlarmPageState();
+}
+
+class _AlarmPageState extends State<AlarmPage> {
+  late Timer _autoCloseTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoCloseTimer = Timer(const Duration(minutes: 30), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoCloseTimer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     Log.debug('building alarm page');
-    Log.debug(settings.toString());
+    Log.debug(widget.settings.toString());
     return PopScope(
-      onPopInvokedWithResult: (didPop, _) => Alarm.stop(settings.id),
+      onPopInvokedWithResult: (didPop, _) => Alarm.stop(widget.settings.id),
       child: Dialog(
         child: InkWell(
           onTap: () => Navigator.pop(context),
@@ -27,7 +51,7 @@ class AlarmPage extends StatelessWidget {
               children: [
                 const Spacer(),
                 Text(
-                  settings.notificationTitle,
+                  widget.settings.notificationTitle,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -37,7 +61,7 @@ class AlarmPage extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  settings.notificationBody,
+                  widget.settings.notificationBody,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
