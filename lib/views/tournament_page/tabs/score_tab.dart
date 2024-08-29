@@ -52,7 +52,7 @@ class ScoreTable extends ConsumerWidget {
   const ScoreTable({super.key});
 
   void onTap(BuildContext context, int seat) =>
-      Navigator.of(context).pushNamed(ROUTES.player, arguments: {seat: seat});
+      Navigator.of(context).pushNamed(ROUTES.player, arguments: {'seat': seat});
 
   @override
   Widget build(context, ref) {
