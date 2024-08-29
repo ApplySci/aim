@@ -7,10 +7,11 @@ import os
 import sys
 import threading
 import traceback
+import uuid
 
 from firebase_admin import messaging
 from flask import Blueprint, redirect, url_for, render_template, \
-    copy_current_request_context, request, flash
+    copy_current_request_context, request, flash, jsonify, make_response
 from flask_login import login_required, current_user
 
 from write_sheet import googlesheet
@@ -157,9 +158,9 @@ def update_schedule():
     send_notifications = request.args.get('sendNotifications') == 'true'
     if send_notifications:
         _send_messages('seating & schedule updated')
-        return "SEATING & SCHEDULE updated, notifications sent", 200
+        return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
     else:
-        return "SEATING & SCHEDULE updated, notifications not sent", 200
+        return jsonify({"status": "SEATING & SCHEDULE updated, notifications not sent"}), 200
 
 
 @login_required
@@ -194,9 +195,9 @@ def update_players():
     send_notifications = request.args.get('sendNotifications') == 'true'
     if send_notifications:
         _send_messages('player list updated')
-        return "PLAYERS updated, notifications sent", 200
+        return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
-        return "PLAYERS updated, notifications not sent", 200
+        return jsonify({"status": "PLAYERS updated, notifications not sent"}), 200
 
 
 @login_required
@@ -335,27 +336,55 @@ def _games_to_web(games, schedule, players):
 def update_ranking_and_scores():
     send_notifications = request.args.get('sendNotifications') == 'true'
 
+    # Create a unique job ID
+    job_id = str(uuid.uuid4())
+
     @copy_current_request_context
     def _finish_sheet_to_cloud():
-        sheet = _get_sheet()
-        schedule: dict = googlesheet.get_schedule(sheet)
-        done : int = googlesheet.count_completed_hanchan(sheet)
-        ranking = _ranking_to_cloud(sheet, done)
-        players = _get_players(sheet, False)
-        games = _games_to_cloud(sheet, done, players)
-        _games_to_web(games, schedule, players)
-        _ranking_to_web(ranking, games, players, done, schedule)
-        if send_notifications:
-            _message_player_topics(ranking, done, players)
+        try:
+            sheet = _get_sheet()
+            schedule: dict = googlesheet.get_schedule(sheet)
+            done : int = googlesheet.count_completed_hanchan(sheet)
+            ranking = _ranking_to_cloud(sheet, done)
+            players = _get_players(sheet, False)
+            games = _games_to_cloud(sheet, done, players)
+            _games_to_web(games, schedule, players)
+            _ranking_to_web(ranking, games, players, done, schedule)
+            if send_notifications:
+                _message_player_topics(ranking, done, players)
+            
+            # Store completion status
+            _store_job_status(job_id, "Scores updated successfully")
+        except Exception as e:
+            _store_job_status(job_id, f"Error: {str(e)}")
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
 
-    if send_notifications:
-        return "SCORES are being updated, and notifications sent, now", 200
-    else:
-        return "SCORES are being updated, notifications not sent", 200
+    return jsonify({"status": "processing", "job_id": job_id}), 202
 
+# Add these new functions
+@blueprint.route('/run/job_status/<job_id>')
+@login_required
+def get_job_status(job_id):
+    status = _get_job_status(job_id)
+    response = make_response(jsonify({"status": status}))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+def _store_job_status(job_id, status):
+    # You can use a database or cache here. For simplicity, we'll use a global dictionary
+    global job_statuses
+    job_statuses[job_id] = status
+
+def _get_job_status(job_id):
+    global job_statuses
+    return job_statuses.get(job_id, "processing")
+
+# Initialize the global dictionary at the top of the file
+job_statuses = {}
 
 @login_required
 def _games_to_cloud(sheet, done: int, players):

@@ -64,36 +64,55 @@ document.addEventListener('DOMContentLoaded', function() {
                   + '&sendNotifications=' + sendNotifications;
 
           fetch(url)
-              .then(response => response.text())
+              .then(response => response.json())
               .then(data => {
-                  button.disabled = false;
-                  let message = document.createElement('p');
-
-                  let timestampSpan = document.createElement('span');
-                  timestampSpan.className = 'dateTimeStamp';
-                  timestampSpan.textContent = new Date().toLocaleString('se');
-
-                  message.appendChild(timestampSpan);
-                  message.appendChild(document.createTextNode(': ' + data));
-
-                  log.insertBefore(message, log.firstChild);
+                  if (data.status === 'processing') {
+                      pollJobStatus(data.job_id, button);
+                  } else {
+                      updateLog(data.status);
+                      button.disabled = false;
+                  }
               })
               .catch(error => {
+                  updateLog('Error: ' + error);
                   button.disabled = false;
-                  let message = document.createElement('p');
-
-                  let timestampSpan = document.createElement('span');
-                  timestampSpan.className = 'dateTimeStamp';
-                  timestampSpan.textContent = new Date().toLocaleString('se') +
-                      'ERROR';
-
-                  message.appendChild(timestampSpan);
-                  message.appendChild(document.createTextNode(': ' + data));
-
-                  log.insertBefore(message, log.firstChild);
               });
       });
   });
+
+  function pollJobStatus(jobId, button) {
+      let pollInterval = setInterval(() => {
+          fetch(`/run/job_status/${jobId}?_=${new Date().getTime()}`, {
+              headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+              }
+          })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.status !== 'processing') {
+                      clearInterval(pollInterval);
+                      updateLog(data.status);
+                      button.disabled = false;
+                  }
+              })
+              .catch(error => {
+                  clearInterval(pollInterval);
+                  updateLog('Error polling job status: ' + error);
+                  button.disabled = false;
+              });
+      }, 2000); // Poll every 2 seconds
+  }
+
+  function updateLog(message) {
+      let messageElement = document.createElement('p');
+      let timestampSpan = document.createElement('span');
+      timestampSpan.className = 'dateTimeStamp';
+      timestampSpan.textContent = new Date().toLocaleString('se');
+      messageElement.appendChild(timestampSpan);
+      messageElement.appendChild(document.createTextNode(': ' + message));
+      log.insertBefore(messageElement, log.firstChild);
+  }
 });
 </script>
 {% endblock %}

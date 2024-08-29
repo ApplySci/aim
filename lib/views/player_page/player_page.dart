@@ -28,8 +28,6 @@ class PlayerPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO Favouriting works inconsistently between player list and player profile page.
-    //      Player profile might be assigning by seat or something
     final args = ModalRoute.of(context)!.settings.arguments as Map;
     PlayerId? playerId = args['playerId'];
     int? seat = args['seat'];
