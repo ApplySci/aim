@@ -282,25 +282,62 @@ nav a.active {
 
 @media screen and (max-width: 800px) {
     body {
-      width: 95%;
+        width: 100%;
+        padding: 0 10px;
     }
+
     nav {
-      background-color: #fcc;
-      position: fixed;
-      top: 0;
-      border-bottom: 2px solid red;
+        position: static;
+        width: 100%;
+        background-color: #f8f8f8;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+        overflow-x: auto;
+        white-space: nowrap;
     }
+
     nav a {
-      display: inline-block;
-      text-align: center;
-      padding: 4px;
-      text-decoration: none;
-      font-size: 14px;
+        display: inline-block;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-decoration: none;
+        color: #333;
     }
+
+    nav a:hover {
+        background-color: #ddd;
+        color: #000;
+    }
+
+    nav a.active {
+        background-color: #4CAF50;
+        color: white;
+    }
+
     #main {
-        position: absolute;
-        margin-left: 5px;
-        margin-top: 5em;
+        margin-left: 0;
+        border-left: none;
+        padding-left: 0;
+        padding-top: 20px;
+    }
+
+    h1 {
+        font-size: 24px;
+        padding: 10px 0;
+    }
+
+    /* Adjust table layouts for mobile */
+    #ranking, .gameresults {
+        font-size: 14px;
+    }
+
+    #ranking td, #ranking th, .gameresults td, .gameresults th {
+        padding: 5px 2px;
+    }
+
+    /* Adjust seating layout for mobile */
+    #seatingBody section {
+        grid-template-columns: 1fr;
     }
 }
 
