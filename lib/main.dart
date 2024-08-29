@@ -83,10 +83,17 @@ Future<void> main() async {
 class _MyApp extends ConsumerWidget {
   // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
   // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
-  openAlarmPage(BuildContext context, AlarmSettings settings) =>
-      globalNavigatorKey.currentState?.push(MaterialPageRoute<void>(
-        builder: (context) => AlarmPage(settings: settings),
-      ));
+  openAlarmPage(BuildContext context, AlarmSettings settings) {
+      if (settings.dateTime.isAfter(
+                DateTime.now().subtract(const Duration(minutes: 30)))) {
+      globalNavigatorKey.currentState?.push(
+        MaterialPageRoute<void>(
+          builder: (context) => AlarmPage(settings: settings),
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(context, ref) {

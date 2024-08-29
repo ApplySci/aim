@@ -243,7 +243,6 @@ typedef PlayerRankings = ({
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerRankings, int>((ref, seat) async* {
-  print("playerScoreProvider seat=$seat");
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
   final rankingList = await ref.watch(allRankingsProvider.future);
 

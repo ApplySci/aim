@@ -161,7 +161,6 @@ Future<void> setAlarm(
     assetAudioPath: 'assets/audio/notif.mp3',
     loopAudio: false,
     vibrate: vibrate,
-    volume: null,
     fadeDuration: 0,
     notificationTitle: title,
     notificationBody: body,

@@ -155,7 +155,7 @@ def update_schedule():
         })
     _seating_to_web(sheet=sheet, seating=seating)
 
-    send_notifications = request.args.get('sendNotifications') == 'true'
+    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
     if send_notifications:
         _send_messages('seating & schedule updated')
         return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
@@ -192,7 +192,7 @@ def update_players():
     sheet = _get_sheet()
     _get_players(sheet, True)
 
-    send_notifications = request.args.get('sendNotifications') == 'true'
+    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
     if send_notifications:
         _send_messages('player list updated')
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
@@ -334,7 +334,7 @@ def _games_to_web(games, schedule, players):
 @blueprint.route('/run/get_results')
 @login_required
 def update_ranking_and_scores():
-    send_notifications = request.args.get('sendNotifications') == 'true'
+    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
 
     # Create a unique job ID
     job_id = str(uuid.uuid4())
