@@ -153,7 +153,7 @@ def update_schedule():
         'timezone': schedule['timezone'],
         })
     _seating_to_web(sheet=sheet, seating=seating)
-    
+
     send_notifications = request.args.get('sendNotifications') == 'true'
     if send_notifications:
         _send_messages('seating & schedule updated')
@@ -190,7 +190,7 @@ def _seating_to_web(sheet, seating):
 def update_players():
     sheet = _get_sheet()
     _get_players(sheet, True)
-    
+
     send_notifications = request.args.get('sendNotifications') == 'true'
     if send_notifications:
         _send_messages('player list updated')
@@ -350,7 +350,7 @@ def update_ranking_and_scores():
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
-    
+
     if send_notifications:
         return "SCORES are being updated, and notifications sent, now", 200
     else:
@@ -425,10 +425,7 @@ def _get_players(sheet, to_cloud=True):
             registration_id = p[1]
             seating_id = p[0] if p[0] != "" else None
             name = p[2]
-            player_map[registration_id] = {
-                'name': name,
-                'seating_id': seating_id
-            }
+            player_map[seating_id] = name
             players.append({
                 'registration_id': str(registration_id),
                 'seating_id': seating_id,

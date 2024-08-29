@@ -5,8 +5,6 @@
 // Copyright 2021 Maxim Saplin - changes and modifications to original Flutter implementation of DataTable
 // Copyright 2024 Andrew ZP Smith - add fixed bottom rows to DataTable2
 
-// TODO: add the code needed to make it work with fixed bottom rows combined with fixed columns
-
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
