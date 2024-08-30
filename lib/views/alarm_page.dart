@@ -16,29 +16,48 @@ class AlarmPage extends StatefulWidget {
   State<AlarmPage> createState() => _AlarmPageState();
 }
 
-class _AlarmPageState extends State<AlarmPage> {
+class _AlarmPageState extends State<AlarmPage> with WidgetsBindingObserver {
   late Timer _autoCloseTimer;
 
   @override
   void initState() {
     super.initState();
-    _autoCloseTimer = Timer(const Duration(minutes: 30), () {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _setAutoCloseTimer();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoCloseTimer.cancel();
     super.dispose();
   }
 
+  void _setAutoCloseTimer() {
+    _autoCloseTimer = Timer(const Duration(minutes: 30), _closeIfExpired);
+  }
+
+  void _closeIfExpired() {
+    if (mounted && _isExpired()) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  bool _isExpired() {
+    return DateTime.now().isAfter(
+      widget.settings.dateTime.add(const Duration(minutes: 30)),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _closeIfExpired();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    Log.debug('building alarm page');
-    Log.debug(widget.settings.toString());
     return PopScope(
       onPopInvokedWithResult: (didPop, _) => Alarm.stop(widget.settings.id),
       child: Dialog(
