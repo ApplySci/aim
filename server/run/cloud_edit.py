@@ -6,6 +6,7 @@ TODO get tournament hanchan times, and timezone, from googlesheet
 from datetime import datetime
 import os
 
+import bleach
 from flask import Blueprint, flash, redirect, render_template, request, url_for, jsonify
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
@@ -13,7 +14,7 @@ import pycountry
 import requests
 
 from wtforms import DateTimeLocalField, RadioField, SelectField, StringField, \
-    SubmitField
+    SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
 from write_sheet import googlesheet
@@ -22,7 +23,8 @@ from oauth_setup import db, firestore_client
 blueprint = Blueprint('edit', __name__)
 
 BASEDIR = '/home/model/apps/tournaments/static/'
-
+ALLOWED_TAGS = ['p', 'b', 'i', 'h1', 'h2', 'h3', 'a', 'br',
+                'strong', 'em', 'u', 'ol', 'ul', 'li', ]
 def url_ok(form, field):
     if field.data == "":
         return
@@ -106,7 +108,9 @@ class TournamentForm(FlaskForm):
         DataRequired(),
         validate_web_directory])
     submit = SubmitField('Submit')
-
+    htmlnotes = TextAreaField(
+        f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})',
+        validators=[Optional()])
 
 def get_tournament_data(firebase_id):
     ref = firestore_client.collection("tournaments").document(firebase_id)
@@ -155,7 +159,11 @@ def edit_tournament():
                 'rules': form.rules.data,
                 'status': form.status.data,
                 'url': form.url.data,
-                'url_icon': form.url_icon.data
+                'url_icon': form.url_icon.data,
+                'htmlnotes': bleach.clean(form.htmlnotes.data, 
+                    tags=ALLOWED_TAGS,
+                    attributes={'a': ['href', 'title']},
+                    strip=True)
             }
             firebase_id = current_user.live_tournament.firebase_doc
             update_tournament_data(firebase_id, updated_data)

@@ -121,16 +121,25 @@
     </p>
 
     <p>
+        {{ form.htmlnotes.label }}<br>
+        {{ form.htmlnotes(rows=4, cols=80, id="htmlnotes") }}
+        {% for error in form.htmlnotes.errors %}
+          <span class=formError>[{{ error }}]</span>
+        {% endfor %}
+    </p>    
+    <p>
         {{ form.submit() }}
     </p>
 </form>
-<pre>{{ data }}
 
-{{ doc }}
-</pre>
+<h4>HTML Notes Preview:</h4>
+<div id="htmlnotes_preview"></div>
+
+
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
 function checkUrl() {
     $.get(this.value).done(function() {
@@ -214,6 +223,10 @@ googleDocField.change(checkGoogleDoc);
 
 $(document).ready(function(){
     checkGoogleDoc();
+    $('#htmlnotes').on('input', function() {
+        $('#htmlnotes_preview').html($(this).val());
+    });
+    $('#htmlnotes').trigger('input');
 });
 
 </script>

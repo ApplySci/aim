@@ -10,3 +10,4 @@ flask_sqlalchemy
 alembic
 pytz
 pycountry
+bleach
