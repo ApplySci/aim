@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 
-import '/utils.dart';
-
 class AlarmPage extends StatefulWidget {
   const AlarmPage({
     required this.settings,
