@@ -58,3 +58,6 @@ app.*.map.json
 /server/tournaments.sqlite3
 
 /certs/
+/server/.server-admin/debug
+/.vscode/settings.json
+/server/seating/gams/cplex.opt

@@ -4,7 +4,7 @@ import subprocess
 
 def optimize_winds(seats):
     hanchan_count = len(seats)
-    table_count = len(seats[0][0])
+    table_count = len(seats[0])
     N = table_count * 4
 
     # Write GAMS file
@@ -121,31 +121,27 @@ execute_unload "seats_{N}.gdx" seats;
     subprocess.run(["gams", f"seats_{N}.gms"])
 
     # Run GAMS optimization
-    try:
-        process = subprocess.Popen(
-            ["gams", gams_file],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            universal_newlines=True,
-        )
-        stdout, stderr = process.communicate()
-        print("GAMS Output:")
-        print(stdout)
-        print("GAMS Errors:")
-        print(stderr)
+    process = subprocess.Popen(
+        ["gams", gams_file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        universal_newlines=True,
+    )
+    stdout, stderr = process.communicate()
+    print("GAMS Output:")
+    print(stdout)
+    print("GAMS Errors:")
+    print(stderr)
 
-        # Print the contents of the listing file
-        listing_file = f"{os.path.splitext(gams_file)[0]}.lst"
-        if os.path.exists(listing_file):
-            with open(listing_file, 'r') as f:
-                print("GAMS Listing File:")
-                print(f.read())
-        else:
-            print(f"Listing file {listing_file} not found.")
-
-    except Exception as e:
-        print(f"An error occurred during GAMS optimization: {e}")
+    # Print the contents of the listing file
+    listing_file = f"{os.path.splitext(gams_file)[0]}.lst"
+    if os.path.exists(listing_file):
+        with open(listing_file, 'r') as f:
+            print("GAMS Listing File:")
+            print(f.read())
+    else:
+        print(f"Listing file {listing_file} not found.")
 
     # Check if results file exists
     if not os.path.exists(f"results_{N}.txt"):

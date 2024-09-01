@@ -123,25 +123,20 @@ Parameter seats(h,t,p) /
     subprocess.run(["gams", f"seats_{N}.gms"])
 
     # Run GAMS optimization
-    try:
-        process = subprocess.Popen(
-            ["gams", gams_file],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            )
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-        rc = process.poll()
-    except KeyboardInterrupt:
-        print("GAMS optimization interrupted. Continuing with the rest of the script...")
-    except Exception as e:
-        print(f"An error occurred during GAMS optimization: {e}")
+    process = subprocess.Popen(
+        ["gams", gams_file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+        )
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+    rc = process.poll()
 
     # Check if results file exists
     if not os.path.exists(f"results_{N}.txt"):
