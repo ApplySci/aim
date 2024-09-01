@@ -66,7 +66,7 @@ def make_stats(seats):
                 f"Repeat player meetups: {meet_hist[n]} occurrence(s) of {n} "
                 "meetups of the same two players")
 
-    log = '========================\n'
+    log = '\n==============================================\n'
     if len(warnings) > 0:
         log += f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n"
         log += f"{'\n'.join(warnings)}\n"

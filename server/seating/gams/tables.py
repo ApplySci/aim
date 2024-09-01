@@ -29,10 +29,14 @@ $load seats
 $gdxin
 
 Variables
-    z objective value;
+    z objective value
+    penalty_2 penalty for visits 2 or more above table_max
+    penalty_3 penalty for visits 3 or more above table_max;
 
 Positive Variables
-    excess(p,t) excess appearances for each player at each table;
+    excess(p,t) excess appearances for each player at each table
+    excess_2(p,t) excess appearances 2 or more above table_max
+    excess_3(p,t) excess appearances 3 or more above table_max;
 
 Binary Variables
     y(h) whether hanchan h is selected
@@ -48,9 +52,13 @@ Equations
     one_destination_per_table(s,h,t) each original table goes to one destination
     link_w_and_v(s,h) link w and v variables
     define_excess(p,t) define excess appearances
-    unique_selection(h) ensure each hanchan is selected at most once;
+    unique_selection(h) ensure each hanchan is selected at most once
+    define_excess_2(p,t) define excess appearances 2 or more above table_max
+    define_excess_3(p,t) define excess appearances 3 or more above table_max
+    calc_penalty_2 calculate penalty for excess 2
+    calc_penalty_3 calculate penalty for excess 3;
 
-obj.. z =e= sum((p,t), excess(p,t));
+obj.. z =e= sum((p,t), excess(p,t)) + 10 * penalty_2 + 100 * penalty_3;
 
 select_hanchan.. sum(h, y(h)) =e= card(s);
 
@@ -66,6 +74,14 @@ one_destination_per_table(s,h,t).. sum(t1, v(s,h,t1,t)) =l= 1;
 link_w_and_v(s,h).. w(s,h) =e= sum((t,t1), v(s,h,t,t1)) / card(t);
 
 define_excess(p,t).. excess(p,t) =g= sum((s,h,t1), seats(h,t1,p) * v(s,h,t,t1)) - table_max;
+
+define_excess_2(p,t).. excess_2(p,t) =g= sum((s,h,t1), seats(h,t1,p) * v(s,h,t,t1)) - (table_max + 1);
+
+define_excess_3(p,t).. excess_3(p,t) =g= sum((s,h,t1), seats(h,t1,p) * v(s,h,t,t1)) - (table_max + 2);
+
+calc_penalty_2.. penalty_2 =e= sum((p,t), excess_2(p,t));
+
+calc_penalty_3.. penalty_3 =e= sum((p,t), excess_3(p,t));
 
 unique_selection(h).. sum(s, w(s,h)) =l= 1;
 
