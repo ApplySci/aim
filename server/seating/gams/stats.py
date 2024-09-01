@@ -2,9 +2,7 @@
 """
 
 """
-import importlib
 from tabulate import tabulate
-import sys
 
 
 def make_stats(seats):
@@ -70,25 +68,25 @@ def make_stats(seats):
 
     log = ''
     if len(warnings) > 0:
-        log += (f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n{'\n'.join(warnings)}\n")
+        log += f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n"
+        log += f"{'\n'.join(warnings)}\n"
     else:
-        log += (f"INFO no warnings for {table_count} tables, {hanchan_count} hanchan\n")
+        log += f"INFO no warnings for {table_count} tables, {hanchan_count} hanchan\n"
 
     # Print t_hist table
     t_hist_table = []
     for i, count in enumerate(t_hist):
         if count > 0:
             t_hist_table.append([i, count])
-    log += ("\nTable Visit Histogram:\n")
-    log += (tabulate(t_hist_table, headers=["Table Visits", "Occurrences"], tablefmt="grid"))
+    log += "\nTable Visit Histogram:\n"
+    log += tabulate(t_hist_table, headers=["Table Visits", "Occurrences"], tablefmt="grid")
 
     # w_hist table
     w_hist_table = []
     for i, count in enumerate(w_hist):
         if count > 0:
             w_hist_table.append([i, count])
-    log += ("\nWind Histogram:\n")
-    log += (tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid"))
-
+    log += "\nWind Histogram:\n"
+    log += tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid")
 
     return log
