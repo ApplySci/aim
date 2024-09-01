@@ -17,7 +17,6 @@ def make_stats(table_count, hanchan_count):
         return
 
     seats = getattr(seats_module, 'seats')
-    print(seats)
     p_p = [[0 for _ in range(player_count + 1)] for _ in range(player_count + 1)]
     p_t = [[0 for _ in range(table_count)] for _ in range(player_count + 1)]
     p_wind = [[0 for _ in range(4)] for _ in range(player_count + 1)]
@@ -100,12 +99,12 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python stats.py <table_count> <hanchan_count>")
         sys.exit(1)
-    
+
     try:
-        table_count = int(sys.argv[1])
-        hanchan_count = int(sys.argv[2])
+        tIn = int(sys.argv[1])
+        hIn = int(sys.argv[2])
     except ValueError:
         print("Error: table_count and hanchan_count must be integers")
         sys.exit(1)
-    
-    make_stats(table_count, hanchan_count)
+
+    make_stats(tIn, hIn)

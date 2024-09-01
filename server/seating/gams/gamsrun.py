@@ -4,6 +4,7 @@ import subprocess
 import argparse
 from stats import make_stats
 
+
 def optimize_seating(N, hanchan_count):
     # Import the seats data
     seats_module = importlib.import_module(f"{N}")
@@ -114,7 +115,13 @@ Parameter seats(h,t,p) /
 
     # Run GAMS optimization
     try:
-        process = subprocess.Popen(["gams", gams_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+        process = subprocess.Popen(
+            ["gams", gams_file],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            )
         while True:
             output = process.stdout.readline()
             if output == '' and process.poll() is not None:
@@ -126,7 +133,7 @@ Parameter seats(h,t,p) /
         print("GAMS optimization interrupted. Continuing with the rest of the script...")
     except Exception as e:
         print(f"An error occurred during GAMS optimization: {e}")
-    
+
     # Check if results file exists
     if not os.path.exists(f"results_{N}.txt"):
         print("No results file found. GAMS optimization may have been interrupted or failed.")
@@ -146,7 +153,7 @@ Parameter seats(h,t,p) /
     # Clean up temporary files
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt"]:
         if os.path.exists(file):
-            pass # os.remove(file)
+            os.remove(file)
 
     # Run make_stats on the new arrangement
     make_stats(table_count, hanchan_count)
