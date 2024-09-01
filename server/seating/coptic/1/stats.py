@@ -3,6 +3,8 @@
 
 """
 import importlib
+from tabulate import tabulate
+import sys
 
 
 def make_stats(table_count, hanchan_count):
@@ -45,7 +47,7 @@ def make_stats(table_count, hanchan_count):
     wind_min = hanchan_count // 4
     wind_max = (hanchan_count + 3) // 4
     table_max = (hanchan_count + table_count * 2 - 1) // table_count
-    meetup_max = 2
+    meetup_max = 1
 
     warnings = []
     for n in range(wind_min):
@@ -76,3 +78,34 @@ def make_stats(table_count, hanchan_count):
         print(f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n{'\n'.join(warnings)}")
     else:
         print(f"INFO no warnings for {table_count} tables, {hanchan_count} hanchan")
+
+    # Print w_hist table
+    w_hist_table = []
+    for i, count in enumerate(w_hist):
+        if count > 0:
+            w_hist_table.append([i, count])
+    print("\nWind Histogram:")
+    print(tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid"))
+
+    # Print t_hist table
+    t_hist_table = []
+    for i, count in enumerate(t_hist):
+        if count > 0:
+            t_hist_table.append([i, count])
+    print("\nTable Visit Histogram:")
+    print(tabulate(t_hist_table, headers=["Table Visits", "Occurrences"], tablefmt="grid"))
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python stats.py <table_count> <hanchan_count>")
+        sys.exit(1)
+    
+    try:
+        table_count = int(sys.argv[1])
+        hanchan_count = int(sys.argv[2])
+    except ValueError:
+        print("Error: table_count and hanchan_count must be integers")
+        sys.exit(1)
+    
+    make_stats(table_count, hanchan_count)
