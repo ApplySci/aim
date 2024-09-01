@@ -17,6 +17,12 @@ def optimize_winds(N, hanchan_count):
     gams_file = f"optimize_{N}.gms"
     with open(gams_file, "w") as f:
         f.write(f"""
+$offsymxref offsymlist
+Option limrow = 0;
+Option limcol = 0;
+Option solprint = off;
+Option sysout = off;
+
 Sets
     h hanchan / 1*{hanchan_count} /
     t tables / 1*{table_count} /
@@ -38,19 +44,23 @@ Binary Variables
     x(h,t,p,w) seating arrangement;
 
 Positive Variables
-    excess(p,w) excess appearances for each player for each wind;
+    excess(p,w) excess appearances for each player for each wind
+    deficit(p,w) deficit appearances for each player for each wind;
 
 Equations
     obj objective function
     define_excess(p,w) define excess appearances
+    define_deficit(p,w) define deficit appearances
     maintain_players(h,t,p) maintain the same players at each table across hanchans
     one_wind_per_player(h,t) each player at a table must be assigned to exactly one wind
     one_player_per_wind(h,t,w) each wind at a table must be assigned to exactly one player
     first_hanchan_order(t,w,w1) enforce ascending order in first hanchan;
 
-obj.. z =e= sum((p,w), excess(p,w));
+obj.. z =e= sum((p,w), excess(p,w) + deficit(p,w));
 
 define_excess(p,w).. excess(p,w) =g= sum((h,t), x(h,t,p,w)) - ({hanchan_count}+3)/4;
+
+define_deficit(p,w).. deficit(p,w) =g= {hanchan_count}/4 - sum((h,t), x(h,t,p,w));
 
 maintain_players(h,t,p).. sum(w, x(h,t,p,w)) =e= seats(h,t,p);
 
@@ -65,13 +75,15 @@ Model seating /all/;
 
 Option optcr = 0.0;
 Option threads = 4;
+Option solvelink = 5;
 
-$log Dimensions of x:
-$log %x.dim%
-$log Dimensions of seats:
-$log %seats.dim%
-$log Contents of seats:
-$log %seats%
+$onecho > cplex.opt
+names no
+mipinterval 1
+mipstatus 1
+$offecho
+
+seating.optfile = 1;
 
 Solve seating using mip minimizing z;
 
@@ -168,7 +180,7 @@ execute_unload "seats_{N}.gdx" seats;
 
     # Clean up temporary files
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt",
-                 f"optimize_{N}.txt"]:
+                 f"optimize_{N}.lst", f"seats_{N}.lst", ]:
         if os.path.exists(file):
             os.remove(file)
 
