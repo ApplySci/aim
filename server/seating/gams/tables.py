@@ -141,7 +141,8 @@ Parameter seats(h,t,p) /
 
     # Write new seats to Python file
     with open(f"seats/{N}x{hanchan_count}.py", "w") as f:
-        f.write(f"seats = {new_seats}\n")
+        out = f"{new_seats}\n".replace("],", "],\n")
+        f.write(f"seats = {out}\n")
 
     # Clean up temporary files
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt"]:
