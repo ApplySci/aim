@@ -7,16 +7,11 @@ from tabulate import tabulate
 import sys
 
 
-def make_stats(table_count, hanchan_count):
+def make_stats(seats):
+    table_count = len(seats[0])
     player_count = table_count * 4
-    try:
-        seats_module = importlib.import_module(
-            f"seats_{player_count}x{hanchan_count}")
-    except:
-        print(f"INFO no file for {player_count}x{hanchan_count}")
-        return
+    hanchan_count = len(seats)
 
-    seats = getattr(seats_module, 'seats')
     p_p = [[0 for _ in range(player_count + 1)] for _ in range(player_count + 1)]
     p_t = [[0 for _ in range(table_count)] for _ in range(player_count + 1)]
     p_wind = [[0 for _ in range(4)] for _ in range(player_count + 1)]
@@ -73,38 +68,27 @@ def make_stats(table_count, hanchan_count):
                 f"Repeat player meetups: {meet_hist[n]} occurrence(s) of {n} "
                 "meetups of the same two players")
 
+    log = ''
     if len(warnings) > 0:
-        print(f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n{'\n'.join(warnings)}")
+        log += (f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n{'\n'.join(warnings)}\n")
     else:
-        print(f"INFO no warnings for {table_count} tables, {hanchan_count} hanchan")
-
-    # Print w_hist table
-    w_hist_table = []
-    for i, count in enumerate(w_hist):
-        if count > 0:
-            w_hist_table.append([i, count])
-    print("\nWind Histogram:")
-    print(tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid"))
+        log += (f"INFO no warnings for {table_count} tables, {hanchan_count} hanchan\n")
 
     # Print t_hist table
     t_hist_table = []
     for i, count in enumerate(t_hist):
         if count > 0:
             t_hist_table.append([i, count])
-    print("\nTable Visit Histogram:")
-    print(tabulate(t_hist_table, headers=["Table Visits", "Occurrences"], tablefmt="grid"))
+    log += ("\nTable Visit Histogram:\n")
+    log += (tabulate(t_hist_table, headers=["Table Visits", "Occurrences"], tablefmt="grid"))
+
+    # w_hist table
+    w_hist_table = []
+    for i, count in enumerate(w_hist):
+        if count > 0:
+            w_hist_table.append([i, count])
+    log += ("\nWind Histogram:\n")
+    log += (tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid"))
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python stats.py <table_count> <hanchan_count>")
-        sys.exit(1)
-
-    try:
-        tIn = int(sys.argv[1])
-        hIn = int(sys.argv[2])
-    except ValueError:
-        print("Error: table_count and hanchan_count must be integers")
-        sys.exit(1)
-
-    make_stats(tIn, hIn)
+    return log

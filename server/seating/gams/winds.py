@@ -1,17 +1,11 @@
-import importlib
 import os
 import subprocess
-import argparse
-from stats import make_stats
 
 
-def optimize_winds(N, hanchan_count):
-    # Import the seats data
-    seats_module = importlib.import_module(f"in.seats_{N}x{hanchan_count}")
-    seats = seats_module.seats
-
-    # Calculate table_count
-    table_count = N // 4
+def optimize_winds(seats):
+    hanchan_count = len(seats)
+    table_count = len(seats[0][0])
+    N = table_count * 4
 
     # Write GAMS file
     gams_file = f"optimize_{N}.gms"
@@ -175,8 +169,10 @@ execute_unload "seats_{N}.gdx" seats;
                 table.append(0)
 
     # Write new seats to Python file
-    with open(f"seats_{N}x{hanchan_count}.py", "w") as f:
-        f.write(f"seats = {new_seats}\n")
+    filename = f"../{N}x{hanchan_count}.py"
+    with open(filename, "w") as f:
+        seatsText = f"{new_seats}".replace("],", "],\n")
+        f.write(f"seats = {seatsText}\n")
 
     # Clean up temporary files
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt",
@@ -184,16 +180,4 @@ execute_unload "seats_{N}.gdx" seats;
         if os.path.exists(file):
             os.remove(file)
 
-    # Run make_stats on the new arrangement
-    make_stats(table_count, hanchan_count)
-
     return new_seats
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Optimize seating arrangement.")
-    parser.add_argument("player_count", type=int, help="Number of players")
-    parser.add_argument("hanchan_count", type=int, help="Number of hanchan (rounds)")
-    args = parser.parse_args()
-
-    optimize_winds(args.player_count, args.hanchan_count)
