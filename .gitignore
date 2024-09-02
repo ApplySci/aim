@@ -61,3 +61,5 @@ app.*.map.json
 /server/.server-admin/debug
 /.vscode/settings.json
 /server/seating/gams/cplex.opt
+/server/seating/gams/seats/*
+/server/seating/gams/225*
