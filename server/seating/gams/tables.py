@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def optimize_seating(seats, hanchan_count):
+def optimize_tables(seats, hanchan_count):
     # Calculate table_max
     table_count = len(seats[0])
     table_max = (hanchan_count + table_count - 1) // table_count
@@ -151,7 +151,7 @@ Parameter seats(h,t,p) /
             new_seats[s-1][t-1].append(p)
 
     # Write new seats to Python file
-    with open(f"seats/{N}x{hanchan_count}.py", "w") as f:
+    with open(f"tables/{N}x{hanchan_count}.py", "w") as f:
         out = f"{new_seats}\n".replace("],", "],\n")
         f.write(f"seats = {out}\n")
 
