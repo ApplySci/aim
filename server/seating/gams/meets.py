@@ -7,7 +7,6 @@ def optimize_meets(seats, hanchan_count):
     table_count = len(seats[0])
     N = table_count * 4
     indirect_meetup_min = int(N ** 0.5)
-    print(f"N: {N}, indirect_meetup_min: {indirect_meetup_min}")
 
     # Write seats data to GDX
     gdx_file = f"seats_{N}.gdx"
@@ -69,25 +68,32 @@ Binary Variables
     x(h) 'binary variable for selecting hanchan'
     y(h1,h2) 'binary variable for selecting pair of hanchan';
 Variables
-    z 'total indirect meetups'
+    z 'minimum indirect meetups for any pair of players'
+    indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
     slack 'slack variable for indirect meetups constraint';
 
 Positive Variable slack;
+Positive Variable indirect_meetups;
 
 Equations
     obj 'define objective function'
     select_hanchan 'select exactly {hanchan_count} hanchan'
-    indirect_meetups 'calculate total indirect meetups'
+    count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
+    min_indirect_meetups(p1,p2) 'ensure z is the minimum of indirect_meetups'
     linearize1(h1,h2) 'linearization constraint 1'
     linearize2(h1,h2) 'linearization constraint 2'
     linearize3(h1,h2) 'linearization constraint 3';
 
-obj.. z =e= sum((h1,h2,t1,t2,p1,p2)$(ord(p1) < ord(p2) and ord(h1) < ord(h2)), 
-                y(h1,h2) * seats(h1,t1,p1) * seats(h2,t2,p2)) - 1000000 * slack;
+obj.. z =e= z - 1000000 * slack;
 
 select_hanchan.. sum(h, x(h)) =e= hanchan_count;
 
-indirect_meetups.. z + slack =g= indirect_meetup_min;
+count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2)).. 
+    indirect_meetups(p1,p2) =e= sum((h1,h2,t1,t2)$(ord(h1) < ord(h2)), 
+        y(h1,h2) * seats(h1,t1,p1) * seats(h2,t2,p2));
+
+min_indirect_meetups(p1,p2)$(ord(p1) < ord(p2))..
+    z =l= indirect_meetups(p1,p2);
 
 linearize1(h1,h2)$(ord(h1) < ord(h2)).. y(h1,h2) =l= x(h1);
 linearize2(h1,h2)$(ord(h1) < ord(h2)).. y(h1,h2) =l= x(h2);
@@ -118,7 +124,8 @@ else
     loop(h$(x.l(h) > 0.5),
         put h.tl /;
     );
-    put 'Objective value: ' z.l:10:2 /;
+    put 'done' /;
+    put 'Minimum indirect meetups: ' z.l:10:2 /;
     put 'Slack value: ' slack.l:10:8 /;
 );
 
@@ -137,27 +144,31 @@ putclose;
         return None
 
     # Load and return results
-    results_file = f"results_{N}.txt"
-    if not os.path.exists(results_file):
+    if not os.path.exists(f"results_{N}.txt"):
         print(f"Error: Results file results_{N}.txt was not created.")
         print("GAMS output:")
         print(result.stdout)
         print(result.stderr)
         return None
 
-    with open(results_file, "r") as f:
+    with open(f"results_{N}.txt", "r") as f:
         content = f.read()
-        if "Model status: Infeasible" in content:
-            print("The problem is infeasible. Check the LST file for IIS information.")
-            return None
-            
+
+    print("GAMS output:")
+    print(content)
+    if "Model status: Infeasible" in content:
+        print("The problem is infeasible. Check the LST file for IIS information.")
+        return None
+    
+    # Read results
     selected_hanchan = []
     for line in content.split('\n'):
         if line.startswith("Selected hanchan:"):
             continue
-        if line.startswith("Objective value:") or line.startswith("Slack value:") or line.strip() == "done":
+        elif line.strip() == "done":
             break
-        selected_hanchan.append(int(line))
+        else:
+            selected_hanchan.append(int(line))
 
     # Create new_seats based on selected hanchan
     new_seats = [seats[h-1] for h in selected_hanchan]
@@ -168,13 +179,11 @@ putclose;
         f.write(f"seats = {out}\n")
 
     # Clean up temporary files
-    for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx",f"seats_{N}.lst",
-                 f"optimize_{N}.lst", f"results_{N}.txt"]:
+    for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"seats_{N}.lst",
+                f"optimize_{N}.lst", f"results_{N}.txt"]:
         if os.path.exists(file):
             os.remove(file)
-    new_seats = [seats[h-1] for h in selected_hanchan]
 
-    print(content)
     return new_seats
 
 if __name__ == "__main__":
