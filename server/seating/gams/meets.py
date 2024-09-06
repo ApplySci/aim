@@ -7,6 +7,7 @@ def optimize_meets(seats, hanchan_count):
     table_count = len(seats[0])
     N = table_count * 4
     indirect_meetup_min = int(N ** 0.5)
+    print(f"N: {N}, indirect_meetup_min: {indirect_meetup_min}")
 
     # Write seats data to GDX
     gdx_file = f"seats_{N}.gdx"
@@ -126,7 +127,7 @@ putclose;
 """)
 
     # Run GAMS optimization
-    result = subprocess.run(["gams", gams_file], capture_output=True, text=True)
+    result = subprocess.run(["gams", gams_file], capture_output=False, text=True)
 
     # Check GAMS output
     if result.returncode != 0:
@@ -136,47 +137,45 @@ putclose;
         return None
 
     # Load and return results
-    if os.path.exists(f"results_{N}.txt"):
-        with open(f"results_{N}.txt", "r") as f:
-            content = f.read()
-            print("GAMS output:")
-            print(content)
-            if "Model status: Infeasible" in content:
-                print("The problem is infeasible. Check the LST file for IIS information.")
-                return None
-            
-            # Read results
-            selected_hanchan = []
-            for line in content.split('\n'):
-                if line.startswith("Selected hanchan:"):
-                    continue
-                if line.startswith("Objective value:") or line.startswith("Slack value:") or line.strip() == "done":
-                    break
-                selected_hanchan.append(int(line))
-
-            # Create new_seats based on selected hanchan
-            new_seats = [seats[h-1] for h in selected_hanchan]
-
-            # Write new seats to Python file
-            with open(f"meetups/{N}x{hanchan_count}.py", "w") as f:
-                out = f"{new_seats}\n".replace("],", "],\n")
-                f.write(f"seats = {out}\n")
-
-            print("Selected hanchan:", selected_hanchan)
-            print("Number of selected hanchan:", len(selected_hanchan))
-
-            # Clean up temporary files
-            for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt"]:
-                if os.path.exists(file):
-                    pass # os.remove(file)
-            new_seats = [seats[h-1] for h in selected_hanchan]
-            return new_seats
-    else:
+    results_file = f"results_{N}.txt"
+    if not os.path.exists(results_file):
         print(f"Error: Results file results_{N}.txt was not created.")
         print("GAMS output:")
         print(result.stdout)
         print(result.stderr)
         return None
+
+    with open(results_file, "r") as f:
+        content = f.read()
+        if "Model status: Infeasible" in content:
+            print("The problem is infeasible. Check the LST file for IIS information.")
+            return None
+            
+    selected_hanchan = []
+    for line in content.split('\n'):
+        if line.startswith("Selected hanchan:"):
+            continue
+        if line.startswith("Objective value:") or line.startswith("Slack value:") or line.strip() == "done":
+            break
+        selected_hanchan.append(int(line))
+
+    # Create new_seats based on selected hanchan
+    new_seats = [seats[h-1] for h in selected_hanchan]
+
+    # Write new seats to Python file
+    with open(f"meetups/{N}x{hanchan_count}.py", "w") as f:
+        out = f"{new_seats}\n".replace("],", "],\n")
+        f.write(f"seats = {out}\n")
+
+    # Clean up temporary files
+    for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx",f"seats_{N}.lst",
+                 f"optimize_{N}.lst", f"results_{N}.txt"]:
+        if os.path.exists(file):
+            os.remove(file)
+    new_seats = [seats[h-1] for h in selected_hanchan]
+
+    print(content)
+    return new_seats
 
 if __name__ == "__main__":
     tst = importlib.import_module("sgp.40").seats
