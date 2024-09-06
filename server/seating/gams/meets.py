@@ -52,7 +52,7 @@ Sets
     t tables / 1*{table_count} /
     p players / 1*{N} /;
 
-Alias (p, p1, p2);
+Alias (p, p1, p2, p3);
 Alias (h, h1, h2);
 Alias (t, t1, t2);
 
@@ -66,7 +66,9 @@ Scalar indirect_meetup_min / {indirect_meetup_min} /;
 
 Binary Variables 
     x(h) 'binary variable for selecting hanchan'
-    y(h1,h2) 'binary variable for selecting pair of hanchan';
+    meets(p1,p2,h) 'binary variable indicating if p1 and p2 meet in hanchan h'
+    meets_any(p1,p2) 'binary variable indicating if p1 and p2 meet in any selected hanchan'
+    indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3';
 Variables
     z 'minimum indirect meetups for any pair of players'
     indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
@@ -77,27 +79,39 @@ Positive Variable indirect_meetups;
 
 Equations
     obj 'define objective function'
-    select_hanchan 'select exactly {hanchan_count} hanchan'
+    select_hanchan 'select exactly hanchan_count hanchan'
+    define_meets(p1,p2,h) 'define the meets variable'
+    define_meets_any(p1,p2) 'define the meets_any variable'
+    define_indirect_meet1(p1,p2,p3) 'define the indirect_meet variable (condition 1)'
+    define_indirect_meet2(p1,p2,p3) 'define the indirect_meet variable (condition 2)'
+    define_indirect_meet3(p1,p2,p3) 'define the indirect_meet variable (condition 3)'
     count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
-    min_indirect_meetups(p1,p2) 'ensure z is the minimum of indirect_meetups'
-    linearize1(h1,h2) 'linearization constraint 1'
-    linearize2(h1,h2) 'linearization constraint 2'
-    linearize3(h1,h2) 'linearization constraint 3';
+    min_indirect_meetups(p1,p2) 'ensure z is the minimum of indirect_meetups';
 
 obj.. z =e= z - 1000000 * slack;
 
 select_hanchan.. sum(h, x(h)) =e= hanchan_count;
 
+define_meets(p1,p2,h)$(ord(p1) < ord(p2)).. 
+    meets(p1,p2,h) =e= sum(t, seats(h,t,p1) * seats(h,t,p2)) * x(h);
+
+define_meets_any(p1,p2)$(ord(p1) < ord(p2))..
+    meets_any(p1,p2) =e= sum(h, meets(p1,p2,h));
+
+define_indirect_meet1(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
+    indirect_meet(p1,p2,p3) =l= meets_any(p1,p3);
+
+define_indirect_meet2(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
+    indirect_meet(p1,p2,p3) =l= meets_any(p2,p3);
+
+define_indirect_meet3(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
+    indirect_meet(p1,p2,p3) =g= meets_any(p1,p3) + meets_any(p2,p3) - 1;
+
 count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2)).. 
-    indirect_meetups(p1,p2) =e= sum((h1,h2,t1,t2)$(ord(h1) < ord(h2)), 
-        y(h1,h2) * seats(h1,t1,p1) * seats(h2,t2,p2));
+    indirect_meetups(p1,p2) =e= sum(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)), indirect_meet(p1,p2,p3));
 
 min_indirect_meetups(p1,p2)$(ord(p1) < ord(p2))..
     z =l= indirect_meetups(p1,p2);
-
-linearize1(h1,h2)$(ord(h1) < ord(h2)).. y(h1,h2) =l= x(h1);
-linearize2(h1,h2)$(ord(h1) < ord(h2)).. y(h1,h2) =l= x(h2);
-linearize3(h1,h2)$(ord(h1) < ord(h2)).. y(h1,h2) =g= x(h1) + x(h2) - 1;
 
 Model seating /all/;
 
@@ -124,9 +138,6 @@ else
     loop(h$(x.l(h) > 0.5),
         put h.tl /;
     );
-    put 'done' /;
-    put 'Minimum indirect meetups: ' z.l:10:2 /;
-    put 'Slack value: ' slack.l:10:8 /;
 );
 
 put 'done' /;
@@ -135,13 +146,6 @@ putclose;
 
     # Run GAMS optimization
     result = subprocess.run(["gams", gams_file], capture_output=False, text=True)
-
-    # Check GAMS output
-    if result.returncode != 0:
-        print("GAMS error:")
-        print(result.stdout)
-        print(result.stderr)
-        return None
 
     # Load and return results
     if not os.path.exists(f"results_{N}.txt"):
