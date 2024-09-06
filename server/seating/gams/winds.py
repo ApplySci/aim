@@ -68,7 +68,7 @@ first_hanchan_order(t,w,w1)$(ord(w) < ord(w1))..
 Model seating /all/;
 
 Option optcr = 0.0;
-Option threads = 4;
+Option threads = 1;
 Option solvelink = 5;
 
 $onecho > cplex.opt
@@ -165,7 +165,7 @@ execute_unload "seats_{N}.gdx" seats;
                 table.append(0)
 
     # Write new seats to Python file
-    filename = f"../{N}x{hanchan_count}.py"
+    filename = f"final/{N}x{hanchan_count}.py"
     with open(filename, "w") as f:
         seatsText = f"{new_seats}".replace("],", "],\n")
         f.write(f"seats = {seatsText}\n")

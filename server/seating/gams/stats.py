@@ -11,6 +11,7 @@ def make_stats(seats):
     hanchan_count = len(seats)
 
     p_p = [[0 for _ in range(player_count + 1)] for _ in range(player_count + 1)]
+    ppp = [[0 for _ in range(player_count + 1)] for _ in range(player_count + 1)]
     p_t = [[0 for _ in range(table_count)] for _ in range(player_count + 1)]
     p_wind = [[0 for _ in range(4)] for _ in range(player_count + 1)]
 
@@ -24,22 +25,34 @@ def make_stats(seats):
                     p2 = seats[h][t][s2]
                     p_p[min(p1, p2)][max(p1, p2)] += 1
 
+    for p1 in range(1, player_count + 1):
+        for p2 in range(p1 + 1, player_count + 1):
+            ppp[p1][p2] = p_p[p1][p2] * 50
+            for p3 in range(1, player_count + 1):
+                if p_p[min(p1, p3)][max(p1, p3)] > 0 and \
+                        p_p[min(p2, p3)][max(p2, p3)] > 0:
+                    ppp[p1][p2] += 1
+
     w_hist = [0] * (hanchan_count + 1)
     t_hist = [0] * (hanchan_count + 1)
     meet_hist = [0] * (hanchan_count + 1)
+    indirect_meet_hist = [0] * (hanchan_count + 1)
 
     for p1 in range(1, player_count + 1):
         for s in range(4):
             w_hist[p_wind[p1][s]] += 1
         for t in range(table_count):
             t_hist[p_t[p1][t]] += 1
-        for p2 in range(p1 + 1, player_count):
+        for p2 in range(p1 + 1, player_count + 1):
             meet_hist[p_p[p1][p2]] += 1
+            indirect_meet_hist[ppp[p1][p2]] += 1
 
     wind_min = hanchan_count // 4
     wind_max = (hanchan_count + 3) // 4
     table_max = (hanchan_count + table_count * 2 - 1) // table_count
     meetup_max = 1
+    # take square root of player count to get a reasonable minimum for indirect meetups
+    indirect_meetup_min = int(player_count ** 0.5)
 
     warnings = []
     for n in range(wind_min):
@@ -66,6 +79,12 @@ def make_stats(seats):
                 f"Repeat player meetups: {meet_hist[n]} occurrence(s) of {n} "
                 "meetups of the same two players")
 
+    for n in range(0, indirect_meetup_min):
+        if indirect_meet_hist[n] > 0:
+            warnings.append(
+                f"Insufficient indirect player meetups: {indirect_meet_hist[n]} "
+                f"occurrence(s) of {n} meetups of two players")
+
     log = '\n==============================================\n'
     if len(warnings) > 0:
         log += f"WARNINGS for {table_count} tables, {hanchan_count} hanchan:\n"
@@ -88,5 +107,15 @@ def make_stats(seats):
             w_hist_table.append([i, count])
     log += "\nWind Histogram:\n"
     log += tabulate(w_hist_table, headers=["Wind Count", "Occurrences"], tablefmt="grid")
+
+    # indirect_meet_hist table
+    indirect_meet_hist_table = []
+    for i, count in enumerate(indirect_meet_hist):
+        if count > 0:
+            indirect_meet_hist_table.append([i, count])
+    log += "\nIndirect Meetup Histogram:\n"
+    log += tabulate(indirect_meet_hist_table, \
+                    headers=["Indirect Meetup Count", "Occurrences"], \
+                    tablefmt="grid")
 
     return log

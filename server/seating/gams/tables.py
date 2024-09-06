@@ -88,7 +88,9 @@ unique_selection(h).. sum(s, w(s,h)) =l= 1;
 Model seating /all/;
 
 Option optcr = 0.0;
-Option threads = 4;
+Option threads = 1;
+Option solvelink = 5;
+Option resLim = 3600;
 
 Solve seating using mip minimizing z;
 
@@ -151,7 +153,7 @@ Parameter seats(h,t,p) /
             new_seats[s-1][t-1].append(p)
 
     # Write new seats to Python file
-    with open(f"tables/{N}x{hanchan_count}.py", "w") as f:
+    with open(f"seats/{N}x{hanchan_count}.py", "w") as f:
         out = f"{new_seats}\n".replace("],", "],\n")
         f.write(f"seats = {out}\n")
 
