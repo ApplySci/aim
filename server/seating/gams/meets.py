@@ -6,7 +6,6 @@ def optimize_meets(seats, hanchan_count):
     table_count = len(seats[0])
     N = table_count * 4
     indirect_meetup_min = int(N ** 0.5)
-    penalty_levels = indirect_meetup_min  # Number of penalty levels equals indirect_meetup_min
 
     # Write seats data to GDX
     gdx_file = f"seats_{N}.gdx"
@@ -50,7 +49,7 @@ Option solprint = off;
 Sets
     h hanchan / 1*{len(seats)} /
     t tables / 1*{table_count} /
-    k penalty levels / 1*{penalty_levels} /
+    k penalty levels / 1*{indirect_meetup_min} /
     p players / 1*{N} /;
 
 Alias (p, p1, p2, p3);
@@ -68,8 +67,8 @@ $gdxin
 Scalar hanchan_count / {hanchan_count} /;
 Scalar indirect_meetup_min / {indirect_meetup_min} /;
 
-penalty_threshold(k) = indirect_meetup_min - ord(k);
-penalty_coefficient(k) = 1000 * sqr(ord(k));
+penalty_threshold(k) = indirect_meetup_min - ord(k) + 1;
+penalty_coefficient(k) = 1000 * (indirect_meetup_min - ord(k) + 1);
 
 Binary Variables 
     x(h) 'binary variable for selecting hanchan'
@@ -124,7 +123,7 @@ calculate_penalty(p1,p2)$(ord(p1) < ord(p2))..
     penalty(p1,p2) =e= sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
 
 define_penalty_level(p1,p2,k)$(ord(p1) < ord(p2))..
-    indirect_meetups(p1,p2) =l= penalty_threshold(k) + indirect_meetup_min * (1 - penalty_level(p1,p2,k));
+    penalty_level(p1,p2,k) =l= 1 - (indirect_meetups(p1,p2) - penalty_threshold(k)) / (indirect_meetup_min + 1);
 
 ensure_one_penalty_level(p1,p2)$(ord(p1) < ord(p2))..
     sum(k, penalty_level(p1,p2,k)) =e= 1;
