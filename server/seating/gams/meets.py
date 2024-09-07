@@ -50,32 +50,40 @@ Option solprint = off;
 Sets
     h hanchan / 1*{len(seats)} /
     t tables / 1*{table_count} /
+    k penalty levels / 1*10 /
     p players / 1*{N} /;
 
 Alias (p, p1, p2, p3);
 Alias (h, h1, h2);
 Alias (t, t1, t2);
 
-Parameter seats(h,t,p) original seating arrangement;
-
+Parameters
+    seats(h,t,p) original seating arrangement
+    penalty_threshold(k) threshold for each penalty level
+    penalty_coefficient(k) coefficient for each penalty level;
+    
 $loaddc seats
 $gdxin
 
 Scalar hanchan_count / {hanchan_count} /;
 Scalar indirect_meetup_min / {indirect_meetup_min} /;
 
+penalty_threshold(k) = (ord(k) - 1) * (indirect_meetup_min / card(k));
+penalty_coefficient(k) = 1000 * sqr(ord(k) * (indirect_meetup_min / card(k)));
+
 Binary Variables 
     x(h) 'binary variable for selecting hanchan'
     meets(p1,p2,h) 'binary variable indicating if p1 and p2 meet in hanchan h'
     meets_any(p1,p2) 'binary variable indicating if p1 and p2 meet in any selected hanchan'
+    penalty_level(p1,p2,k) 'binary variable for each penalty level'
     indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3';
 Variables
-    z 'minimum indirect meetups for any pair of players'
+    z 'objective function value'
     indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
-    slack 'slack variable for indirect meetups constraint';
+    penalty(p1,p2) 'penalty for each pair of players';
 
-Positive Variable slack;
 Positive Variable indirect_meetups;
+Positive Variable penalty;
 
 Equations
     obj 'define objective function'
@@ -86,9 +94,11 @@ Equations
     define_indirect_meet2(p1,p2,p3) 'define the indirect_meet variable (condition 2)'
     define_indirect_meet3(p1,p2,p3) 'define the indirect_meet variable (condition 3)'
     count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
-    min_indirect_meetups(p1,p2) 'ensure z is the minimum of indirect_meetups';
+    calculate_penalty(p1,p2) 'calculate penalty for each pair of players'
+    define_penalty_level(p1,p2,k) 'define penalty level for each pair and level'
+    ensure_one_penalty_level(p1,p2) 'ensure only one penalty level is active';
 
-obj.. z =e= z - 1000000 * slack;
+obj.. z =e= sum((p1,p2)$(ord(p1) < ord(p2)), penalty(p1,p2));
 
 select_hanchan.. sum(h, x(h)) =e= hanchan_count;
 
@@ -110,8 +120,16 @@ define_indirect_meet3(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and or
 count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2)).. 
     indirect_meetups(p1,p2) =e= sum(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)), indirect_meet(p1,p2,p3));
 
-min_indirect_meetups(p1,p2)$(ord(p1) < ord(p2))..
-    z =l= indirect_meetups(p1,p2);
+calculate_penalty(p1,p2)$(ord(p1) < ord(p2))..
+    penalty(p1,p2) =e= 
+        1000000 * (1 - sum(k, penalty_level(p1,p2,k))) +
+        sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
+
+define_penalty_level(p1,p2,k)$(ord(p1) < ord(p2))..
+    indirect_meetups(p1,p2) =g= penalty_threshold(k) - indirect_meetup_min * (1 - penalty_level(p1,p2,k));
+
+ensure_one_penalty_level(p1,p2)$(ord(p1) < ord(p2))..
+    sum(k, penalty_level(p1,p2,k)) =l= 1;
 
 Model seating /all/;
 
@@ -125,7 +143,7 @@ $onecho > cplex.opt
 iis yes
 $offecho
 
-Solve seating using mip maximizing z;
+Solve seating using mip minimizing z;
 
 file results / 'results_{N}.txt' /;
 put results;
@@ -195,6 +213,6 @@ if __name__ == "__main__":
     seats = optimize_meets(tst, 6)
     from stats import make_stats
     out = make_stats(seats)
-    print(f"optimised: {out}"\n\n)
+    print(f"optimised: {out}\n\n")
     out1 = make_stats(tst[0:6])
     print(f"baseline: {out1}")
