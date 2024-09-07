@@ -1,12 +1,12 @@
 import os
 import subprocess
 import importlib
-import sys
 
 def optimize_meets(seats, hanchan_count):
     table_count = len(seats[0])
     N = table_count * 4
     indirect_meetup_min = int(N ** 0.5)
+    penalty_levels = indirect_meetup_min  # Number of penalty levels equals indirect_meetup_min
 
     # Write seats data to GDX
     gdx_file = f"seats_{N}.gdx"
@@ -50,7 +50,7 @@ Option solprint = off;
 Sets
     h hanchan / 1*{len(seats)} /
     t tables / 1*{table_count} /
-    k penalty levels / 1*10 /
+    k penalty levels / 1*{penalty_levels} /
     p players / 1*{N} /;
 
 Alias (p, p1, p2, p3);
@@ -68,8 +68,8 @@ $gdxin
 Scalar hanchan_count / {hanchan_count} /;
 Scalar indirect_meetup_min / {indirect_meetup_min} /;
 
-penalty_threshold(k) = (ord(k) - 1) * (indirect_meetup_min / card(k));
-penalty_coefficient(k) = 1000 * sqr(ord(k) * (indirect_meetup_min / card(k)));
+penalty_threshold(k) = indirect_meetup_min - ord(k);
+penalty_coefficient(k) = 1000 * sqr(ord(k));
 
 Binary Variables 
     x(h) 'binary variable for selecting hanchan'
@@ -121,19 +121,17 @@ count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2))..
     indirect_meetups(p1,p2) =e= sum(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)), indirect_meet(p1,p2,p3));
 
 calculate_penalty(p1,p2)$(ord(p1) < ord(p2))..
-    penalty(p1,p2) =e= 
-        1000000 * (1 - sum(k, penalty_level(p1,p2,k))) +
-        sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
+    penalty(p1,p2) =e= sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
 
 define_penalty_level(p1,p2,k)$(ord(p1) < ord(p2))..
-    indirect_meetups(p1,p2) =g= penalty_threshold(k) - indirect_meetup_min * (1 - penalty_level(p1,p2,k));
+    indirect_meetups(p1,p2) =l= penalty_threshold(k) + indirect_meetup_min * (1 - penalty_level(p1,p2,k));
 
 ensure_one_penalty_level(p1,p2)$(ord(p1) < ord(p2))..
-    sum(k, penalty_level(p1,p2,k)) =l= 1;
+    sum(k, penalty_level(p1,p2,k)) =e= 1;
 
 Model seating /all/;
 
-Option reslim = 600;
+Option reslim = 300;
 Option threads = 1;
 Option solvelink = 5;
 
@@ -146,8 +144,9 @@ $offecho
 Solve seating using mip minimizing z;
 
 file results / 'results_{N}.txt' /;
-put results;
+file debug / 'indirect_{N}.txt' /;
 
+put results;
 if(seating.modelstat = 4,
     put "Model status: Infeasible" /;
     put "IIS information in the LST file" /;
@@ -157,8 +156,16 @@ else
         put h.tl /;
     );
 );
-
 put 'done' /;
+putclose;
+
+put debug;
+put 'Total penalty: ' z.l:0:0 /;
+loop((p1,p2)$(ord(p1) < ord(p2)),
+    put p1.tl:0 ',' p2.tl:0 ',' 
+    indirect_meetups.l(p1,p2):0:0 ',' 
+    penalty.l(p1,p2):0:0 /;
+);
 putclose;
 """)
 
@@ -213,6 +220,8 @@ if __name__ == "__main__":
     seats = optimize_meets(tst, 6)
     from stats import make_stats
     out = make_stats(seats)
+    out = out[out.find("Indirect Meetup frequencies:"):]
     print(f"optimised: {out}\n\n")
     out1 = make_stats(tst[0:6])
+    out1 = out1[out1.find("Indirect Meetup frequencies:"):]
     print(f"baseline: {out1}")
