@@ -68,21 +68,14 @@ Binary Variables
     x(h) 'binary variable for selecting hanchan'
     meets(p1,p2,h) 'binary variable indicating if p1 and p2 meet in hanchan h'
     meets_any(p1,p2) 'binary variable indicating if p1 and p2 meet in any selected hanchan'
-    indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3'
-    is_zero(p1,p2) 'binary variable indicating if indirect meetups is zero for a pair';
+    indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3';
 Variables
-    total_shortfall 'sum of shortfalls from indirect_meetup_min'
+    z 'minimum indirect meetups for any pair of players'
     indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
-    shortfall_min(p1,p2) 'shortfall from indirect_meetup_min for each pair'
-    penalty_less_than_2 'penalty for pairs with fewer than 2 indirect meetups'
-    penalty_zero 'penalty for pairs with zero indirect meetups'
-    shortfall(p1,p2) 'shortfall of indirect meetups for each pair';
+    slack 'slack variable for indirect meetups constraint';
 
+Positive Variable slack;
 Positive Variable indirect_meetups;
-Positive Variable shortfall_min;
-Positive Variable penalty_less_than_2;
-Positive Variable penalty_zero;
-Positive Variable shortfall;
 
 Equations
     obj 'define objective function'
@@ -93,14 +86,9 @@ Equations
     define_indirect_meet2(p1,p2,p3) 'define the indirect_meet variable (condition 2)'
     define_indirect_meet3(p1,p2,p3) 'define the indirect_meet variable (condition 3)'
     count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
-    calc_shortfall_min(p1,p2) 'calculate shortfall from indirect_meetup_min'
-    calc_total_shortfall 'calculate total shortfall from indirect_meetup_min'
-    calc_shortfall(p1,p2) 'calculate shortfall for each pair'
-    calc_is_zero(p1,p2) 'determine if indirect meetups is zero for a pair'
-    calc_penalty_less_than_2 'calculate penalty for pairs with fewer than 2 indirect meetups'
-    calc_penalty_zero 'calculate penalty for pairs with zero indirect meetups';
+    min_indirect_meetups(p1,p2) 'ensure z is the minimum of indirect_meetups';
 
-obj.. total_shortfall =e= sum((p1,p2)$(ord(p1) < ord(p2)), shortfall_min(p1,p2)) + 100 * penalty_less_than_2 + 500 * penalty_zero;
+obj.. z =e= z - 1000000 * slack;
 
 select_hanchan.. sum(h, x(h)) =e= hanchan_count;
 
@@ -122,27 +110,12 @@ define_indirect_meet3(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and or
 count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2)).. 
     indirect_meetups(p1,p2) =e= sum(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)), indirect_meet(p1,p2,p3));
 
-calc_shortfall_min(p1,p2)$(ord(p1) < ord(p2))..
-    shortfall_min(p1,p2) =g= indirect_meetup_min - indirect_meetups(p1,p2);
-
-calc_total_shortfall..
-    total_shortfall =g= sum((p1,p2)$(ord(p1) < ord(p2)), shortfall_min(p1,p2)) + 100 * penalty_less_than_2 + 500 * penalty_zero;
-
-calc_shortfall(p1,p2)$(ord(p1) < ord(p2))..
-    shortfall(p1,p2) =g= 2 - indirect_meetups(p1,p2);
-
-calc_is_zero(p1,p2)$(ord(p1) < ord(p2))..
-    is_zero(p1,p2) =g= 1 - indirect_meetups(p1,p2);
-
-calc_penalty_less_than_2..
-    penalty_less_than_2 =e= sum((p1,p2)$(ord(p1) < ord(p2)), shortfall(p1,p2));
-
-calc_penalty_zero..
-    penalty_zero =e= sum((p1,p2)$(ord(p1) < ord(p2)), is_zero(p1,p2));
+min_indirect_meetups(p1,p2)$(ord(p1) < ord(p2))..
+    z =l= indirect_meetups(p1,p2);
 
 Model seating /all/;
 
-Option reslim = 300;
+Option reslim = 600;
 Option threads = 1;
 Option solvelink = 5;
 
@@ -152,7 +125,7 @@ $onecho > cplex.opt
 iis yes
 $offecho
 
-Solve seating using mip minimizing total_shortfall;
+Solve seating using mip maximizing z;
 
 file results / 'results_{N}.txt' /;
 put results;
@@ -165,26 +138,10 @@ else
     loop(h$(x.l(h) > 0.5),
         put h.tl /;
     );
-    put /;
-    put 'Total shortfall: ' total_shortfall.l /;
-    put 'Penalty less than 2: ' penalty_less_than_2.l /;
-    put 'Penalty zero: ' penalty_zero.l /;
-    put /;
-    put 'Indirect meetups:' /;
-    loop((p1,p2)$(ord(p1) < ord(p2)),
-        put p1.tl ',' p2.tl ': ' indirect_meetups.l(p1,p2) /;
-    );
-    put /;
-    put 'Is zero:' /;
-    loop((p1,p2)$(ord(p1) < ord(p2)),
-        put p1.tl ',' p2.tl ': ' is_zero.l(p1,p2) /;
-    );
 );
 
 put 'done' /;
 putclose;
-
-display x.l, indirect_meetups.l, is_zero.l, shortfall.l, shortfall_min.l, total_shortfall.l, penalty_less_than_2.l, penalty_zero.l;
 """)
 
     # Run GAMS optimization
@@ -218,7 +175,6 @@ display x.l, indirect_meetups.l, is_zero.l, shortfall.l, shortfall_min.l, total_
             selected_hanchan.append(int(line))
 
     # Create new_seats based on selected hanchan
-    print(f"selected hanchan={selected_hanchan}")
     new_seats = [seats[h-1] for h in selected_hanchan]
 
     # Write new seats to Python file
@@ -236,9 +192,9 @@ display x.l, indirect_meetups.l, is_zero.l, shortfall.l, shortfall_min.l, total_
 
 if __name__ == "__main__":
     tst = importlib.import_module("sgp.60").seats
+    seats = optimize_meets(tst, 6)
     from stats import make_stats
-    seats =  optimize_meets(tst, 6)
-    out = make_stats(tst[0:6])
-    out1 = make_stats(seats)
-    print(f' base case:\n{out}')
-    print(f'\n\n optimized:\n{out1}')
+    out = make_stats(seats)
+    print(f"optimised: {out}"\n\n)
+    out1 = make_stats(tst[0:6])
+    print(f"baseline: {out1}")
