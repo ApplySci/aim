@@ -1,3 +1,15 @@
+"""
+There are two things to solve:
+1) there must be a way to select exactly one penalty level, 
+by defining some function f such that we can find a 
+penalty threshold T where 
+f(T) >= 1, f(T-1) <1.
+
+2) indirect meetup count is definitely wrong.
+e.g 1,19 lists:
+1,19,13 = 1 1 0 1 1 1 1 1 0 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+whereas only 5 and 15 are the players that both 1 and 19 meet directly. 
+"""
 import os
 import subprocess
 import importlib
@@ -94,8 +106,7 @@ Equations
     define_indirect_meet3(p1,p2,p3) 'define the indirect_meet variable (condition 3)'
     count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
     calculate_penalty(p1,p2) 'calculate penalty for each pair of players'
-    define_penalty_level(p1,p2,k) 'define penalty level for each pair and level'
-    ensure_one_penalty_level(p1,p2) 'ensure only one penalty level is active';
+    define_penalty_level(p1,p2,k) 'define penalty level for each pair and level';
 
 obj.. z =e= sum((p1,p2)$(ord(p1) < ord(p2)), penalty(p1,p2));
 
@@ -123,14 +134,11 @@ calculate_penalty(p1,p2)$(ord(p1) < ord(p2))..
     penalty(p1,p2) =e= sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
 
 define_penalty_level(p1,p2,k)$(ord(p1) < ord(p2))..
-    penalty_level(p1,p2,k) =l= 1 - (indirect_meetups(p1,p2) - penalty_threshold(k)) / (indirect_meetup_min + 1);
-
-ensure_one_penalty_level(p1,p2)$(ord(p1) < ord(p2))..
-    sum(k, penalty_level(p1,p2,k)) =e= 1;
+    penalty_level(p1,p2,k) =g= 1 - (indirect_meetups(p1,p2) - penalty_threshold(k)) / (indirect_meetup_min + 1);
 
 Model seating /all/;
 
-Option reslim = 300;
+Option reslim = 100;
 Option threads = 1;
 Option solvelink = 5;
 
@@ -143,7 +151,40 @@ $offecho
 Solve seating using mip minimizing z;
 
 file results / 'results_{N}.txt' /;
-file debug / 'indirect_{N}.txt' /;
+file indirects / 'indirect_{N}.txt' /;
+
+
+file debug / 'debug_{N}.txt' /;
+
+put debug;
+put 'meets_any:'/;
+loop((p1,p2)$(ord(p1) < ord(p2)),
+    if (meets_any.l(p1,p2) > 0.5,
+        put p1.tl:0 ',' p2.tl:0 ',' meets_any.l(p1,p2):0:0 /;
+    );
+);
+
+put //'indirect_meet:'/;
+loop((p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2)),
+    if (indirect_meet.l(p1,p2,p3) > 0.5,
+        put p1.tl:0 ',' p2.tl:0 ',' p3.tl:0 ',' indirect_meet.l(p1,p2,p3):0:0 /;
+    );
+);
+
+put 'indirect_meetups calculation:'/;
+loop((p1,p2)$(ord(p1) < ord(p2)),
+    put p1.tl:0 ',' p2.tl:0 ',' indirect_meetups.l(p1,p2):0:2 ' = ';
+    loop(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)),
+        if (indirect_meet.l(p1,p2,p3) > 0.5,
+            put '1 ';
+        else
+            put '0 ';
+        );
+    );
+    put /;
+);
+
+putclose;
 
 put results;
 if(seating.modelstat = 4,
@@ -158,12 +199,21 @@ else
 put 'done' /;
 putclose;
 
-put debug;
+put indirects;
+put 'Selected hanchan:'/;
+loop(h$(x.l(h) > 0.5),
+    put h.tl /;
+);
 put 'Total penalty: ' z.l:0:0 /;
 loop((p1,p2)$(ord(p1) < ord(p2)),
     put p1.tl:0 ',' p2.tl:0 ',' 
-    indirect_meetups.l(p1,p2):0:0 ',' 
-    penalty.l(p1,p2):0:0 /;
+        indirect_meetups.l(p1,p2):0:0 ',' 
+        penalty.l(p1,p2):0:0 ',';
+    loop(k$(penalty_level.l(p1,p2,k) > 0.5),
+        put k.tl:0 ' ';
+    );
+    
+    put /;
 );
 putclose;
 """)
@@ -182,8 +232,6 @@ putclose;
     with open(f"results_{N}.txt", "r") as f:
         content = f.read()
 
-    print("GAMS output:")
-    print(content)
     if "Model status: Infeasible" in content:
         print("The problem is infeasible. Check the LST file for IIS information.")
         return None
@@ -208,7 +256,8 @@ putclose;
 
     # Clean up temporary files
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"seats_{N}.lst",
-                f"optimize_{N}.lst", f"results_{N}.txt"]:
+                 # f"optimize_{N}.lst",
+                f"results_{N}.txt"]: 
         if os.path.exists(file):
             os.remove(file)
 
@@ -216,11 +265,11 @@ putclose;
 
 if __name__ == "__main__":
     tst = importlib.import_module("sgp.60").seats
-    seats = optimize_meets(tst, 6)
+    #seats = optimize_meets(tst, 6)
     from stats import make_stats
-    out = make_stats(seats)
+    out = make_stats([tst[h-1] for h in (1,2,3,4,5,8)])
     out = out[out.find("Indirect Meetup frequencies:"):]
     print(f"optimised: {out}\n\n")
-    out1 = make_stats(tst[0:6])
-    out1 = out1[out1.find("Indirect Meetup frequencies:"):]
-    print(f"baseline: {out1}")
+    #out1 = make_stats(tst[0:6])
+    #out1 = out1[out1.find("Indirect Meetup frequencies:"):]
+    #print(f"baseline: {out1}")

@@ -25,13 +25,16 @@ def make_stats(seats):
                     p2 = seats[h][t][s2]
                     p_p[min(p1, p2)][max(p1, p2)] += 1
 
+    # f=open('ppp_debug.txt', 'w')
     for p1 in range(1, player_count + 1):
         for p2 in range(p1 + 1, player_count + 1):
-            ppp[p1][p2] = p_p[p1][p2] * player_count
             for p3 in range(1, player_count + 1):
                 if p_p[min(p1, p3)][max(p1, p3)] > 0 and \
                         p_p[min(p2, p3)][max(p2, p3)] > 0:
                     ppp[p1][p2] += 1
+            # f.write(f"{p1},{p2},{ppp[p1][p2]}\n")
+            ppp[p1][p2] += p_p[p1][p2] * player_count
+    # f.close()
 
     w_hist = [0] * (hanchan_count + 1)
     t_hist = [0] * (hanchan_count + 1)
@@ -121,13 +124,11 @@ def make_stats(seats):
         if count > 0:
             if i < indirect_meet_good: 
                 indirect_meet_hist_table.append([i, count])
-            elif i == indirect_meet_good:
-                indirect_meet_hist_table.append(
-                    [f"{indirect_meet_good}+", count])
             elif i == player_count:
                 indirect_meet_hist_table.append(['direct', count])
             else:
-                indirect_meet_hist_table.append(['unknown', count])
+                indirect_meet_hist_table.append(
+                    [f">={indirect_meet_good}", count])
     log += "\nIndirect Meetup frequencies:\n"
     log += tabulate(indirect_meet_hist_table, \
                     headers=["Indirect Meetup Count", "Occurrences"], \
