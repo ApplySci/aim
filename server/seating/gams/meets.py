@@ -116,7 +116,7 @@ Equations
     limit_penalty0(p1,p2) 'ensure penalty0 is non-negative'
     ;
 
-obj.. z =e= sum((p1,p2)$(ord(p1) < ord(p2)), penalty(p1,p2));
+obj.. z =e= sum((p1,p2)$(ord(p1) < ord(p2)), penalty(p1,p2) + penalty2(p1,p2) + penalty1(p1,p2) + penalty0(p1,p2));
 
 select_hanchan.. sum(h, x(h)) =e= hanchan_count;
 
@@ -148,10 +148,10 @@ calculate_penalty2(p1,p2)$(ord(p1) < ord(p2))..
     penalty(p1,p2) =g= (3 - indirect_meetups(p1,p2) - 10 * meets_any(p1,p2)) * 3000;
 
 calculate_penalty1(p1,p2)$(ord(p1) < ord(p2))..
-    penalty(p1,p2) =g= (2 - indirect_meetups(p1,p2) - 10 * meets_any(p1,p2)) * 10000;
+    penalty(p1,p2) =g= (2 - indirect_meetups(p1,p2) - 10 * meets_any(p1,p2)) * 1e4;
 
 calculate_penalty0(p1,p2)$(ord(p1) < ord(p2))..
-    penalty(p1,p2) =g= (1 - indirect_meetups(p1,p2) - 10 * meets_any(p1,p2)) * 30000;
+    penalty(p1,p2) =g= (1 - indirect_meetups(p1,p2) - 10 * meets_any(p1,p2)) * 1e7;
 
 limit_penalty(p1,p2)$(ord(p1) < ord(p2))..
     penalty(p1,p2) =g= 0;
@@ -163,11 +163,11 @@ limit_penalty1(p1,p2)$(ord(p1) < ord(p2))..
     penalty1(p1,p2) =g= 0;
 
 limit_penalty0(p1,p2)$(ord(p1) < ord(p2))..
-    penalty(p1,p2) =g= 0;
+    penalty0(p1,p2) =g= 0;
 
 Model seating /all/;
 
-Option reslim = 300;
+Option reslim = 600;
 Option threads = 1;
 Option solvelink = 5;
 
