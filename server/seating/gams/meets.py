@@ -61,8 +61,8 @@ Option solprint = off;
 Sets
     h hanchan / 1*{len(seats)} /
     t tables / 1*{table_count} /
-    k penalty levels / 1*{indirect_meetup_min} /
-    p players / 1*{N} /;
+    p players / 1*{N} /
+    ;
 
 Alias (p, p1, p2, p3);
 Alias (h, h1, h2);
@@ -70,8 +70,6 @@ Alias (t, t1, t2);
 
 Parameters
     seats(h,t,p) original seating arrangement
-    penalty_threshold(k) threshold for each penalty level
-    penalty_coefficient(k) coefficient for each penalty level;
     
 $loaddc seats
 $gdxin
@@ -79,34 +77,36 @@ $gdxin
 Scalar hanchan_count / {hanchan_count} /;
 Scalar indirect_meetup_min / {indirect_meetup_min} /;
 
-penalty_threshold(k) = indirect_meetup_min - ord(k) + 1;
-penalty_coefficient(k) = 1000 * (indirect_meetup_min - ord(k) + 1);
-
 Binary Variables 
     x(h) 'binary variable for selecting hanchan'
     meets(p1,p2,h) 'binary variable indicating if p1 and p2 meet in hanchan h'
     meets_any(p1,p2) 'binary variable indicating if p1 and p2 meet in any selected hanchan'
-    penalty_level(p1,p2,k) 'binary variable for each penalty level'
-    indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3';
+    indirect_meet(p1,p2,p3) 'binary variable indicating if p1 and p2 meet indirectly through p3'
+    ;
+
 Variables
     z 'objective function value'
-    indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
-    penalty(p1,p2) 'penalty for each pair of players';
+    ;
 
-Positive Variable indirect_meetups;
-Positive Variable penalty;
+Positive Variables
+    indirect_meetups(p1,p2) 'indirect meetups for each pair of players'
+    penalty(p1,p2) 'penalty for each pair of players'
+    ;
 
 Equations
     obj 'define objective function'
     select_hanchan 'select exactly hanchan_count hanchan'
     define_meets(p1,p2,h) 'define the meets variable'
     define_meets_any(p1,p2) 'define the meets_any variable'
+    define_meets_any2(p1,p2) 'symmetry'
     define_indirect_meet1(p1,p2,p3) 'define the indirect_meet variable (condition 1)'
     define_indirect_meet2(p1,p2,p3) 'define the indirect_meet variable (condition 2)'
     define_indirect_meet3(p1,p2,p3) 'define the indirect_meet variable (condition 3)'
     count_indirect_meetups(p1,p2) 'count indirect meetups for each pair of players'
     calculate_penalty(p1,p2) 'calculate penalty for each pair of players'
-    define_penalty_level(p1,p2,k) 'define penalty level for each pair and level';
+    limit_penalty(p1,p2) 'ensure penalty is non-negative'
+
+    ;
 
 obj.. z =e= sum((p1,p2)$(ord(p1) < ord(p2)), penalty(p1,p2));
 
@@ -118,23 +118,26 @@ define_meets(p1,p2,h)$(ord(p1) < ord(p2))..
 define_meets_any(p1,p2)$(ord(p1) < ord(p2))..
     meets_any(p1,p2) =e= sum(h, meets(p1,p2,h));
 
+define_meets_any2(p1,p2)$(ord(p1) > ord(p2))..
+    meets_any(p1,p2) =l= 0;
+
 define_indirect_meet1(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
     indirect_meet(p1,p2,p3) =l= meets_any(p1,p3);
 
 define_indirect_meet2(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
     indirect_meet(p1,p2,p3) =l= meets_any(p2,p3);
 
-define_indirect_meet3(p1,p2,p3)$(ord(p1) < ord(p2) and ord(p3) <> ord(p1) and ord(p3) <> ord(p2))..
+define_indirect_meet3(p1,p2,p3)$(ord(p1) < ord(p2))..
     indirect_meet(p1,p2,p3) =g= meets_any(p1,p3) + meets_any(p2,p3) - 1;
 
 count_indirect_meetups(p1,p2)$(ord(p1) < ord(p2)).. 
     indirect_meetups(p1,p2) =e= sum(p3$(ord(p3) <> ord(p1) and ord(p3) <> ord(p2)), indirect_meet(p1,p2,p3));
 
 calculate_penalty(p1,p2)$(ord(p1) < ord(p2))..
-    penalty(p1,p2) =e= sum(k, penalty_coefficient(k) * penalty_level(p1,p2,k));
+    penalty(p1,p2) =g= (indirect_meetup_min - indirect_meetups(p1,p2)) * 1000;
 
-define_penalty_level(p1,p2,k)$(ord(p1) < ord(p2))..
-    penalty_level(p1,p2,k) =g= 1 - (indirect_meetups(p1,p2) - penalty_threshold(k)) / (indirect_meetup_min + 1);
+limit_penalty(p1,p2)$(ord(p1) < ord(p2))..
+    penalty(p1,p2) =g= 0;
 
 Model seating /all/;
 
@@ -144,8 +147,9 @@ Option solvelink = 5;
 
 Option sysout = on;
 seating.optfile = 1;
+
 $onecho > cplex.opt
-iis yes
+   iis 1
 $offecho
 
 Solve seating using mip minimizing z;
@@ -157,6 +161,16 @@ file indirects / 'indirect_{N}.txt' /;
 file debug / 'debug_{N}.txt' /;
 
 put debug;
+
+put 'define_indirect_meet equations for p1=1, p2=19:'/;
+loop(p3,
+    put 'p3=' p3.tl:0 ' ';
+    put 'eq1=' (meets_any.l('1',p3)):0:0 ' ';
+    put 'eq2a=' (meets_any.l('19',p3)):0:0 ' ';
+    put 'eq2b=' (meets_any.l(p3,'19')):0:0 ' ';
+    put 'indirect_meet=' indirect_meet.l('1','19',p3):0:0 /;
+);
+
 put 'meets_any:'/;
 loop((p1,p2)$(ord(p1) < ord(p2)),
     if (meets_any.l(p1,p2) > 0.5,
@@ -209,10 +223,6 @@ loop((p1,p2)$(ord(p1) < ord(p2)),
     put p1.tl:0 ',' p2.tl:0 ',' 
         indirect_meetups.l(p1,p2):0:0 ',' 
         penalty.l(p1,p2):0:0 ',';
-    loop(k$(penalty_level.l(p1,p2,k) > 0.5),
-        put k.tl:0 ' ';
-    );
-    
     put /;
 );
 putclose;
@@ -224,9 +234,6 @@ putclose;
     # Load and return results
     if not os.path.exists(f"results_{N}.txt"):
         print(f"Error: Results file results_{N}.txt was not created.")
-        print("GAMS output:")
-        print(result.stdout)
-        print(result.stderr)
         return None
 
     with open(f"results_{N}.txt", "r") as f:
@@ -265,11 +272,11 @@ putclose;
 
 if __name__ == "__main__":
     tst = importlib.import_module("sgp.60").seats
-    #seats = optimize_meets(tst, 6)
-    from stats import make_stats
-    out = make_stats([tst[h-1] for h in (1,2,3,4,5,8)])
-    out = out[out.find("Indirect Meetup frequencies:"):]
-    print(f"optimised: {out}\n\n")
+    seats = optimize_meets(tst, 6)
+    #from stats import make_stats
+    #out = make_stats([tst[h-1] for h in (1,2,3,4,5,8)])
+    #out = out[out.find("Indirect Meetup frequencies:"):]
+    #print(f"optimised: {out}\n\n")
     #out1 = make_stats(tst[0:6])
     #out1 = out1[out1.find("Indirect Meetup frequencies:"):]
     #print(f"baseline: {out1}")
