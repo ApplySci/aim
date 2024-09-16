@@ -51,36 +51,7 @@ def make_stats(seats):
                 min(ppp[p1][p2], player_count)
                 ] += 1
 
-    return {
-        "tables": t_hist,
-        "wind": w_hist,
-        "meets": meet_hist,
-        "indirects": indirect_meet_hist,
-    }
-
-
-def calculate_safe_limits(seats):
-    table_count = len(seats[0])
-    player_count = table_count * 4
-    hanchan_count = len(seats)
-
-    # take square root of player count to get a reasonable minimum for indirect
-    #   meetups. Don't worry about indirect meetups for 3 or fewer hanchan
-    indirect_min = int(player_count ** 0.5) if hanchan_count >= 4 else 0
-
-    indirect_good = indirect_min + 3
-    wind_min = hanchan_count // 4
-    wind_max = (hanchan_count + 3) // 4
-    table_max = (hanchan_count + table_count * 2 - 1) // table_count
-    meetup_max = 1
-    return {
-        "wind_min": wind_min,
-        "wind_max": wind_max,
-        "table_max": table_max,
-        "indirect_min": indirect_min,
-        "indirect_good": indirect_good,
-        "meetup_max": meetup_max,
-    }
+    return meet_hist, indirect_meet_hist, t_hist, w_hist
 
 
 def write_warnings(w_hist, t_hist, meet_hist, indirect_hist,

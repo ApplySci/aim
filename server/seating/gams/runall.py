@@ -24,7 +24,7 @@ def loop_all():
                 winds = importlib.import_module(f"final.{fn}").seats
             else:
                 if os.path.exists(f"tables/{fn}.py"):
-                    seats = importlib.import_module(f"es.{tables*4}x{hanchan}").seats
+                    seats = importlib.import_module(f"tables.{fn}").seats
                 else:
                     if os.path.exists(f"meets/{fn}.py"):
                         seats = importlib.import_module(f"meets.{fn}").seats
@@ -32,10 +32,6 @@ def loop_all():
                         seats = optimize_meets(all_seats, hanchan)
                     seats = optimize_tables(seats)
                 winds = optimize_winds(seats)
-            log = make_stats(winds)
-            print(log)
-            with open("all.log", "a") as f:
-                f.write(log)
 
 
 if __name__ == "__main__":
