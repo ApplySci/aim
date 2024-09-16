@@ -74,7 +74,6 @@ Option solvelink = 5;
 $onecho > cplex.opt
 names no
 mipinterval 1
-mipstatus 1
 $offecho
 
 seating.optfile = 1;
