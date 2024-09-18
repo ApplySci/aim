@@ -70,7 +70,7 @@ class MySparkChart extends StatelessWidget {
       borderWidth: 0,
       plotAreaBorderWidth: 0,
       primaryXAxis: axisLineColor == null
-          ? CategoryAxis(isVisible: false)
+          ? const CategoryAxis(isVisible: false)
           : CategoryAxis(
               isVisible: true,
               axisLine: AxisLine(
@@ -78,12 +78,10 @@ class MySparkChart extends StatelessWidget {
               ),
               crossesAt: 0,
         majorTickLines: const MajorTickLines(width: 0),
-        minorTickLines: const MinorTickLines(width: 0),
         majorGridLines: const MajorGridLines(width: 0),
-        minorGridLines: const MinorGridLines(width: 0),
         labelStyle: const TextStyle(fontSize: 0),
             ),
-      primaryYAxis: NumericAxis(isVisible: false),
+      primaryYAxis: const NumericAxis(isVisible: false),
       series: <CartesianSeries>[series],
     );
   }

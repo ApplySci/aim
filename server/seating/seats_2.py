@@ -24,39 +24,10 @@
 |        88 |       0 |        |         |        |            |
 |        92 |       0 |        |         |        |            |
 |        96 |       0 |        |         |        |            |
+|       100 |       0 |        |         |        |            |
+|       104 |       0 |        |         |        |            |
 +-----------+---------+--------+---------+--------+------------+
 ***
-
-Seating for mahjong tournaments with 2 hanchan. 
-Designed to: minimize repeat meetups between players, and repeat 
-visits to tables; balance wind allocations; 
-and maximise the number of indirect meets between 
-any pair of players, via a third player.
-
-Variable "seats" is dict of seating arrangements. 
-Each key is the number of players. 
-The corresponding dict value is a list of hanchan. 
-Each hanchan is a list of tables. 
-Each table is a list of players, indexed from 1 upwards, in wind order (ESWN).
-
-Created by Andrew ZP Smith (ZAPS) 
-https://github.com/ApplySci/aim/
-
-Built on original SGP solutions from Alice Miller:
-"Breakout Group Allocation Schedules and the Social Golfer 
-Problem with Adjacent Group Sizes", by Alice Miller, 
-Matthew Barr, William Kavanagh, Ivaylo Valkov and Helen C. Purchase.
-DOI:10.3390/sym13010013 , Symmetry, December 2020
-
-Using additional mahjong-specific criteria devised & 
-originally implemented by Martin Lester:
-"Scheduling Reach Mahjong Tournaments Using Pseudoboolean Constraints" 
-by Martin Mariusz Lester. DOI:10.1007/978-3-030-80223-3_24 , 
-Theory and Applications of Satisfiability Testing : 
-SAT 2021 Lecture Notes in Computer Science, 2021, p. 349-358
-
-My apologies to all for taking their beautiful combinatorial approaches
-and building a mess of brute force optimisations on top of them.
 """
 
 seats = {
@@ -668,5 +639,109 @@ seats = {
      [34, 57, 95, 4],
      [36, 21, 81, 54],
      [50, 77, 96, 27]]],
+
+    100: [[[25, 50, 75, 100],
+     [1, 10, 12, 22],
+     [3, 5, 6, 11],
+     [28, 30, 31, 36],
+     [29, 33, 40, 43],
+     [54, 58, 65, 68],
+     [52, 69, 70, 74],
+     [77, 94, 95, 99],
+     [76, 85, 87, 97],
+     [9, 42, 71, 88],
+     [7, 41, 73, 89],
+     [15, 45, 60, 80],
+     [17, 46, 63, 84],
+     [16, 48, 64, 82],
+     [4, 27, 51, 78],
+     [20, 35, 55, 90],
+     [18, 49, 62, 81],
+     [21, 38, 59, 92],
+     [23, 39, 57, 91],
+     [8, 44, 72, 86],
+     [2, 26, 53, 79],
+     [24, 37, 56, 93],
+     [13, 34, 67, 96],
+     [14, 32, 66, 98],
+     [19, 47, 61, 83]],
+     [[78, 96, 90, 95],
+     [50, 59, 69, 66],
+     [40, 87, 9, 73],
+     [65, 70, 53, 71],
+     [26, 51, 76, 1],
+     [11, 13, 2, 23],
+     [93, 55, 22, 39],
+     [35, 24, 92, 58],
+     [46, 16, 81, 61],
+     [47, 18, 80, 64],
+     [30, 68, 97, 14],
+     [43, 72, 89, 5],
+     [85, 8, 74, 42],
+     [27, 75, 54, 3],
+     [41, 25, 44, 34],
+     [6, 7, 4, 12],
+     [31, 29, 32, 37],
+     [45, 19, 82, 63],
+     [49, 17, 83, 60],
+     [48, 15, 84, 62],
+     [86, 88, 98, 77],
+     [38, 57, 94, 20],
+     [79, 100, 52, 28],
+     [10, 67, 99, 33],
+     [36, 21, 91, 56]]],
+
+    104: [[[14, 61, 71, 104],
+     [4, 18, 65, 75],
+     [8, 22, 69, 79],
+     [12, 26, 73, 83],
+     [16, 30, 77, 87],
+     [20, 34, 81, 91],
+     [24, 38, 85, 95],
+     [28, 42, 89, 99],
+     [32, 46, 93, 103],
+     [3, 36, 50, 97],
+     [7, 40, 54, 101],
+     [1, 11, 44, 58],
+     [5, 15, 48, 62],
+     [9, 19, 52, 66],
+     [13, 23, 56, 70],
+     [17, 27, 60, 74],
+     [21, 31, 64, 78],
+     [25, 35, 68, 82],
+     [29, 39, 72, 86],
+     [33, 43, 76, 90],
+     [37, 47, 80, 94],
+     [41, 51, 84, 98],
+     [45, 55, 88, 102],
+     [2, 49, 59, 92],
+     [6, 53, 63, 96],
+     [10, 57, 67, 100]],
+     [[63, 2, 16, 73],
+     [67, 20, 6, 77],
+     [71, 10, 24, 81],
+     [85, 28, 75, 14],
+     [89, 32, 79, 18],
+     [22, 93, 83, 36],
+     [87, 97, 40, 26],
+     [30, 91, 101, 44],
+     [95, 1, 34, 48],
+     [99, 5, 38, 52],
+     [103, 9, 42, 56],
+     [60, 3, 13, 46],
+     [50, 7, 17, 64],
+     [54, 21, 11, 68],
+     [72, 25, 58, 15],
+     [76, 29, 62, 19],
+     [80, 33, 66, 23],
+     [27, 37, 70, 84],
+     [31, 41, 74, 88],
+     [35, 78, 92, 45],
+     [39, 82, 96, 49],
+     [43, 86, 100, 53],
+     [47, 90, 104, 57],
+     [51, 4, 94, 61],
+     [55, 8, 98, 65],
+     [59, 12, 102, 69]]],
 
 }

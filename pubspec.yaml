@@ -41,7 +41,7 @@ dependencies:
   intl: ^0.18.0
   permission_handler: ^11.3.1
   shared_preferences: ^2.0.0
-  syncfusion_flutter_charts: 22.2.12 # HACK Downgraded due to #1907
+  syncfusion_flutter_charts: ^27.1.48 # 22.2.12 # HACK Downgraded due to #1907
   timezone: ^0.9.3
   url_launcher: ^6.2.6
 

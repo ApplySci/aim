@@ -35,37 +35,6 @@ def stat_all(write_final=False):
 *** imperfect allocations:
 {warnings_table}
 ***
-
-Seating for mahjong tournaments with {hanchan_count} hanchan. 
-Designed to: minimize repeat meetups between players, and repeat 
-visits to tables; balance wind allocations; 
-and maximise the number of indirect meets between 
-any pair of players, via a third player.
-
-Variable "seats" is dict of seating arrangements. 
-Each key is the number of players. 
-The corresponding dict value is a list of hanchan. 
-Each hanchan is a list of tables. 
-Each table is a list of players, indexed from 1 upwards, in wind order (ESWN).
-
-Created by Andrew ZP Smith (ZAPS) 
-https://github.com/ApplySci/aim/
-
-Built on original SGP solutions from Alice Miller:
-"Breakout Group Allocation Schedules and the Social Golfer 
-Problem with Adjacent Group Sizes", by Alice Miller, 
-Matthew Barr, William Kavanagh, Ivaylo Valkov and Helen C. Purchase.
-DOI:10.3390/sym13010013 , Symmetry, December 2020
-
-Using additional mahjong-specific criteria devised & 
-originally implemented by Martin Lester:
-"Scheduling Reach Mahjong Tournaments Using Pseudoboolean Constraints" 
-by Martin Mariusz Lester. DOI:10.1007/978-3-030-80223-3_24 , 
-Theory and Applications of Satisfiability Testing : 
-SAT 2021 Lecture Notes in Computer Science, 2021, p. 349-358
-
-My apologies to all for taking their beautiful combinatorial approaches
-and building a mess of brute force optimisations on top of them.
 \"\"\"
 
 seats = {{
