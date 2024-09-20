@@ -1,6 +1,7 @@
+import argparse
 import os
 import subprocess
-import argparse
+import sys
 
 def solve_sgp(hanchan_count, player_count):
     table_count = player_count // 4
@@ -32,9 +33,7 @@ Equations
     define_x(h,p,p1,t) "define x based on y"
     symmetry_x(h,p,p1) "ensure symmetry of x"
     no_self_pairing(h,p) "player cannot pair with themselves"
-    first_hanchan_assignment(p,t) "fix assignments for the first hanchan"
-    ascending_order_table(h,t,s) "ensure players are in ascending order at each table"
-    ascending_order_hanchan(h,t) "ensure first players at each table are in ascending order";
+    pair_meets_once(p,p1) "each pair of players meets at most once";
 
 obj.. z =e= sum((h,p,p1)$(ord(p) < ord(p1)), x(h,p,p1));
 
@@ -48,19 +47,13 @@ symmetry_x(h,p,p1)$(ord(p) < ord(p1)).. x(h,p,p1) =e= x(h,p1,p);
 
 no_self_pairing(h,p).. x(h,p,p) =e= 0;
 
-first_hanchan_assignment(p,t).. y('1',p,t) =e= 1$(ord(p) > (ord(t)-1)*4 and ord(p) <= ord(t)*4);
-
-ascending_order_table(h,t,s)$(ord(s) < 4).. 
-    sum(p$(ord(p) <= (ord(t)-1)*4 + ord(s)), y(h,p,t)) =g= ord(s);
-
-ascending_order_hanchan(h,t)$(ord(t) < card(t)).. 
-    sum(p$(ord(p) <= (ord(t)-1)*4), y(h,p,t)) =l= sum(p$(ord(p) <= ord(t)*4), y(h,p,t+1));
+pair_meets_once(p,p1)$(ord(p) < ord(p1)).. sum(h, x(h,p,p1)) =l= 1;
 
 Model sgp /all/;
 
 Option optcr = 0.0;
 Option threads = 4;
-Option resLim = 7200;
+Option resLim = 9800;
 
 Solve sgp using mip minimizing z;
 
@@ -131,8 +124,14 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
+    fn = f"{args.player_count}x{args.hanchan_count}"
+    if os.path.exists(f"sgp/{fn}.py"):
+        print('output file already exists: delete and rerun to re-optimise')
+        sys.exit()
+
     result = solve_sgp(args.hanchan_count, args.player_count)
+
     if result:
-        print(f"SGP solution saved to sgp/{args.player_count}x{args.hanchan_count}.py")
+        print(f"SGP solution saved to sgp/{fn}.py")
     else:
         print("Failed to find a solution")

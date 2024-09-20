@@ -1,3 +1,4 @@
+# adapted from Alice Miller's social golfer page at http://breakoutroom.pythonanywhere.com/allocate/
 seats = [
 	[
 		[1, 12, 18, 21],

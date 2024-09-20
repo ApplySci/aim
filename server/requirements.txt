@@ -11,3 +11,4 @@ alembic
 pytz
 pycountry
 bleach
+gamsapi

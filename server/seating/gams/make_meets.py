@@ -1,14 +1,5 @@
 """
-There are two things to solve:
-1) there must be a way to select exactly one penalty level, 
-by defining some function f such that we can find a 
-penalty threshold T where 
-f(T) >= 1, f(T-1) <1.
 
-2) indirect meetup count is definitely wrong.
-e.g 1,19 lists:
-1,19,13 = 1 1 0 1 1 1 1 1 0 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-whereas only 5 and 15 are the players that both 1 and 19 meet directly. 
 """
 import os
 import subprocess
@@ -167,8 +158,8 @@ limit_penalty0(p1,p2)$(ord(p1) < ord(p2))..
 
 Model seating /all/;
 
-Option reslim = 600;
-Option threads = 1;
+Option reslim = 1200;
+Option threads = 2;
 Option solvelink = 5;
 
 Option sysout = on;
@@ -221,6 +212,10 @@ putclose;
     new_seats = [seats[h-1] for h in selected_hanchan]
 
     # Write new seats to Python file
+    if len(new_seats) == 0:
+        print("Failed")
+        return None
+
     with open(f"meets/{N}x{hanchan_count}.py", "w") as f:
         out = f"{new_seats}\n".replace("],", "],\n")
         f.write(f"seats = {out}\n")
@@ -233,6 +228,7 @@ putclose;
             os.remove(file)
 
     return new_seats
+
 
 if __name__ == "__main__":
     from stats import make_stats

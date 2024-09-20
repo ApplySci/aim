@@ -1,9 +1,8 @@
 
-Seating for mahjong tournaments with 16-172 players (with some gaps above 116). For any given number of players, a seating arrangement has been generated for the widest range of hanchans possible without repeat meetups between players (2-29 hanchan in the most flexible case, with 172 players).
+Seating for mahjong tournaments with 16-172 players. For any given number of players, a seating arrangement has been generated for up to 15 hanchan without repeat meetups between players.
 
 The seating allocation is designed to: minimize repeat meetups between players, & repeat visits to tables; balance wind allocations; and maximise the number of indirect meets between any pair of players via a third player.
 
-Created by Andrew ZP Smith (ZAPS) https://github.com/ApplySci/aim/
 
 Each .py file contains all the seating for a specific number of hanchan. e.g. seats_8.py contains all the seating for mahjong tournaments with 8 hanchan, with 16-172 players.
 
@@ -12,6 +11,20 @@ Each key is the number of players.
 The corresponding dict value is a list of hanchan. 
 Each hanchan is a list of tables. 
 Each table is a list of players, indexed from 1 upwards, in wind order (ESWN).
+
+
+For Python Users
+
+1. Import the seats dictionary from the appropriate file:
+from seats_13 import seats
+# Get seating for 60 players, 13 hanchan
+seating = seats[60]
+# Access a specific hanchan (e.g., the first one)
+first_hanchan = seating[0]
+# Access a specific table in a hanchan (e.g., the third table in the second hanchan)
+table = seating[1][2]
+print(f"Players at this table: East={table[0]}, South={table[1]}, West={table[2]}, North={table[3]}")
+
 
 The docstring for each .py file lists how many non-optimal occurrences happened, for each number of players:
 Winds: counts players who sit in any wind position too rarely or too often
@@ -26,3 +39,5 @@ Using additional mahjong-specific criteria devised & originally implemented by M
 "Scheduling Reach Mahjong Tournaments Using Pseudoboolean Constraints" by Martin Mariusz Lester. DOI:10.1007/978-3-030-80223-3_24 , Theory and Applications of Satisfiability Testing : SAT 2021 Lecture Notes in Computer Science, 2021, p. 349-358
 
 My apologies to all for taking their beautiful combinatorial approaches and building a mess of brute force on top of them.
+
+Created by Andrew ZP Smith (ZAPS) https://github.com/ApplySci/aim/
