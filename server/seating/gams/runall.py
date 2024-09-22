@@ -1,7 +1,6 @@
 import importlib
 import os
 
-from make_stats import make_stats
 from make_meets import optimize_meets
 from make_tables import optimize_tables
 from make_winds import optimize_winds
@@ -18,7 +17,7 @@ def loop_all():
             continue
         all_seats = seats_module.seats
         max_hanchan = len(all_seats)
-        for hanchan in range(2, max(10, min(16, max_hanchan+1))):
+        for hanchan in range(2, max(11, min(16, max_hanchan+1))):
             fn = f"{tables*4}x{hanchan}"
             if os.path.exists(f"final/{fn}.py"):
                 winds = importlib.import_module(f"final.{fn}").seats
