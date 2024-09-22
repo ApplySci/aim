@@ -1,124 +1,92 @@
-import os
-import subprocess
+import random
+import time
 import importlib
+from typing import List, Tuple, Dict
 
-def extend_meets(player_count, hanchan_count):
-    # Read the original seating arrangement
+def calculate_penalty(seating: List[List[List[int]]]) -> int:
+    penalty = 0
+    player_count = max(max(table) for hanchan in seating for table in hanchan)
+    
+    # Count meetings for groups of 3 and 4 players
+    meetings3 = {tuple(sorted([p1, p2, p3])): 0 for p1 in range(1, player_count+1) 
+                 for p2 in range(p1+1, player_count+1) 
+                 for p3 in range(p2+1, player_count+1)}
+    meetings4 = {tuple(sorted([p1, p2, p3, p4])): 0 for p1 in range(1, player_count+1) 
+                 for p2 in range(p1+1, player_count+1) 
+                 for p3 in range(p2+1, player_count+1)
+                 for p4 in range(p3+1, player_count+1)}
+
+    for hanchan in seating:
+        for table in hanchan:
+            for i in range(len(table)):
+                for j in range(i+1, len(table)):
+                    for k in range(j+1, len(table)):
+                        meetings3[tuple(sorted([table[i], table[j], table[k]]))] += 1
+            if len(table) == 4:
+                meetings4[tuple(sorted(table))] += 1
+
+    # Calculate penalty
+    for group, count in meetings3.items():
+        if count > 1:
+            penalty += count - 1
+    for group, count in meetings4.items():
+        if count > 1:
+            penalty += 10 * (count - 1)
+
+    return penalty
+
+def extend_meets(player_count: int, hanchan_count: int, time_limit: int = 600) -> List[List[List[int]]]:
+    # Import original seating arrangement
     module_name = f"sgp.{player_count}"
     original_seats = importlib.import_module(module_name).seats
     
-    # Calculate the number of tables and original hanchan count
-    table_count = len(original_seats[0])
     original_hanchan_count = len(original_seats)
+    additional_hanchan_count = hanchan_count - original_hanchan_count
     
-    # Write GAMS file
-    gams_file = f"extend_{player_count}x{hanchan_count}.gms"
-    with open(gams_file, "w") as f:
-        f.write(f"""
-Sets
-    h hanchan / 1*{hanchan_count} /
-    t tables / 1*{table_count} /
-    p players / 1*{player_count} /
-    oh original_hanchan / 1*{original_hanchan_count} /;
+    if additional_hanchan_count <= 0:
+        return original_seats
 
-Alias (p, p1, p2, p3, p4);
+    best_seating = original_seats + original_seats[:additional_hanchan_count]
+    best_penalty = calculate_penalty(best_seating)
 
-Parameters
-    original_seats(oh,t,p) original seating arrangement
-    /
-""")
-        for h, hanchan in enumerate(original_seats, 1):
-            for t, table in enumerate(hanchan, 1):
-                for p in table:
-                    f.write(f"    {h}.{t}.{p} 1\n")
-        f.write("/;\n")
+    start_time = time.time()
+    iterations = 0
 
-        f.write("""
-Binary Variables
-    x(h,t,p) 'player p is seated at table t in hanchan h'
-    y(p,p1) 'player p is mapped to original player p1'
-    z 'objective variable';
+    while time.time() - start_time < time_limit:
+        # Create a random 1-to-1 mapping
+        player_mapping = list(range(1, player_count + 1))
+        random.shuffle(player_mapping)
+        mapping = {i+1: player_mapping[i] for i in range(player_count)}
 
-Variables
-    penalty 'penalty for repeated meetings';
+        # Apply the mapping to create new seating arrangement
+        new_seating = original_seats.copy()
+        for i in range(additional_hanchan_count):
+            mapped_hanchan = []
+            for table in original_seats[i % original_hanchan_count]:
+                mapped_table = [mapping[player] for player in table]
+                mapped_hanchan.append(mapped_table)
+            new_seating.append(mapped_hanchan)
 
-Equations
-    obj 'objective function'
-    one_seat_per_player(h,p) 'each player is seated once per hanchan'
-    four_players_per_table(h,t) 'each table has exactly 4 players'
-    one_to_one_mapping(p) 'each player is mapped to exactly one original player'
-    one_to_one_mapping_reverse(p1) 'each original player is mapped to exactly one player'
-    first_half_seating(h,t,p) 'seating arrangement for first half follows original arrangement'
-    second_half_seating(h,t,p) 'seating arrangement for second half follows remapped original arrangement'
-    calculate_penalty 'calculate penalty for repeated meetings';
+        new_penalty = calculate_penalty(new_seating)
 
-obj.. z =e= penalty;
+        if new_penalty < best_penalty:
+            print(f"Iteration {iterations}; new penalty: {new_penalty}")
+            best_seating = new_seating
+            best_penalty = new_penalty
+            if new_penalty == 0:
+                break
 
-one_seat_per_player(h,p).. sum(t, x(h,t,p)) =e= 1;
+        iterations += 1
 
-four_players_per_table(h,t).. sum(p, x(h,t,p)) =e= 4;
+    print(f"Best penalty: {best_penalty}")
+    print(f"Iterations: {iterations}")
 
-one_to_one_mapping(p).. sum(p1, y(p,p1)) =e= 1;
-
-one_to_one_mapping_reverse(p1).. sum(p, y(p,p1)) =e= 1;
-
-first_half_seating(h,t,p)$(ord(h) <= card(oh)).. x(h,t,p) =e= original_seats(h,t,p);
-
-second_half_seating(h,t,p)$(ord(h) > card(oh)).. 
-    x(h,t,p) =e= sum(p1, y(p,p1) * original_seats(h-card(oh),t,p1));
-
-calculate_penalty.. 
-    penalty =e= sum((h,t,p1,p2,p3,p4)$(ord(p1) < ord(p2) and ord(p2) < ord(p3) and ord(p3) < ord(p4)),
-        prod(h1$(ord(h1) < ord(h)), x(h1,t,p1) * x(h1,t,p2) * x(h1,t,p3) * x(h1,t,p4)) * 
-        x(h,t,p1) * x(h,t,p2) * x(h,t,p3) * x(h,t,p4));
-
-Model extend_meets /all/;
-
-Option optcr = 0.0;
-Option threads = 4;
-Option reslim = 3600;
-
-Solve extend_meets using mip minimizing z;
-
-file results / 'results_{player_count}x{hanchan_count}.txt' /;
-put results;
-loop((h,t,p)$(x.l(h,t,p) > 0.5),
-    put h.tl, ' ', t.tl, ' ', p.tl /;
-);
-putclose;
-""")
-
-    # Run GAMS optimization
-    result = subprocess.run(["gams", gams_file], capture_output=True, text=True)
-
-    # Check if results file exists
-    results_file = f"results_{player_count}x{hanchan_count}.txt"
-    if not os.path.exists(results_file):
-        print(f"Error: Results file {results_file} was not created.")
-        return None
-
-    # Read results and create new seating arrangement
-    new_seats = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
-    with open(results_file, "r") as f:
-        for line in f:
-            h, t, p = map(int, line.split())
-            new_seats[h-1][t-1].append(p)
-
-    # Write new seats to Python file
-    output_file = f"meets/{player_count}x{hanchan_count}.py"
-    with open(output_file, "w") as f:
-        out = f"{new_seats}\n".replace("],", "],\n")
-        f.write(f"seats = {out}\n")
-
-    # Clean up temporary files
-    for file in [gams_file, f"extend_{player_count}x{hanchan_count}.lst", results_file]:
-        if os.path.exists(file):
-            os.remove(file)
-
-    return new_seats
+    return best_seating
 
 if __name__ == "__main__":
     import sys
+    import os
+
     if len(sys.argv) != 3:
         print("Usage: python extend_meets.py <player_count> <hanchan_count>")
         sys.exit(1)
@@ -128,7 +96,19 @@ if __name__ == "__main__":
     
     result = extend_meets(player_count, hanchan_count)
     
-    if result:
-        print(f"Extended seating arrangement saved to meets/{player_count}x{hanchan_count}.py")
-    else:
-        print("Failed to find a solution")
+    # Import original seating arrangement to get the original hanchan count
+    module_name = f"sgp.{player_count}"
+    original_seats = importlib.import_module(module_name).seats
+    original_hanchan_count = len(original_seats)
+
+    # Ensure the meets directory exists
+    os.makedirs("meets", exist_ok=True)
+
+    # Write results for each intermediate hanchan count
+    for i in range(original_hanchan_count + 1, hanchan_count + 1):
+        output_file = f"meets/{player_count}x{i}.py"
+        with open(output_file, "w") as f:
+            intermediate_result = result[:i]
+            out = f"{intermediate_result}\n".replace("],", "],\n")
+            f.write(f"seats = {out}\n")
+        print(f"Extended seating arrangement for {i} hanchans saved to {output_file}")
