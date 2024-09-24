@@ -20,6 +20,7 @@ Usage:
 import importlib
 import os
 
+from extend_meets import extend_all_meets
 from make_meets import optimize_meets
 from make_tables import optimize_tables
 from make_winds import optimize_winds
@@ -42,6 +43,9 @@ def loop_all():
     """
     if os.path.exists("all.log"):
         os.remove("all.log")
+
+    for tables in range(4,8):
+        extend_all_meets(tables*4, 10)
 
     for tables in range(4, 44):
         print(f"\n\n*****************************")

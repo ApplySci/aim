@@ -148,16 +148,7 @@ def save_extended_seating(player_count: int, hanchan_count: int, seating: List[L
     print(f"Extended seating arrangement saved to {output_file}")
 
 
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 3:
-        print("Usage: python extend_meets.py <player_count> <hanchan_count>")
-        sys.exit(1)
-    
-    player_count = int(sys.argv[1])
-    hanchan_count = int(sys.argv[2])
-    
+def extend_all_meets(player_count: int, hanchan_count: int) -> None:
     result = extend_meets(player_count, hanchan_count)
     
     # Import original seating arrangement to get the original hanchan count
@@ -168,3 +159,14 @@ if __name__ == "__main__":
     # Write results for each intermediate hanchan count
     for i in range(original_hanchan_count + 1, hanchan_count + 1):
         save_extended_seating(player_count, i, result[:i])
+    
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) != 3:
+        print("Usage: python extend_meets.py <player_count> <hanchan_count>")
+        sys.exit(1)
+    
+    player_count = int(sys.argv[1])
+    hanchan_count = int(sys.argv[2])
+    extend_all_meets(player_count, hanchan_count)    

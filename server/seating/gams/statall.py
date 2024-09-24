@@ -76,7 +76,7 @@ def stat_all(write_final: bool = False) -> None:
         Returns:
             None
         """
-        if not write_final:
+        if not write_final or hanchan_count > 15:
             return
         out_file = f"../seats_{hanchan_count}.py"
         warnings_table = tabulate.tabulate(
