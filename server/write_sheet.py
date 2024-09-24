@@ -286,11 +286,9 @@ class GSP:
             None
 
         '''
-        # TODO catch this if we can't import a pre-determined seating number,
-        #  and then create one from scratch
-        seats_module = importlib.import_module(
-            f"seating.seats_{table_count*4}x{hanchan_count}")
-        seats = getattr(seats_module, 'seats')
+        player_count = table_count * 4
+        seats = importlib.import_module(
+            f"seating.seats_{hanchan_count}").seats[player_count]
         destcells = []
         for round in range(0, hanchan_count):
             for table in range(0, table_count):

@@ -1,9 +1,41 @@
+"""
+Seating Arrangement Extension Module
+
+This module provides functionality to extend seating arrangements for
+tournaments or games with a larger number of rounds (hanchans) than the
+original arrangement.
+
+The main function in this module is:
+- extend_meets: Extend a seating arrangement to cover more rounds
+
+Usage:
+    This module can be run directly to extend a seating arrangement,
+    or imported and used by other modules in the seating arrangement system.
+
+Note: This module assumes the existence of seating arrangement modules
+in the 'sgp' package, named according to the number of players.
+"""
+
 import random
 import time
 import importlib
+import os
 from typing import List, Tuple, Dict
 
+
 def calculate_penalty(seating: List[List[List[int]]]) -> int:
+    """
+    Calculate the penalty score for a given seating arrangement.
+
+    The penalty is based on repeated meetings between groups of 3 and 4 players.
+
+    Args:
+        seating (List[List[List[int]]]): A 3D list representing the seating
+            arrangement. The dimensions represent: [hanchan][table][seat]
+
+    Returns:
+        int: The calculated penalty score
+    """
     penalty = 0
     player_count = max(max(table) for hanchan in seating for table in hanchan)
     
@@ -35,7 +67,19 @@ def calculate_penalty(seating: List[List[List[int]]]) -> int:
 
     return penalty
 
+
 def extend_meets(player_count: int, hanchan_count: int, time_limit: int = 600) -> List[List[List[int]]]:
+    """
+    Extend a seating arrangement to cover more rounds (hanchans).
+
+    Args:
+        player_count (int): The number of players
+        hanchan_count (int): The desired number of rounds (hanchans)
+        time_limit (int, optional): Time limit for optimization in seconds. Defaults to 600.
+
+    Returns:
+        List[List[List[int]]]: The extended seating arrangement
+    """
     # Import original seating arrangement
     module_name = f"sgp.{player_count}"
     original_seats = importlib.import_module(module_name).seats
@@ -83,9 +127,29 @@ def extend_meets(player_count: int, hanchan_count: int, time_limit: int = 600) -
 
     return best_seating
 
+
+def save_extended_seating(player_count: int, hanchan_count: int, seating: List[List[List[int]]]) -> None:
+    """
+    Save the extended seating arrangement to a file.
+
+    Args:
+        player_count (int): The number of players
+        hanchan_count (int): The number of rounds (hanchans)
+        seating (List[List[List[int]]]): The seating arrangement to save
+
+    Returns:
+        None
+    """
+    os.makedirs("meets", exist_ok=True)
+    output_file = f"meets/{player_count}x{hanchan_count}.py"
+    with open(output_file, "w") as f:
+        out = f"{seating}\n".replace("],", "],\n")
+        f.write(f"seats = {out}\n")
+    print(f"Extended seating arrangement saved to {output_file}")
+
+
 if __name__ == "__main__":
     import sys
-    import os
 
     if len(sys.argv) != 3:
         print("Usage: python extend_meets.py <player_count> <hanchan_count>")
@@ -101,14 +165,6 @@ if __name__ == "__main__":
     original_seats = importlib.import_module(module_name).seats
     original_hanchan_count = len(original_seats)
 
-    # Ensure the meets directory exists
-    os.makedirs("meets", exist_ok=True)
-
     # Write results for each intermediate hanchan count
     for i in range(original_hanchan_count + 1, hanchan_count + 1):
-        output_file = f"meets/{player_count}x{i}.py"
-        with open(output_file, "w") as f:
-            intermediate_result = result[:i]
-            out = f"{intermediate_result}\n".replace("],", "],\n")
-            f.write(f"seats = {out}\n")
-        print(f"Extended seating arrangement for {i} hanchans saved to {output_file}")
+        save_extended_seating(player_count, i, result[:i])

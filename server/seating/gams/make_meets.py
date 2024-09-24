@@ -1,22 +1,71 @@
 """
-
+This module optimizes seating arrangements for a series of hanchan (game rounds)
+using GAMS (General Algebraic Modeling System) for optimization.
 """
+
 import os
 import subprocess
 import importlib
+from typing import List, Optional
 
-def optimize_meets(seats, hanchan_count):
+
+def optimize_meets(seats: List[List[List[int]]], hanchan_count: int) -> \
+        Optional[List[List[List[int]]]]:
+    """
+    Optimize the seating arrangements for a given number of hanchan.
+
+    Args:
+        seats (List[List[List[int]]]): Initial seating arrangements.
+        hanchan_count (int): Number of hanchan to optimize for.
+
+    Returns:
+        Optional[List[List[List[int]]]]: Optimized seating arrangements, or None if optimization fails.
+    """
     table_count = len(seats[0])
     N = table_count * 4
     indirect_meetup_min = int(N ** 0.5)
 
     # Write seats data to GDX
     gdx_file = f"seats_{N}.gdx"
+    _write_seats_to_gdx(seats, N, gdx_file)
+
+    # Run GAMS to create GDX
+    result = subprocess.run(["gams", f"seats_{N}.gms"], capture_output=True,
+                            text=True)
+
+    if not os.path.exists(gdx_file):
+        print(f"Error: GDX file {gdx_file} was not created.")
+        print("GAMS output:", result.stdout)
+        print("GAMS error:", result.stderr)
+        return None
+
+    # Create optimize_{N}.gms file
+    gams_file = f"optimize_{N}.gms"
+    _create_optimization_model(N, len(seats), table_count, hanchan_count,
+                               indirect_meetup_min, gdx_file, gams_file)
+
+    # Run GAMS optimization
+    result = subprocess.run(["gams", gams_file], capture_output=False, text=True)
+
+    # Load and return results
+    return _process_results(N, seats, hanchan_count)
+
+
+def _write_seats_to_gdx(seats: List[List[List[int]]], N: int, gdx_file: str) \
+        -> None:
+    """
+    Write the initial seating arrangements to a GDX file.
+
+    Args:
+        seats (List[List[List[int]]]): Initial seating arrangements.
+        N (int): Total number of players.
+        gdx_file (str): Name of the GDX file to create.
+    """
     with open(f"seats_{N}.gms", "w") as f:
         f.write(f"""
 Set
     h hanchan / 1*{len(seats)} /
-    t tables / 1*{table_count} /
+    t tables / 1*{len(seats[0])} /
     p players / 1*{N} /;
 
 Parameter seats(h,t,p) /
@@ -28,19 +77,45 @@ Parameter seats(h,t,p) /
         f.write("/;\n")
         f.write(f"execute_unload '{gdx_file}', seats;")
 
-    # Run GAMS to create GDX
-    result = subprocess.run(["gams", f"seats_{N}.gms"], capture_output=True, text=True)
 
-    if not os.path.exists(gdx_file):
-        print(f"Error: GDX file {gdx_file} was not created.")
-        print("GAMS output:", result.stdout)
-        print("GAMS error:", result.stderr)
-        return None
+def _create_optimization_model(N: int, total_hanchan: int, table_count: int,
+                               hanchan_count: int, indirect_meetup_min: int,
+                               gdx_file: str, gams_file: str) -> None:
+    """
+    Create the GAMS optimization model file.
 
-    # Create optimize_{N}.gms file
-    gams_file = f"optimize_{N}.gms"
+    Args:
+        N (int): Total number of players.
+        total_hanchan (int): Total number of hanchan in the initial seating.
+        table_count (int): Number of tables per hanchan.
+        hanchan_count (int): Number of hanchan to optimize for.
+        indirect_meetup_min (int): Minimum number of indirect meetups.
+        gdx_file (str): Name of the input GDX file.
+        gams_file (str): Name of the GAMS file to create.
+    """
     with open(gams_file, "w") as f:
-        f.write(f"""
+        f.write(_generate_gams_model(N, total_hanchan, table_count,
+            hanchan_count, indirect_meetup_min, gdx_file))
+
+
+def _generate_gams_model(N: int, total_hanchan: int, table_count: int,
+                         hanchan_count: int, indirect_meetup_min: int,
+                         gdx_file: str) -> str:
+    """
+    Generate the GAMS model as a string.
+
+    Args:
+        N (int): Total number of players.
+        total_hanchan (int): Total number of hanchan in the initial seating.
+        table_count (int): Number of tables per hanchan.
+        hanchan_count (int): Number of hanchan to optimize for.
+        indirect_meetup_min (int): Minimum number of indirect meetups.
+        gdx_file (str): Name of the input GDX file.
+
+    Returns:
+        str: The GAMS model as a string.
+    """
+    return f"""
 $set gdxincurdir 1
 $gdxin {gdx_file}
 $if not exist {gdx_file} $abort 'GDX file does not exist'
@@ -50,7 +125,7 @@ Option limrow = 0, limcol = 0;
 Option solprint = off;
 
 Sets
-    h hanchan / 1*{len(seats)} /
+    h hanchan / 1*{total_hanchan} /
     t tables / 1*{table_count} /
     p players / 1*{N} /
     ;
@@ -61,7 +136,8 @@ Alias (t, t1, t2);
 
 Parameters
     seats(h,t,p) original seating arrangement
-    
+    ;
+
 $loaddc seats
 $gdxin
 
@@ -158,7 +234,7 @@ limit_penalty0(p1,p2)$(ord(p1) < ord(p2))..
 
 Model seating /all/;
 
-Option reslim = 1200;
+Option reslim = 2400;
 Option threads = 2;
 Option solvelink = 5;
 
@@ -181,12 +257,22 @@ else
 );
 put 'done' /;
 putclose;
-""")
+"""
 
-    # Run GAMS optimization
-    result = subprocess.run(["gams", gams_file], capture_output=False, text=True)
 
-    # Load and return results
+def _process_results(N: int, seats: List[List[List[int]]], hanchan_count: int) \
+        -> Optional[List[List[List[int]]]]:
+    """
+    Process the optimization results and create the new seating arrangement.
+
+    Args:
+        N (int): Total number of players.
+        seats (List[List[List[int]]]): Initial seating arrangements.
+        hanchan_count (int): Number of hanchan to optimize for.
+
+    Returns:
+        Optional[List[List[List[int]]]]: Optimized seating arrangements, or None if processing fails.
+    """
     if not os.path.exists(f"results_{N}.txt"):
         print(f"Error: Results file results_{N}.txt was not created.")
         return None
@@ -209,7 +295,7 @@ putclose;
             selected_hanchan.append(int(line))
 
     # Create new_seats based on selected hanchan
-    new_seats = [seats[h-1] for h in selected_hanchan]
+    new_seats = [seats[h - 1] for h in selected_hanchan]
 
     # Write new seats to Python file
     if len(new_seats) == 0:
@@ -221,13 +307,22 @@ putclose;
         f.write(f"seats = {out}\n")
 
     # Clean up temporary files
-    for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"seats_{N}.lst",
-                f"optimize_{N}.lst",
-                f"results_{N}.txt"]: 
-        if os.path.exists(file):
-            os.remove(file)
+    _cleanup_temp_files(N)
 
     return new_seats
+
+
+def _cleanup_temp_files(N: int) -> None:
+    """
+    Clean up temporary files created during the optimization process.
+
+    Args:
+        N (int): Total number of players.
+    """
+    for file in [f"optimize_{N}.gms", f"seats_{N}.gms", f"seats_{N}.gdx",
+                 f"seats_{N}.lst", f"optimize_{N}.lst", f"results_{N}.txt"]:
+        if os.path.exists(file):
+            os.remove(file)
 
 
 if __name__ == "__main__":

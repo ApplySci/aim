@@ -1,10 +1,41 @@
+"""
+Table Optimization for Seating Arrangements
+
+This module provides functionality to optimize table assignments for a given
+seating arrangement using GAMS (General Algebraic Modeling System).
+
+The main function in this module is:
+- optimize_tables: Optimize table assignments for a given seating arrangement
+
+This module requires GAMS to be installed and accessible from the command line.
+
+Usage:
+    This module can be run directly to test the optimization on a sample
+    seating arrangement, or imported and used by other modules in the
+    seating arrangement optimization system.
+
+Note: This module generates temporary GAMS files and uses subprocess to run
+GAMS commands. Ensure proper permissions and GAMS installation before use.
+"""
+
 import os
 import subprocess
 import importlib
+from typing import List, Optional, Dict
 
 
-def optimize_tables(seats):
-    # Calculate table_max
+def optimize_tables(seats: List[List[List[int]]]) -> Optional[List[List[List[int]]]]:
+    """
+    Optimize table assignments for a given seating arrangement using GAMS.
+
+    Args:
+        seats (List[List[List[int]]]): A 3D list representing the seating
+            arrangement. The dimensions represent: [hanchan][table][seat]
+
+    Returns:
+        Optional[List[List[List[int]]]]: Optimized seating arrangement with
+        table assignments, or None if optimization fails.
+    """
     table_count = len(seats[0])
     hanchan_count = len(seats)
     table_max = (table_count + hanchan_count - 1) // table_count
@@ -13,7 +44,44 @@ def optimize_tables(seats):
     # Write GAMS file
     gams_file = f"optimize_{N}.gms"
     with open(gams_file, "w") as f:
-        f.write(f"""
+        f.write(_generate_gams_model(hanchan_count, table_count, table_max, N))
+
+    # Write seats data to GDX
+    _write_seats_to_gdx(seats, N, hanchan_count, table_count)
+
+    # Run GAMS to create GDX
+    subprocess.run(["gams", f"seats_{N}.gms"])
+
+    # Run GAMS optimization
+    process = subprocess.Popen(
+        ["gams", gams_file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+    _process_gams_output(process)
+
+    # Check if results file exists
+    if not os.path.exists(f"results_{N}.txt"):
+        print("No results file found. GAMS optimization may have failed.")
+        return None
+
+    # Read and process results
+    new_seats = _process_results(N, hanchan_count, table_count)
+
+    # Write new seats to Python file
+    _write_seats_to_file(N, hanchan_count, new_seats)
+
+    # Clean up temporary files
+    _cleanup_temp_files(N, gams_file)
+
+    return new_seats
+
+
+def _generate_gams_model(hanchan_count: int, table_count: int, table_max: int, N: int) -> str:
+    """Generate the GAMS model for table optimization."""
+    return f"""
 Sets
     h hanchan / 1*{hanchan_count} /
     t tables / 1*{table_count} /
@@ -88,13 +156,15 @@ loop((h,t,t1)$(v.l(h,t,t1) > 0.5),
     );
 );
 putclose;
-""")
+"""
 
-    # Write seats data to GDX
+
+def _write_seats_to_gdx(seats: List[List[List[int]]], N: int, hanchan_count: int, table_count: int) -> None:
+    """Write seats data to GDX file."""
     with open(f"seats_{N}.gms", "w") as f:
         f.write(f"""
 Set
-    h hanchan / 1*{len(seats)} /
+    h hanchan / 1*{hanchan_count} /
     t tables / 1*{table_count} /
     p players / 1*{N} /;
 
@@ -107,61 +177,61 @@ Parameter seats(h,t,p) /
         f.write("/;\n")
         f.write(f"execute_unload 'seats_{N}.gdx', seats;")
 
-    # Run GAMS to create GDX
-    subprocess.run(["gams", f"seats_{N}.gms"])
 
-    # Run GAMS optimization
-    process = subprocess.Popen(
-        ["gams", gams_file],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-        )
+def _process_gams_output(process: subprocess.Popen) -> None:
+    """Process and print GAMS output."""
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
             break
         if output:
             print(output.strip())
-    rc = process.poll()
+    process.poll()
 
-    # Check if results file exists
-    if not os.path.exists(f"results_{N}.txt"):
-        print("No results file found. GAMS optimization may have been interrupted or failed.")
-        return None
 
-    # Read results
+def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[List[int]]]:
+    """Process optimization results and create new seating arrangement."""
     new_seats = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
     with open(f"results_{N}.txt", "r") as f:
         for line in f:
             s, t, p = map(int, line.split())
             new_seats[s-1][t-1].append(p)
+    return new_seats
 
-    # Write new seats to Python file
+
+def _write_seats_to_file(N: int, hanchan_count: int, new_seats: List[List[List[int]]]) -> None:
+    """Write optimized seating arrangement to a Python file."""
     with open(f"tables/{N}x{hanchan_count}.py", "w") as f:
         out = f"{new_seats}\n".replace("],", "],\n")
         f.write(f"seats = {out}\n")
 
-    # Clean up temporary files
+
+def _cleanup_temp_files(N: int, gams_file: str) -> None:
+    """Clean up temporary files created during optimization."""
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt",
                  f"optimize_{N}.lst", f"seats_{N}.lst"]:
         if os.path.exists(file):
             os.remove(file)
 
-    return new_seats
+
+def _make_stats(seats: List[List[List[int]]]) -> Dict[str, str]:
+    """Calculate statistics for a seating arrangement."""
+    from stats import make_stats
+    stats = make_stats(seats)
+    table_visits = stats[stats.find("Table Visit frequencies:"):stats.find("Wind frequencies:")]
+    return {"table_visits": table_visits}
 
 
 if __name__ == "__main__":
+    # Example usage
     from stats import make_stats
-    tst = importlib.import_module("meetups.60x8").seats
-    seats = optimize_tables(tst)
-    out1 = make_stats(tst)
-    out1 = out1[
-        out1.find("Table Visit frequencies:")
-        :out1.find("Wind frequencies:")]
-    print(f"baseline: {out1}")
-    out = make_stats(seats)
-    out = out[out.find("Table Visit frequencies:")
-        :out.find("Wind frequencies:")]
-    print(f"optimised: {out}\n\n")
+    sample_seats = importlib.import_module("meetups.60x8").seats
+    optimized_seats = optimize_tables(sample_seats)
+    if optimized_seats:
+        print("Optimization successful")
+        original_stats = _make_stats(sample_seats)
+        optimized_stats = _make_stats(optimized_seats)
+        print(f"Original table visits:\n{original_stats['table_visits']}")
+        print(f"Optimized table visits:\n{optimized_stats['table_visits']}")
+    else:
+        print("Optimization failed")

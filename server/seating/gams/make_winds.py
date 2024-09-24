@@ -1,8 +1,20 @@
 import os
 import subprocess
+from typing import List, Optional
 
 
-def optimize_winds(seats):
+def optimize_winds(seats: List[List[List[int]]]) -> Optional[List[List[List[int]]]]:
+    """
+    Optimize wind assignments for a given seating arrangement using GAMS.
+
+    Args:
+        seats (List[List[List[int]]]): A 3D list representing the seating
+            arrangement. The dimensions represent: [hanchan][table][seat]
+
+    Returns:
+        Optional[List[List[List[int]]]]: Optimized seating arrangement with
+        wind assignments, or None if optimization fails.
+    """
     hanchan_count = len(seats)
     table_count = len(seats[0])
     N = table_count * 4
@@ -10,7 +22,37 @@ def optimize_winds(seats):
     # Write GAMS file
     gams_file = f"optimize_{N}.gms"
     with open(gams_file, "w") as f:
-        f.write(f"""
+        f.write(_generate_gams_model(hanchan_count, table_count, N))
+
+    # Write seats data to GDX
+    _write_seats_to_gdx(seats, N, hanchan_count, table_count)
+
+    # Run GAMS to create GDX
+    subprocess.run(["gams", f"seats_{N}.gms"])
+
+    # Run GAMS optimization
+    subprocess.run(["gams", gams_file], capture_output=False, text=True)
+
+    # Check if results file exists
+    if not os.path.exists(f"results_{N}.txt"):
+        print("No results file found. GAMS optimization may have failed.")
+        return None
+
+    # Read and process results
+    new_seats = _process_results(N, hanchan_count, table_count)
+
+    # Write new seats to Python file
+    _write_seats_to_file(N, hanchan_count, new_seats)
+
+    # Clean up temporary files
+    _cleanup_temp_files(N, gams_file)
+
+    return new_seats
+
+
+def _generate_gams_model(hanchan_count: int, table_count: int, N: int) -> str:
+    """Generate the GAMS model for wind optimization."""
+    return f"""
 $offsymxref offsymlist
 Option limrow = 0;
 Option limcol = 0;
@@ -67,7 +109,7 @@ first_hanchan_order(t,w,w1)$(ord(w) < ord(w1))..
 
 Model seating /all/;
 
-Option optcr = 0.0;
+Option optcr = 0.1;
 Option threads = 1;
 Option solvelink = 5;
 
@@ -94,9 +136,11 @@ loop(h,
     );
 );
 putclose;
-""")
+"""
 
-    # Write seats data to GDX
+
+def _write_seats_to_gdx(seats: List[List[List[int]]], N: int, hanchan_count: int, table_count: int) -> None:
+    """Write seats data to GDX file."""
     with open(f"seats_{N}.gms", "w") as f:
         f.write(f"""
 Set
@@ -116,38 +160,9 @@ Parameter seats(h,t,p) /
 execute_unload "seats_{N}.gdx" seats;
 """)
 
-    # Run GAMS to create GDX
-    subprocess.run(["gams", f"seats_{N}.gms"])
 
-    # Run GAMS optimization
-    process = subprocess.Popen(
-        ["gams", gams_file],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        universal_newlines=True,
-    )
-    stdout, stderr = process.communicate()
-    print("GAMS Output:")
-    print(stdout)
-    print("GAMS Errors:")
-    print(stderr)
-
-    # Print the contents of the listing file
-    listing_file = f"{os.path.splitext(gams_file)[0]}.lst"
-    if os.path.exists(listing_file):
-        with open(listing_file, 'r') as f:
-            print("GAMS Listing File:")
-            print(f.read())
-    else:
-        print(f"Listing file {listing_file} not found.")
-
-    # Check if results file exists
-    if not os.path.exists(f"results_{N}.txt"):
-        print("No results file found. GAMS optimization may have been interrupted or failed.")
-        return None
-
-    # Read results
+def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[List[int]]]:
+    """Process optimization results and create new seating arrangement."""
     new_seats = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
     with open(f"results_{N}.txt", "r") as f:
         for line in f:
@@ -163,16 +178,31 @@ execute_unload "seats_{N}.gdx" seats;
             while len(table) < 4:
                 table.append(0)
 
-    # Write new seats to Python file
+    return new_seats
+
+
+def _write_seats_to_file(N: int, hanchan_count: int, new_seats: List[List[List[int]]]) -> None:
+    """Write optimized seating arrangement to a Python file."""
     filename = f"final/{N}x{hanchan_count}.py"
     with open(filename, "w") as f:
-        seatsText = f"{new_seats}".replace("],", "],\n")
-        f.write(f"seats = {seatsText}\n")
+        seats_text = f"{new_seats}".replace("],", "],\n")
+        f.write(f"seats = {seats_text}\n")
 
-    # Clean up temporary files
+
+def _cleanup_temp_files(N: int, gams_file: str) -> None:
+    """Clean up temporary files created during optimization."""
     for file in [gams_file, f"seats_{N}.gms", f"seats_{N}.gdx", f"results_{N}.txt",
-                 f"optimize_{N}.lst", f"seats_{N}.lst", ]:
+                 f"optimize_{N}.lst", f"seats_{N}.lst"]:
         if os.path.exists(file):
             os.remove(file)
 
-    return new_seats
+
+if __name__ == "__main__":
+    # Example usage
+    sample_seats = [[[1, 2, 3, 4], [5, 6, 7, 8]], [[1, 5, 6, 7], [2, 3, 4, 8]]]
+    optimized_seats = optimize_winds(sample_seats)
+    if optimized_seats:
+        print("Optimization successful")
+        print(optimized_seats)
+    else:
+        print("Optimization failed")
