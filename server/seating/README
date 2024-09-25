@@ -40,4 +40,25 @@ Using additional mahjong-specific criteria devised & originally implemented by M
 
 My apologies to all for taking their beautiful combinatorial approaches and building a mess of brute force on top of them.
 
+
+Detailed Statistics Files
+
+The `statall.py` script generates detailed statistics files in the `stats/` directory. These files provide insights into the seating arrangements and highlight any non-optimal occurrences.
+
+
+Criteria for Warnings
+
+Winds:
+Each player is expected to sit in each wind position a quarter of the time. Warnings are generated for each wind where a player is above or below that. e.g. for 11 hanchan, warnings are generated for any wind where a player sits 0 or 1 time; or more than three times.
+
+Tables: 
+A warning is generated if the number of times a player visits the same table more than necessary. In almost all cases, that means visiting any table more than once. If there are more hanchan than tables, then it means visiting any table more than twice.
+
+Direct Meets:
+Warnings are generated if pairs of players meet more than necessary across all hanchan. In almost all cases, that means meeting more than once. In rare edge cases (eg 16 players 6+ hanchan), it means meeting more than twice.
+
+Indirect Meets:
+Warnings are generated if pairs of players never play each other, and there are too few other players who they each play (indirect meets), and there are more than four hanchan. The lowest acceptable number of indirect meets in such cases, is equal to the square root of the number of players. e.g for 36 players, each pair of players must have at least 6 indirect meets.
+
+
 Created by Andrew ZP Smith (ZAPS) https://github.com/ApplySci/aim/

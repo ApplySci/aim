@@ -12,3 +12,4 @@ pytz
 pycountry
 bleach
 gamsapi
+openpyxl
