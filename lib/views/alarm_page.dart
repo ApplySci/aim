@@ -68,7 +68,7 @@ class _AlarmPageState extends State<AlarmPage> with WidgetsBindingObserver {
               children: [
                 const Spacer(),
                 Text(
-                  widget.settings.notificationTitle,
+                  widget.settings.notificationSettings.title,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -78,7 +78,7 @@ class _AlarmPageState extends State<AlarmPage> with WidgetsBindingObserver {
                 ),
                 const Spacer(),
                 Text(
-                  widget.settings.notificationBody,
+                  widget.settings.notificationSettings.body,
                   softWrap: true,
                   textAlign: TextAlign.center,
                   style: const TextStyle(

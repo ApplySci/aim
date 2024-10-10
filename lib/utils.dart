@@ -162,8 +162,10 @@ Future<void> setAlarm(
     loopAudio: false,
     vibrate: vibrate,
     fadeDuration: 0,
-    notificationTitle: title,
-    notificationBody: body,
+    notificationSettings: NotificationSettings(
+      title: title,
+      body: body,
+    )
   );
   await Alarm.set(alarmSettings: alarmSettings);
 }

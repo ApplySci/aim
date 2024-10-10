@@ -2,7 +2,7 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'com.google.gms.google-services' version '4.4.1' // apply false
+    id 'com.google.gms.google-services' version '4.4.2' // apply false
 }
 
 def localProperties = new Properties()
@@ -31,8 +31,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "ie.mahjong.tournament"
-    compileSdk 34
-    ndkVersion '26.2.11394342'
+    compileSdk 35
+
 
     compileOptions {
         coreLibraryDesugaringEnabled true
@@ -52,7 +52,7 @@ android {
         applicationId "ie.mahjong.tournament"
         minSdkVersion flutter.minSdkVersion
         multiDexEnabled true
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         resourceConfigurations += ['en']
@@ -82,7 +82,7 @@ flutter {
 
 dependencies {
     // Import the BoM for the Firebase platform
-    implementation(platform('com.google.firebase:firebase-bom:33.1.1'))
+    implementation(platform('com.google.firebase:firebase-bom:33.4.0'))
     implementation("com.google.firebase:firebase-messaging")
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.2'
 }
