@@ -13,3 +13,4 @@ pycountry
 bleach
 gamsapi
 openpyxl
+beautifulsoup4

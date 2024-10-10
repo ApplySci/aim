@@ -102,6 +102,7 @@ def read_html_file(filepath, web_directory, tournament_short_name):
         tuple: A tuple containing the processed HTML content and the player
                name (if found).
     """
+    tournament_id = current_user.live_tournament.id
     with open(filepath, 'r', encoding='utf-8') as f:
         soup = BeautifulSoup(f.read(), 'html.parser')
         get_css_content(web_directory, soup)
@@ -134,18 +135,18 @@ def read_html_file(filepath, web_directory, tournament_short_name):
                 if path.startswith('players/'):
                     parts = path.split('/')
                     if len(parts) > 1:
-                        new_href = f'/{tournament_short_name}/{parts[0]}/p{parts[-1]}'
+                        new_href = f'/t{tournament_id}_{tournament_short_name}/t{tournament_id}_players/t{tournament_id}_p{parts[-1]}'
                         a['href'] = new_href
                 elif path.startswith('rounds/'):
                     parts = path.split('/')
                     if len(parts) > 1:
-                        new_href = f'/{tournament_short_name}/{parts[0]}/r{parts[-1]}'
+                        new_href = f'/t{tournament_id}_{tournament_short_name}/t{tournament_id}_rounds/t{tournament_id}_r{parts[-1]}'
                         a['href'] = new_href
                 elif path in ['index', 'ranking']:
-                    a['href'] = f'/{tournament_short_name}'
+                    a['href'] = f'/t{tournament_id}_{tournament_short_name}'
                 elif not path.startswith(('http://', 'https://', '#')):
                     # For any other internal link
-                    a['href'] = f'/{tournament_short_name}/{path}'
+                    a['href'] = f'/t{tournament_id}_{tournament_short_name}/{path}'
                 
                 # Reattach the anchor if it exists
                 if anchor:
@@ -156,7 +157,7 @@ def read_html_file(filepath, web_directory, tournament_short_name):
                 if not src.startswith(('http://', 'https://')):
                     # Remove leading slashes and 'static/' if present
                     src = src.lstrip('/').replace('static/', '', 1)
-                    img['src'] = f'/{tournament_short_name}/{src}'
+                    img['src'] = f'/t{tournament_id}_{tournament_short_name}/{src}'
 
             for link in main_content.find_all('link', rel='stylesheet'):
                 link.decompose()
@@ -200,12 +201,13 @@ def generate_wordpress_pages():
     """
     wp_pages = []
     web_directory = current_user.live_tournament.web_directory
+    tournament_id = current_user.live_tournament.id
     tournament_tag = get_tournament_short_name(web_directory)
     tournament_parent_title = tournament_tag.capitalize()
-    tournament_parent_slug = tournament_tag.lower()
+    tournament_parent_slug = f't{tournament_id}_{tournament_tag.lower()}'
     wp_pages.append((tournament_parent_title, f'<div id="{tournament_tag}">Tournament: {tournament_parent_title}</div>', None, tournament_parent_slug, [tournament_tag]))
-    wp_pages.append(('Players', f'<div id="{tournament_tag}">Players</div>', tournament_parent_slug, f'{tournament_parent_slug}/players', [tournament_tag]))
-    wp_pages.append(('Rounds', f'<div id="{tournament_tag}">Rounds</div>', tournament_parent_slug, f'{tournament_parent_slug}/rounds', [tournament_tag]))
+    wp_pages.append(('Players', f'<div id="{tournament_tag}">Players</div>', tournament_parent_slug, f'{tournament_parent_slug}/t{tournament_id}_players', [tournament_tag]))
+    wp_pages.append(('Rounds', f'<div id="{tournament_tag}">Rounds</div>', tournament_parent_slug, f'{tournament_parent_slug}/t{tournament_id}_rounds', [tournament_tag]))
     main_pages = ['ranking.html']
     for page in main_pages:
         filepath = os.path.join(web_directory, page)
@@ -222,8 +224,8 @@ def generate_wordpress_pages():
                 content, player_name = read_html_file(filepath, web_directory, tournament_tag)
                 player_id = filename.replace('.html', '')
                 title = player_name if player_name else f'Player {player_id}'
-                slug = f'{tournament_parent_slug}/players/p{player_id}'  # Changed this line
-                wp_pages.append((title, content, f'{tournament_parent_slug}/players', slug, [tournament_tag]))
+                slug = f'{tournament_parent_slug}/t{tournament_id}_players/t{tournament_id}_p{player_id}'
+                wp_pages.append((title, content, f'{tournament_parent_slug}/t{tournament_id}_players', slug, [tournament_tag]))
     round_dir = os.path.join(web_directory, 'rounds')
     if os.path.exists(round_dir):
         for filename in os.listdir(round_dir):
@@ -232,8 +234,8 @@ def generate_wordpress_pages():
                 content, _ = read_html_file(filepath, web_directory, tournament_tag)
                 round_number = filename.replace('.html', '')
                 title = f'Round {round_number}'
-                slug = f'{tournament_parent_slug}/rounds/r{round_number}'  # Changed this line
-                wp_pages.append((title, content, f'{tournament_parent_slug}/rounds', slug, [tournament_tag]))
+                slug = f'{tournament_parent_slug}/t{tournament_id}_rounds/t{tournament_id}_r{round_number}'
+                wp_pages.append((title, content, f'{tournament_parent_slug}/t{tournament_id}_rounds', slug, [tournament_tag]))
     return wp_pages
 
 
