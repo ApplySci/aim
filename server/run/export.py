@@ -23,6 +23,8 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import io
 import zipfile
+from oauth_setup import firestore_client
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 blueprint = Blueprint('export', __name__)
 
@@ -88,7 +90,7 @@ def get_css_content(web_directory, html_soup):
     return css_content
 
 
-def read_html_file(filepath, web_directory, tournament_short_name):
+def read_html_file(filepath, web_directory, tournament_short_name, is_root=False):
     """
     Read and process an HTML file, modifying links and content for WordPress
     compatibility.
@@ -97,6 +99,7 @@ def read_html_file(filepath, web_directory, tournament_short_name):
         filepath (str): The path to the HTML file.
         web_directory (str): The web directory path.
         tournament_short_name (str): The short name of the tournament.
+        is_root (bool): Whether this is the root (main tournament) page.
 
     Returns:
         tuple: A tuple containing the processed HTML content and the player
@@ -112,8 +115,17 @@ def read_html_file(filepath, web_directory, tournament_short_name):
             h2_tag = main_content.find('h2')
             if h2_tag and h2_tag.string and h2_tag.string.startswith('Results for '):
                 player_name = h2_tag.string.replace('Results for ', '')
+            
+            # Remove scripts
             for script in main_content(['script']):
                 script.decompose()
+            
+            # Remove round links from the navigation
+            nav = main_content.find('nav')
+            if nav:
+                round_links = nav.find_all('a', href=lambda href: href and 'rounds/' in href)
+                for link in round_links:
+                    link.decompose()
 
             for a in main_content.find_all('a', href=True):
                 href = a['href']
@@ -135,15 +147,18 @@ def read_html_file(filepath, web_directory, tournament_short_name):
                 if path.startswith('players/'):
                     parts = path.split('/')
                     if len(parts) > 1:
-                        new_href = f'/t{tournament_id}_{tournament_short_name}/t{tournament_id}_players/t{tournament_id}_p{parts[-1]}'
+                        new_href = f'/t{tournament_id}_{tournament_short_name}/p{parts[-1]}'
                         a['href'] = new_href
+                elif path in ['index', 'ranking']:
+                    if is_root:
+                        a.decompose()  # Remove ranking link on root page
+                    else:
+                        a['href'] = f'/t{tournament_id}_{tournament_short_name}'
                 elif path.startswith('rounds/'):
                     parts = path.split('/')
                     if len(parts) > 1:
-                        new_href = f'/t{tournament_id}_{tournament_short_name}/t{tournament_id}_rounds/t{tournament_id}_r{parts[-1]}'
+                        new_href = f'/t{tournament_id}_{tournament_short_name}/r{parts[-1]}'
                         a['href'] = new_href
-                elif path in ['index', 'ranking']:
-                    a['href'] = f'/t{tournament_id}_{tournament_short_name}'
                 elif not path.startswith(('http://', 'https://', '#')):
                     # For any other internal link
                     a['href'] = f'/t{tournament_id}_{tournament_short_name}/{path}'
@@ -191,6 +206,32 @@ def modify_css_content(css_content, tournament_short_name):
     return '\n'.join(modified_rules)
 
 
+def get_tournament_data(firebase_id):
+    ref = firestore_client.collection("tournaments").document(firebase_id)
+    doc = ref.get()
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+
+def format_date(date_value):
+    """
+    Format a date value to 'yyyy-mm-dd HH:MM ddd' format.
+    """
+    if date_value:
+        try:
+            if isinstance(date_value, str):
+                date_obj = datetime.strptime(date_value, "%Y-%m-%dT%H:%M:%S")
+            elif isinstance(date_value, (datetime, DatetimeWithNanoseconds)):
+                date_obj = date_value
+            else:
+                return str(date_value)  # Return as string if type is unknown
+            return date_obj.strftime("%Y-%m-%d %H:%M %a")
+        except ValueError:
+            return str(date_value)  # Return original value as string if parsing fails
+    return 'N/A'
+
+
 def generate_wordpress_pages():
     """
     Generate WordPress pages from tournament data.
@@ -205,17 +246,52 @@ def generate_wordpress_pages():
     tournament_tag = get_tournament_short_name(web_directory)
     tournament_parent_title = tournament_tag.capitalize()
     tournament_parent_slug = f't{tournament_id}_{tournament_tag.lower()}'
-    wp_pages.append((tournament_parent_title, f'<div id="{tournament_tag}">Tournament: {tournament_parent_title}</div>', None, tournament_parent_slug, [tournament_tag]))
-    wp_pages.append(('Players', f'<div id="{tournament_tag}">Players</div>', tournament_parent_slug, f'{tournament_parent_slug}/t{tournament_id}_players', [tournament_tag]))
-    wp_pages.append(('Rounds', f'<div id="{tournament_tag}">Rounds</div>', tournament_parent_slug, f'{tournament_parent_slug}/t{tournament_id}_rounds', [tournament_tag]))
-    main_pages = ['ranking.html']
-    for page in main_pages:
-        filepath = os.path.join(web_directory, page)
-        if os.path.exists(filepath):
-            content, _ = read_html_file(filepath, web_directory, tournament_tag)
-            title = page.replace('.html', '').capitalize()
-            slug = f'{tournament_parent_slug}/{title.lower()}'
-            wp_pages.append((title, content, tournament_parent_slug, slug, [tournament_tag]))
+    
+    # Get tournament metadata from Firestore
+    firebase_id = current_user.live_tournament.firebase_doc
+    tournament_data = get_tournament_data(firebase_id)
+    
+    # Create the main tournament page with metadata and ranking content
+    image_html = ''
+    if tournament_data.get('url_icon'):
+        image_html = f'''
+        <div class="tournament-image">
+            <img src="{tournament_data['url_icon']}" alt="Tournament Icon" style="width:100px; height:100px; object-fit:cover;">
+        </div>
+        '''
+    
+    start_date = format_date(tournament_data.get('start_date'))
+    end_date = format_date(tournament_data.get('end_date'))
+    
+    metadata_content = f'''
+    <div class="tournament-metadata">
+        {image_html}
+        <h2>Tournament Information</h2>
+        <p><strong>Name:</strong> {tournament_data.get('name', 'N/A')}</p>
+        <p><strong>Start Date:</strong> {start_date}</p>
+        <p><strong>End Date:</strong> {end_date}</p>
+        <p><strong>Address:</strong> {tournament_data.get('address', 'N/A')}</p>
+        <p><strong>Country:</strong> {tournament_data.get('country', 'N/A')}</p>
+        <p><strong>Rules:</strong> {tournament_data.get('rules', 'N/A')}</p>
+    </div>
+    '''
+    
+    # Read and process the ranking page
+    ranking_filepath = os.path.join(web_directory, 'ranking.html')
+    ranking_content = ''
+    if os.path.exists(ranking_filepath):
+        ranking_content, _ = read_html_file(ranking_filepath, web_directory, tournament_tag, is_root=True)
+    
+    main_content = f'''
+    <div id="{tournament_tag}">
+        <h1>Tournament: {tournament_parent_title}</h1>
+        {metadata_content}
+        <h2>Rankings</h2>
+        {ranking_content}
+    </div>
+    '''
+    wp_pages.append((tournament_parent_title, main_content, None, tournament_parent_slug, [tournament_tag]))
+    
     player_dir = os.path.join(web_directory, 'players')
     if os.path.exists(player_dir):
         for filename in os.listdir(player_dir):
@@ -224,8 +300,9 @@ def generate_wordpress_pages():
                 content, player_name = read_html_file(filepath, web_directory, tournament_tag)
                 player_id = filename.replace('.html', '')
                 title = player_name if player_name else f'Player {player_id}'
-                slug = f'{tournament_parent_slug}/t{tournament_id}_players/t{tournament_id}_p{player_id}'
-                wp_pages.append((title, content, f'{tournament_parent_slug}/t{tournament_id}_players', slug, [tournament_tag]))
+                slug = f'{tournament_parent_slug}/p{player_id}'
+                wp_pages.append((title, content, tournament_parent_slug, slug, [tournament_tag]))
+    
     round_dir = os.path.join(web_directory, 'rounds')
     if os.path.exists(round_dir):
         for filename in os.listdir(round_dir):
@@ -234,8 +311,9 @@ def generate_wordpress_pages():
                 content, _ = read_html_file(filepath, web_directory, tournament_tag)
                 round_number = filename.replace('.html', '')
                 title = f'Round {round_number}'
-                slug = f'{tournament_parent_slug}/t{tournament_id}_rounds/t{tournament_id}_r{round_number}'
-                wp_pages.append((title, content, f'{tournament_parent_slug}/t{tournament_id}_rounds', slug, [tournament_tag]))
+                slug = f'{tournament_parent_slug}/r{round_number}'
+                wp_pages.append((title, content, tournament_parent_slug, slug, [tournament_tag]))
+    
     return wp_pages
 
 
