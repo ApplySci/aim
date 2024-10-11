@@ -102,7 +102,7 @@
 
     <p>
         {{ form.google_doc_id.label }}<br>
-        {{ form.google_doc_id(size=80, disabled=true, id="google_doc_id") }}
+        {{ form.google_doc_id(size=80, readonly=true, id="google_doc_id") }}
         <button type="button" id="unlock_google_doc">Unlock</button>
         <button type="button" id="revert_google_doc" style="display:none;">Revert</button>
         <span id="google_doc_status"></span>
@@ -204,7 +204,7 @@ unlockButton.click(function() {
     let goodToGo = alertWasShown || confirm("It is dangerous to change this field. "
         + " Are you sure you want to proceed?");
     if (goodToGo) {
-        googleDocField.prop('disabled', false);
+        googleDocField.prop('readonly', false);
         unlockButton.hide();
         revertButton.show();
     }
@@ -213,7 +213,7 @@ unlockButton.click(function() {
 
 revertButton.click(function() {
     googleDocField.val(originalGoogleDocId);
-    googleDocField.prop('disabled', true);
+    googleDocField.prop('readonly', true);
     checkGoogleDoc();
     unlockButton.show();
     revertButton.hide();
