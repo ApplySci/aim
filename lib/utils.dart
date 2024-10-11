@@ -168,6 +168,7 @@ Future<void> setAlarm(
     )
   );
   await Alarm.set(alarmSettings: alarmSettings);
+  Log.debug("set alarm for $when");
 }
 
 extension SeparatedBy<T> on Iterable<T> {
