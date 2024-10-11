@@ -14,3 +14,4 @@ bleach
 gamsapi
 openpyxl
 beautifulsoup4
+html5lib

@@ -1,9 +1,11 @@
 """
 This module provides functionality to export tournament results to WordPress format.
 
-It generates a zip file containing a css file and  a WordPress eXtended RSS
-(WXR) file for import. The module also provides a Flask route to trigger the
+It generates a zip file containing a css file, custom_styles.css, and a WordPress eXtended RSS
+(WXR) file for import, wordpress_export.xml. The module also provides a Flask route to trigger the
 export process.
+
+In your Wordpress dashboard, Tools > import > import wordpress > select the xml file
 
 I recommend creating a specific wordpress user for the import, which will make it easier
 to manage the imported content.
@@ -25,6 +27,7 @@ import io
 import zipfile
 from oauth_setup import firestore_client
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
+import re
 
 blueprint = Blueprint('export', __name__)
 
@@ -90,6 +93,18 @@ def get_css_content(web_directory, html_soup):
     return css_content
 
 
+def preprocess_html(html_content):
+    """
+    Preprocess HTML content to fix common errors.
+    """
+    # Fix incorrectly closed h1 tags
+    html_content = re.sub(r'<h1>([^>]*)<h1>', r'<h1>\1</h1>', html_content, flags=re.DOTALL)
+    
+    # Add more preprocessing steps here if needed
+    
+    return html_content
+
+
 def read_html_file(filepath, web_directory, tournament_short_name, is_root=False):
     """
     Read and process an HTML file, modifying links and content for WordPress
@@ -106,81 +121,118 @@ def read_html_file(filepath, web_directory, tournament_short_name, is_root=False
                name (if found).
     """
     tournament_id = current_user.live_tournament.id
+    tournament_title = current_user.live_tournament.title  # Get the full tournament title
+    
     with open(filepath, 'r', encoding='utf-8') as f:
-        soup = BeautifulSoup(f.read(), 'html.parser')
-        get_css_content(web_directory, soup)
-        main_content = soup.body
-        if main_content:
-            player_name = None
-            h2_tag = main_content.find('h2')
-            if h2_tag and h2_tag.string and h2_tag.string.startswith('Results for '):
-                player_name = h2_tag.string.replace('Results for ', '')
-            
-            # Remove scripts
-            for script in main_content(['script']):
-                script.decompose()
-            
-            # Remove round links from the navigation
-            nav = main_content.find('nav')
-            if nav:
-                round_links = nav.find_all('a', href=lambda href: href and 'rounds/' in href)
-                for link in round_links:
-                    link.decompose()
+        html_content = f.read()
+    
+    # Preprocess the HTML content
+    html_content = preprocess_html(html_content)
+    
+    # Parse the preprocessed HTML with html5lib parser
+    soup = BeautifulSoup(html_content, 'html5lib')
+    
+    get_css_content(web_directory, soup)
+    main_content = soup.body
+    if main_content:
+        player_name = None
+        
+        # Add "return to final rankings" link for player and round pages
+        if not is_root:
+            return_link = soup.new_tag('p')
+            return_a = soup.new_tag('a', href=f'/t{tournament_id}_{tournament_short_name}')
+            return_a.string = "Return to final rankings"
+            return_link.append(return_a)
+            main_content.insert(0, return_link)
+        
+        # Check for and remove h1 with tournament title
+        h1_tag = main_content.find('h1')
+        if h1_tag and tournament_title.lower() in h1_tag.text.lower():
+            h1_tag.decompose()
+        
+        h2_tag = main_content.find('h2')
+        if h2_tag and h2_tag.string and h2_tag.string.startswith('Results for '):
+            player_name = h2_tag.string.replace('Results for ', '')
+            h2_tag.decompose()
+        
+        for script in main_content(['script']):
+            script.decompose()
 
-            for a in main_content.find_all('a', href=True):
-                href = a['href']
-                # Remove seating and projector links
-                if 'seating' in href or 'projector' in href:
-                    a.decompose()
-                    continue
-                # Split the href into the path and the anchor (if any)
-                path, anchor = href.split('#', 1) if '#' in href else (href, '')
-                
-                # Remove leading slashes, 'static/', and '.html'
-                path = path.lstrip('/').replace('static/', '', 1).rstrip('.html')
-                
-                # Remove tournament_short_name from the beginning if present
-                if path.startswith(f'{tournament_short_name}/'):
-                    path = path[len(f'{tournament_short_name}/'):]
-                
-                # Handle different types of internal links
-                if path.startswith('players/'):
-                    parts = path.split('/')
-                    if len(parts) > 1:
-                        new_href = f'/t{tournament_id}_{tournament_short_name}/p{parts[-1]}'
-                        a['href'] = new_href
-                elif path in ['index', 'ranking']:
-                    if is_root:
-                        a.decompose()  # Remove ranking link on root page
-                    else:
-                        a['href'] = f'/t{tournament_id}_{tournament_short_name}'
-                elif path.startswith('rounds/'):
-                    parts = path.split('/')
-                    if len(parts) > 1:
-                        new_href = f'/t{tournament_id}_{tournament_short_name}/r{parts[-1]}'
-                        a['href'] = new_href
-                elif not path.startswith(('http://', 'https://', '#')):
-                    # For any other internal link
-                    a['href'] = f'/t{tournament_id}_{tournament_short_name}/{path}'
-                
-                # Reattach the anchor if it exists
-                if anchor:
-                    a['href'] += f'#{anchor}'
+        # Extract ranking link and remove nav element
+        nav = main_content.find('nav')
+        ranking_link = None
+        if nav:
+            ranking_a = nav.find('a', href=lambda href: href and href.endswith('ranking.html'))
+            if ranking_a:
+                ranking_link = ranking_a
+            nav.decompose()
 
-            for img in main_content.find_all('img', src=True):
-                src = img['src']
-                if not src.startswith(('http://', 'https://')):
-                    # Remove leading slashes and 'static/' if present
-                    src = src.lstrip('/').replace('static/', '', 1)
-                    img['src'] = f'/t{tournament_id}_{tournament_short_name}/{src}'
-
-            for link in main_content.find_all('link', rel='stylesheet'):
-                link.decompose()
+        for a in main_content.find_all('a', href=True):
+            href = a['href']
+            # Remove seating and projector links
+            if 'seating' in href or 'projector' in href:
+                a.decompose()
+                continue
+            # Split the href into the path and the anchor (if any)
+            path, anchor = href.split('#', 1) if '#' in href else (href, '')
             
-            wrapped_content = f'<div id="{tournament_short_name}">{str(main_content)}</div>'
-            return wrapped_content, player_name
-        else:
-            return '', None
+            # Remove leading slashes, 'static/', and '.html'
+            path = path.lstrip('/').replace('static/', '', 1).rstrip('.html')
+            
+            # Remove tournament_short_name from the beginning if present
+            if path.startswith(f'{tournament_short_name}/'):
+                path = path[len(f'{tournament_short_name}/'):]
+            
+            # Handle different types of internal links
+            if path.startswith('players/'):
+                parts = path.split('/')
+                if len(parts) > 1:
+                    new_href = f'/t{tournament_id}_{tournament_short_name}/p{parts[-1]}'
+                    a['href'] = new_href
+            elif path in ['index', 'ranking']:
+                if is_root:
+                    a.decompose()  # Remove ranking link on root page
+                else:
+                    a['href'] = f'/t{tournament_id}_{tournament_short_name}'
+            elif path.startswith('rounds/'):
+                # Preserve round links in the ranking table
+                round_number = path.split('/')[-1]
+                a['href'] = f'/t{tournament_id}_{tournament_short_name}/r{round_number}'
+            elif not path.startswith(('http://', 'https://', '#')):
+                # For any other internal link
+                a['href'] = f'/t{tournament_id}_{tournament_short_name}/{path}'
+            
+            # Reattach the anchor if it exists
+            if anchor:
+                a['href'] += f'#{anchor}'
+
+        for img in main_content.find_all('img', src=True):
+            src = img['src']
+            if not src.startswith(('http://', 'https://')):
+                # Remove leading slashes and 'static/' if present
+                src = src.lstrip('/').replace('static/', '', 1)
+                img['src'] = f'/t{tournament_id}_{tournament_short_name}/{src}'
+
+        for link in main_content.find_all('link', rel='stylesheet'):
+            link.decompose()
+        
+        # Add ranking link in a p element if it exists
+        if ranking_link:
+            ranking_p = soup.new_tag('p')
+            ranking_p.append(ranking_link)
+            main_content.insert(0, ranking_p)
+        
+        # Safely convert main_content to string
+        def safe_str(item):
+            try:
+                return str(item)
+            except TypeError:
+                return ''
+
+        wrapped_content = f'<div id="{tournament_short_name}">{" ".join(safe_str(item) for item in main_content.contents if item)}</div>'
+        return wrapped_content, player_name
+    else:
+        return '', None
 
 
 def modify_css_content(css_content, tournament_short_name):
@@ -250,6 +302,7 @@ def generate_wordpress_pages():
     # Get tournament metadata from Firestore
     firebase_id = current_user.live_tournament.firebase_doc
     tournament_data = get_tournament_data(firebase_id)
+    tournament_name = tournament_data.get('name', tournament_parent_title)
     
     # Create the main tournament page with metadata and ranking content
     image_html = ''
@@ -267,7 +320,7 @@ def generate_wordpress_pages():
     <div class="tournament-metadata">
         {image_html}
         <h2>Tournament Information</h2>
-        <p><strong>Name:</strong> {tournament_data.get('name', 'N/A')}</p>
+        <p><strong>Name:</strong> {tournament_name}</p>
         <p><strong>Start Date:</strong> {start_date}</p>
         <p><strong>End Date:</strong> {end_date}</p>
         <p><strong>Address:</strong> {tournament_data.get('address', 'N/A')}</p>
@@ -284,13 +337,12 @@ def generate_wordpress_pages():
     
     main_content = f'''
     <div id="{tournament_tag}">
-        <h1>Tournament: {tournament_parent_title}</h1>
         {metadata_content}
         <h2>Rankings</h2>
         {ranking_content}
     </div>
     '''
-    wp_pages.append((tournament_parent_title, main_content, None, tournament_parent_slug, [tournament_tag]))
+    wp_pages.append((tournament_name, main_content, None, tournament_parent_slug, [tournament_tag]))
     
     player_dir = os.path.join(web_directory, 'players')
     if os.path.exists(player_dir):
@@ -299,19 +351,19 @@ def generate_wordpress_pages():
                 filepath = os.path.join(player_dir, filename)
                 content, player_name = read_html_file(filepath, web_directory, tournament_tag)
                 player_id = filename.replace('.html', '')
-                title = player_name if player_name else f'Player {player_id}'
+                title = f"{tournament_name} - {player_name}" if player_name else f"{tournament_name} - Player {player_id}"
                 slug = f'{tournament_parent_slug}/p{player_id}'
                 wp_pages.append((title, content, tournament_parent_slug, slug, [tournament_tag]))
     
-    round_dir = os.path.join(web_directory, 'rounds')
-    if os.path.exists(round_dir):
-        for filename in os.listdir(round_dir):
+    rounds_dir = os.path.join(web_directory, 'rounds')
+    if os.path.exists(rounds_dir):
+        for filename in os.listdir(rounds_dir):
             if filename.endswith('.html'):
-                filepath = os.path.join(round_dir, filename)
+                filepath = os.path.join(rounds_dir, filename)
                 content, _ = read_html_file(filepath, web_directory, tournament_tag)
-                round_number = filename.replace('.html', '')
-                title = f'Round {round_number}'
-                slug = f'{tournament_parent_slug}/r{round_number}'
+                round_name = filename.replace('.html', '')
+                title = f"{tournament_name} - Round {round_name}"
+                slug = f'{tournament_parent_slug}/r{round_name}'
                 wp_pages.append((title, content, tournament_parent_slug, slug, [tournament_tag]))
     
     return wp_pages
