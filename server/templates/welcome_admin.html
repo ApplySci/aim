@@ -9,10 +9,9 @@
 <body>
 <h1>Welcome</h1>
 <p>You are now logged in, {{ current_user.email }}.</p>
-<p>You can <a href='/run/'>manage your current tournament,</a>,
-<p>
+<p>You can <a href='/run/'>manage your current tournament</a>.</p>
 <p>You can also <a href='{{ url_for('create.results_create') }}'>
-create a new results scoresheet:</a>
+create a new results scoresheet</a></p>
 <p>or</p>
 <p><a href='{{ url_for('accounts.logout') }}'>logout</a></p>
 </body>
