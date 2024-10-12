@@ -126,7 +126,7 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
-        Log.debug('in alarmRunner');
+        Log.debug('in alarmRunner, enableAlarm=$enableAlarm');
         if (!enableAlarm) return;
 
         final now = DateTime.now().toUtc();
