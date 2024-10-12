@@ -65,10 +65,26 @@ Future<void> main() async {
   ));
 
   initializeTimeZones();
-  await initFirebase();
-  await initFirebaseMessaging();
+
+  // Separate Firebase initialization
+  try {
+    await initFirebase();
+    await initFirebaseMessaging();
+  } catch (e) {
+    Log.error('Failed to initialize Firebase: $e');
+    // Continue with the app even if Firebase fails
+  }
+
+  // Always initialize permissions and alarms
   await initPermissions();
-  if (enableAlarm) await Alarm.init();
+  if (enableAlarm) {
+    try {
+      await Alarm.init();
+    } catch (e) {
+      Log.error('Failed to initialize Alarm: $e');
+      // Handle alarm initialization failure
+    }
+  }
 
   runApp(ProviderScope(
     overrides: [
