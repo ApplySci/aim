@@ -46,7 +46,9 @@
             {% endfor %}
         </p>
         <p>{{ form.hanchan_name.label }} {{ form.hanchan_name() }}</p>
-        <p>{{ form.other_name.label }} {{ form.other_name() }} You must use ? (question mark) as the placeholder for the number of the round</p>
+        <p>{{ form.other_name.label }} {{ form.other_name() }}
+            <small>You must use ? (question mark) as the placeholder for the number of the round</small>
+        </p>
         {% for error in form.other_name.errors %}
             <span class=error>[{{ error }}]</span>
         {% endfor %}
@@ -55,21 +57,22 @@
         the tournament (ie in the above timezone). You can change these later.
         <div id="datetimeInputs"></div>
         </label>
-        <p>{{ form.submit() }}</p>
         <div class="form-group">
             {{ form.web_directory.label }}
             {{ form.web_directory(class="form-control") }}
             {% if form.web_directory.errors %}
                 <div class="alert alert-danger">
                     {% for error in form.web_directory.errors %}
-                        {{ error }}
+                        <span class=error>{{ error }}</span>
                     {% endfor %}
                 </div>
             {% endif %}
+            <br>
             <small class="form-text text-muted">
                 This short name will be used in URLs, so it should be concise, meaningful,
-                and safe for work. Use characters a-z 0-9 _ -</small>
+                and safe for work. Use characters a-z0-9_-</small>
         </div>
+        <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
 {% endblock %}
@@ -125,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('hanchan_count').addEventListener('change', set_datetime_fields);
   set_datetime_fields();
   set_format_listener();
-  otherField.disabled = hanchanField.value !== 'other';
+  otherField.readOnly = hanchanField.value !== 'other';
 });
 
 function getLabel(i) {
@@ -141,7 +144,7 @@ function set_format_listener() {
   var datetimeInputs = document.getElementById('datetimeInputs').getElementsByTagName('label');
 
   function updateLabels() {
-    otherField.disabled = hanchanField.value !== 'other';
+    otherField.readOnly = hanchanField.value !== 'other';
     for (var i = 0; i < datetimeInputs.length; i++) {
         datetimeInputs[i].firstChild.nodeValue = getLabel(i + 1) + ': ';
     }

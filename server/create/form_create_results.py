@@ -29,7 +29,7 @@ class GameParametersForm(FlaskForm):
             ("other", "Custom (please specify)"),
         ],
     )
-    other_name = StringField("Custom name", render_kw={"disabled": ""})
+    other_name = StringField("Custom round name", render_kw={"readonly": ""})
 
     @staticmethod
     def validate_other_name(form, field):
@@ -47,14 +47,14 @@ class GameParametersForm(FlaskForm):
         default="Europe/Dublin",
     )
     table_count = IntegerField(
-        "Number of tables (players divided by 4)",
+        "Number of tables (players divided by 4) [2-43]",
         default=10,
-        validators=[DataRequired(), NumberRange(min=1)],
+        validators=[DataRequired(), NumberRange(min=2, max=43)],
     )
     hanchan_count = IntegerField(
-        "Number of hanchan [1-20]",
+        "Number of hanchan [2-15]",
         default=7,
-        validators=[DataRequired(), NumberRange(min=1)],
+        validators=[DataRequired(), NumberRange(min=2, max=15)],
     )
     title = StringField(
         "Spreadsheet Title",
