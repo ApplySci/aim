@@ -32,7 +32,7 @@ enum WhenTournament {
   past,
 }
 
-final enableAlarm = kReleaseMode || !Platform.isIOS;
+final enableAlarm = true; // TODO kReleaseMode || !Platform.isIOS;
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
