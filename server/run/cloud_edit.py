@@ -13,45 +13,72 @@ from flask_wtf import FlaskForm
 import pycountry
 import requests
 
-from wtforms import DateTimeLocalField, RadioField, SelectField, StringField, \
-    SubmitField, TextAreaField
+from wtforms import (
+    DateTimeLocalField,
+    RadioField,
+    SelectField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+)
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
 from write_sheet import googlesheet
 from oauth_setup import db, firestore_client
 
-blueprint = Blueprint('edit', __name__)
+blueprint = Blueprint("edit", __name__)
 
-BASEDIR = '/home/model/apps/tournaments/static/'
-ALLOWED_TAGS = ['p', 'b', 'i', 'h1', 'h2', 'h3', 'a', 'br',
-                'strong', 'em', 'u', 'ol', 'ul', 'li', ]
+BASEDIR = "/home/model/apps/tournaments/static/"
+ALLOWED_TAGS = [
+    "p",
+    "b",
+    "i",
+    "h1",
+    "h2",
+    "h3",
+    "a",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "ol",
+    "ul",
+    "li",
+]
+
+
 def url_ok(form, field):
     if field.data == "":
         return
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(field.data, headers=headers)
         if response.status_code >= 400:
-            raise ValidationError(f"Error {response.status_code}: "
-                                  "URL must be valid and reachable")
+            raise ValidationError(
+                f"Error {response.status_code}: " "URL must be valid and reachable"
+            )
     except requests.exceptions.RequestException:
-        raise ValidationError('URL must be valid and reachable')
+        raise ValidationError("URL must be valid and reachable")
 
 
 def start_date_check(custom_start_date):
     def _start_date_check(form, field):
-        if datetime.strptime(custom_start_date, "%A %d %B %Y, %H:%M") \
-            < field.data:
-            print('failed start date validation')
-            raise ValidationError('Start date must be earlier than or equal to start of first hanchan:')
+        if datetime.strptime(custom_start_date, "%A %d %B %Y, %H:%M") < field.data:
+            print("failed start date validation")
+            raise ValidationError(
+                "Start date must be earlier than or equal to start of first hanchan:"
+            )
+
     return _start_date_check
 
 
 def end_date_check(custom_end_date):
     def _end_date_check(form, field):
-        if datetime.strptime(custom_end_date, "%A %d %B %Y, %H:%M") \
-            >= field.data:
-            raise ValidationError('End date must be later than the start of the last hanchan.')
+        if datetime.strptime(custom_end_date, "%A %d %B %Y, %H:%M") >= field.data:
+            raise ValidationError(
+                "End date must be later than the start of the last hanchan."
+            )
+
     return _end_date_check
 
 
@@ -59,58 +86,70 @@ def validate_google_doc_id(form, field):
     try:
         googlesheet.get_sheet(field.data)
     except Exception:
-        raise ValidationError('Invalid Google Doc ID or insufficient permissions.')
+        raise ValidationError("Invalid Google Doc ID or insufficient permissions.")
 
 
 def validate_web_directory(form, field):
     full_path = os.path.join(BASEDIR, field.data)
     if not os.path.isdir(full_path):
-        raise ValidationError('Invalid directory path.')
+        raise ValidationError("Invalid directory path.")
 
 
 class TournamentForm(FlaskForm):
 
     def __init__(self, custom_start_date, custom_end_date, *args, **kwargs):
-      super(TournamentForm, self).__init__(*args, **kwargs)
-      self.start_date.validators = [
-          DataRequired(),
-          start_date_check(custom_start_date),
-          ]
-      self.end_date.validators = [
-          DataRequired(),
-          end_date_check(custom_end_date),
-          ]
+        super(TournamentForm, self).__init__(*args, **kwargs)
+        self.start_date.validators = [
+            DataRequired(),
+            start_date_check(custom_start_date),
+        ]
+        self.end_date.validators = [
+            DataRequired(),
+            end_date_check(custom_end_date),
+        ]
 
-    start_date = DateTimeLocalField('Start Date', format='%Y-%m-%dT%H:%M')
-    end_date = DateTimeLocalField('End Date', format='%Y-%m-%dT%H:%M')
+    start_date = DateTimeLocalField("Start Date", format="%Y-%m-%dT%H:%M")
+    end_date = DateTimeLocalField("End Date", format="%Y-%m-%dT%H:%M")
 
-    address = StringField('Address', validators=[DataRequired()])
-    countries = sorted([(country.alpha_2, country.name) \
-                       for country in pycountry.countries],
-                       key= lambda e:e[1])
-    country = SelectField('Country', choices=countries)
-    name = StringField('Name', validators=[DataRequired()])
-    status = RadioField('Status', choices=[
-        ('upcoming', 'Upcoming'), ('live', 'Live'),
-        ('past', 'Finished'), ('test', 'Testing')
-        ], default='upcoming', validators=[DataRequired()])
+    address = StringField("Address", validators=[DataRequired()])
+    countries = sorted(
+        [(country.alpha_2, country.name) for country in pycountry.countries],
+        key=lambda e: e[1],
+    )
+    country = SelectField("Country", choices=countries)
+    name = StringField("Name", validators=[DataRequired()])
+    status = RadioField(
+        "Status",
+        choices=[
+            ("upcoming", "Upcoming"),
+            ("live", "Live"),
+            ("past", "Finished"),
+            ("test", "Testing"),
+        ],
+        default="upcoming",
+        validators=[DataRequired()],
+    )
 
-    rules = RadioField('Rules', default='WRC', choices=[
-        ('WRC', 'WRC'), ('EMA', 'EMA'), ('custom', 'custom')
-        ], validators=[DataRequired()])
+    rules = RadioField(
+        "Rules",
+        default="WRC",
+        choices=[("WRC", "WRC"), ("EMA", "EMA"), ("custom", "custom")],
+        validators=[DataRequired()],
+    )
 
-    url = StringField('Tournament URL', validators=[Optional(), URL(), url_ok])
-    url_icon = StringField('Icon URL', validators=[Optional(), URL(), url_ok])
-    google_doc_id = StringField('Google Doc ID', validators=[
-        DataRequired(),
-        validate_google_doc_id])
-    web_directory = StringField('Web Directory', validators=[
-        DataRequired(),
-        validate_web_directory])
-    submit = SubmitField('Submit')
+    url = StringField("Tournament URL", validators=[Optional(), URL(), url_ok])
+    url_icon = StringField("Icon URL", validators=[Optional(), URL(), url_ok])
+    google_doc_id = StringField(
+        "Google Doc ID", validators=[DataRequired(), validate_google_doc_id]
+    )
+    web_directory = StringField(
+        "Web Directory", validators=[DataRequired(), validate_web_directory]
+    )
+    submit = SubmitField("Submit")
     htmlnotes = TextAreaField(
-        f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})',
-        validators=[Optional()])
+        f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
+    )
+
 
 def get_tournament_data(firebase_id):
     ref = firestore_client.collection("tournaments").document(firebase_id)
@@ -126,44 +165,50 @@ def update_tournament_data(firebase_id, data):
 
 
 def get_dates_from_sheet():
-    vals:list = googlesheet.get_raw_schedule(
-        googlesheet.get_sheet(current_user.live_tournament.google_doc_id))
+    vals: list = googlesheet.get_raw_schedule(
+        googlesheet.get_sheet(current_user.live_tournament.google_doc_id)
+    )
     timezone = vals[0][2]
     start_date = vals[2][2]
     end_date = vals[-1][2]
     return (timezone, start_date, end_date)
 
-@blueprint.route('/run/edit', methods=['GET', 'POST'])
+
+@blueprint.route("/run/edit", methods=["GET", "POST"])
 @login_required
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
     form = TournamentForm(dates[1], dates[2])
 
-    if request.method == 'GET':
+    if request.method == "GET":
         tournament_data = get_tournament_data(firebase_id)
         if tournament_data:
             form.process(data=tournament_data)
 
         # Populate form with local database data
         form.google_doc_id.data = current_user.live_tournament.google_doc_id
-        form.web_directory.data = current_user.live_tournament.web_directory.replace(BASEDIR, '')
+        form.web_directory.data = current_user.live_tournament.web_directory.replace(
+            BASEDIR, ""
+        )
     else:
         if form.validate_on_submit():
             updated_data = {
-                'name': form.name.data,
-                'address': form.address.data,
-                'country': form.country.data,
-                'start_date': form.start_date.data,
-                'end_date': form.end_date.data,
-                'rules': form.rules.data,
-                'status': form.status.data,
-                'url': form.url.data,
-                'url_icon': form.url_icon.data,
-                'htmlnotes': bleach.clean(form.htmlnotes.data, 
+                "name": form.name.data,
+                "address": form.address.data,
+                "country": form.country.data,
+                "start_date": form.start_date.data,
+                "end_date": form.end_date.data,
+                "rules": form.rules.data,
+                "status": form.status.data,
+                "url": form.url.data,
+                "url_icon": form.url_icon.data,
+                "htmlnotes": bleach.clean(
+                    form.htmlnotes.data,
                     tags=ALLOWED_TAGS,
-                    attributes={'a': ['href', 'title']},
-                    strip=True)
+                    attributes={"a": ["href", "title"]},
+                    strip=True,
+                ),
             }
             firebase_id = current_user.live_tournament.firebase_doc
             update_tournament_data(firebase_id, updated_data)
@@ -171,32 +216,34 @@ def edit_tournament():
             # Update local database
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = os.path.join(
-                BASEDIR, form.web_directory.data)
+                BASEDIR, form.web_directory.data
+            )
             db.session.commit()
 
             # TODO create the web directory if it doesn't exist
             #      and if that fails, we need to abort. Perhaps we should do
             #      this in a custom validator
 
-            flash('Tournament data updated successfully', 'success')
-            return redirect(url_for('run.run_tournament'))
+            flash("Tournament data updated successfully", "success")
+            return redirect(url_for("run.run_tournament"))
 
-        flash('validation failed', 'error')
+        flash("validation failed", "error")
 
     return render_template(
-        'cloud_edit.html',
+        "cloud_edit.html",
         form=form,
         firebase_id=firebase_id,
         timezone=dates[0],
-        span= f"{dates[1]} - {dates[2]}",
-        )
+        span=f"{dates[1]} - {dates[2]}",
+    )
 
-@blueprint.route('/run/validate_google_doc', methods=['POST'])
+
+@blueprint.route("/run/validate_google_doc", methods=["POST"])
 @login_required
 def validate_google_doc():
-    doc_id = request.form.get('doc_id')
+    doc_id = request.form.get("doc_id")
     try:
         googlesheet.get_sheet(doc_id)
-        return jsonify({'valid': True})
+        return jsonify({"valid": True})
     except Exception as e:
-        return jsonify({'valid': False, 'error': str(e)})
+        return jsonify({"valid": False, "error": str(e)})

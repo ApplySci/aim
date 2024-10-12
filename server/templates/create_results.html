@@ -56,6 +56,20 @@
         <div id="datetimeInputs"></div>
         </label>
         <p>{{ form.submit() }}</p>
+        <div class="form-group">
+            {{ form.web_directory.label }}
+            {{ form.web_directory(class="form-control") }}
+            {% if form.web_directory.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.web_directory.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <small class="form-text text-muted">
+                This short name will be used in URLs, so it should be concise, meaningful,
+                and safe for work. Use characters a-z 0-9 _ -</small>
+        </div>
     </fieldset>
     </form>
 {% endblock %}

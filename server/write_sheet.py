@@ -275,8 +275,7 @@ class GSP:
 
     def _set_seating(self, table_count: int, hanchan_count: int) -> None:
         '''
-        Reads in a standard solution to the social golfer problem for this
-        size of problem.
+        Reads in our pre-calculated seating plan for this size of tournament
 
         Args:
             table_count (int): number of tables (players divided by 4)
