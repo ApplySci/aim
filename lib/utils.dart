@@ -107,7 +107,6 @@ class RunOrQueue {
   RunOrQueueValue? _queue;
 
   Future<void> call(FutureOr<void> Function() block) async {
-    Log.debug("in RunOrQueue.call");
     if (_queue case RunOrQueueValue queue) {
       _queue = (
         future: queue.future,
@@ -125,7 +124,6 @@ class RunOrQueue {
     );
     while (_queue != null) {
       try {
-        Log.debug("running a queue item in RunOrQueue.call");
         await _queue!.current();
       } finally {
         _queue = switch (_queue) {
@@ -169,7 +167,6 @@ Future<void> setAlarm(
       body: body,
     )
   );
-  Log.debug("set alarm for $when");
   await Alarm.set(alarmSettings: alarmSettings);
 }
 
