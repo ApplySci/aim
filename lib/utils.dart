@@ -7,11 +7,9 @@
 
  */
 import 'dart:async';
-import 'dart:io';
 
 import 'package:alarm/alarm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -31,8 +29,6 @@ enum WhenTournament {
   test,
   past,
 }
-
-final enableAlarm = true; // TODO kReleaseMode || !Platform.isIOS;
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -156,17 +152,16 @@ Future<void> setAlarm(
   bool vibrate,
 ) async {
   final alarmSettings = AlarmSettings(
-    id: id,
-    dateTime: when,
-    assetAudioPath: 'assets/audio/notif.mp3',
-    loopAudio: false,
-    vibrate: vibrate,
-    fadeDuration: 0,
-    notificationSettings: NotificationSettings(
-      title: title,
-      body: body,
-    )
-  );
+      id: id,
+      dateTime: when,
+      assetAudioPath: 'assets/audio/notif.mp3',
+      loopAudio: false,
+      vibrate: vibrate,
+      fadeDuration: 0,
+      notificationSettings: NotificationSettings(
+        title: title,
+        body: body,
+      ));
   await Alarm.set(alarmSettings: alarmSettings);
 }
 
