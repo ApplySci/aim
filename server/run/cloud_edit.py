@@ -12,7 +12,6 @@ from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
 import pycountry
 import requests
-
 from wtforms import (
     DateTimeLocalField,
     RadioField,
@@ -23,8 +22,9 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
-from write_sheet import googlesheet
+from forms.tournament_forms import TournamentFormBase
 from oauth_setup import db, firestore_client
+from write_sheet import googlesheet
 
 blueprint = Blueprint("edit", __name__)
 
@@ -47,56 +47,13 @@ ALLOWED_TAGS = [
 ]
 
 
-def url_ok(form, field):
-    if field.data == "":
-        return
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(field.data, headers=headers)
-        if response.status_code >= 400:
-            raise ValidationError(
-                f"Error {response.status_code}: " "URL must be valid and reachable"
-            )
-    except requests.exceptions.RequestException:
-        raise ValidationError("URL must be valid and reachable")
-
-
-def start_date_check(custom_start_date):
-    def _start_date_check(form, field):
-        if datetime.strptime(custom_start_date, "%A %d %B %Y, %H:%M") < field.data:
-            print("failed start date validation")
-            raise ValidationError(
-                "Start date must be earlier than or equal to start of first hanchan:"
-            )
-
-    return _start_date_check
-
-
-def end_date_check(custom_end_date):
-    def _end_date_check(form, field):
-        if datetime.strptime(custom_end_date, "%A %d %B %Y, %H:%M") >= field.data:
-            raise ValidationError(
-                "End date must be later than the start of the last hanchan."
-            )
-
-    return _end_date_check
-
-
-def validate_google_doc_id(form, field):
-    try:
-        googlesheet.get_sheet(field.data)
-    except Exception:
-        raise ValidationError("Invalid Google Doc ID or insufficient permissions.")
-
-
 def validate_web_directory(form, field):
     full_path = os.path.join(BASEDIR, field.data)
     if not os.path.isdir(full_path):
         raise ValidationError("Invalid directory path.")
 
 
-class TournamentForm(FlaskForm):
-
+class TournamentForm(TournamentFormBase):
     def __init__(self, custom_start_date, custom_end_date, *args, **kwargs):
         super(TournamentForm, self).__init__(*args, **kwargs)
         self.start_date.validators = [

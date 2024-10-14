@@ -2,9 +2,12 @@
 """
 creates the front-end pages for the user to set up a new google scoresheet.
 """
-import threading
+from datetime import datetime
+from itertools import zip_longest  # Add this import at the top of the file
 import os
+import threading
 
+from firebase_admin import firestore
 from flask import (
     Blueprint,
     jsonify,
@@ -17,11 +20,12 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from write_sheet import googlesheet
-from .form_create_results import GameParametersForm
-from oauth_setup import db
 from config import GOOGLE_CLIENT_EMAIL
-from models import Access, Role, Tournament
+from .form_create_results import GameParametersForm
+from models import Access, Role, Tournament, User
+from oauth_setup import db, firestore_client
+from write_sheet import googlesheet
+
 
 blueprint = Blueprint("create", __name__)
 messages_by_user = {}
@@ -38,62 +42,121 @@ def index():
 @blueprint.route("/create/results", methods=["GET", "POST", "PUT"])
 @login_required
 def results_create():
-    # TODO we need to add into the for a field for the web_directory
-    # Once we've got the field, we need to see if the folder exists
-    # on the server. If it doesn't, create it, and ./players and ./rounds
-    # subdirectories.
     owner = current_user.email
     form = GameParametersForm()
-    if not form.validate_on_submit():
-        return render_template("create_results.html", form=form)
 
-    tournament: Tournament = Tournament(
-        title=form.title.data, web_directory=form.web_directory.data
-    )
+    if request.method == "POST":
+        # Collect round dates from the form
+        round_dates = []
+        for key, value in request.form.items():
+            if key.startswith("round_dates-") and value:
+                try:
+                    round_dates.append(datetime.strptime(value, "%Y-%m-%dT%H:%M"))
+                except ValueError:
+                    # Handle invalid date format
+                    pass
 
-    # Create the directory structure
-    base_dir = os.path.join("./static", form.web_directory.data)
-    os.makedirs(base_dir, exist_ok=True)
-    os.makedirs(os.path.join(base_dir, "rounds"), exist_ok=True)
-    os.makedirs(os.path.join(base_dir, "players"), exist_ok=True)
+        # Set the round dates in the form
+        form.set_round_dates(round_dates)
 
-    hanchan_count = int(form.hanchan_count.data)
-    round_name_template = (
+    if form.validate_on_submit():
+        short_name = form.web_directory.data
+        # Create the Tournament object
+        tournament: Tournament = Tournament(
+            title=form.title.data,
+            web_directory=short_name,
+            google_doc_id="pending",
+            firebase_doc=short_name,
+        )
+        db.session.add(tournament)
+        db.session.commit()
+
+        # Create the Firestore document
+        firestore_data = {
+            "name": form.title.data,
+            "start_date": form.round_dates[0].data,
+            "end_date": form.round_dates[-1].data,
+            "status": "upcoming",
+            "rules": "EMA",  # You might want to make this configurable
+            "country": "Unknown",  # You might want to add this to your form
+            "address": "Unknown",  # You might want to add this to your form
+            "url": "",  # You might want to add this to your form
+            "url_icon": "",  # You might want to add this to your form
+            "htmlnotes": "",
+        }
+
+        firestore_client.collection("tournaments").document(short_name).set(firestore_data)
+
+        # Add access for the current user
+        db.session.add(
+            Access(user=current_user, tournament=tournament, role=Role.admin)
+        )
+        db.session.commit()
+        if form.emails.data:
+            scorer = db.session.query(User).filter_by(email=form.emails.data).first()
+            if scorer is None:
+                scorer = User(email=form.emails.data)
+                db.session.add(scorer)
+            db.session.add(Access(user=scorer, tournament=tournament, role=Role.scorer))
+            db.session.commit()
+        base_dir = os.path.join("myapp/static", form.web_directory.data)
+        os.makedirs(base_dir, exist_ok=True)
+        os.makedirs(os.path.join(base_dir, "rounds"), exist_ok=True)
+        os.makedirs(os.path.join(base_dir, "players"), exist_ok=True)
+
+        hanchan_count = int(form.hanchan_count.data)
+        round_name_template = (
+            form.other_name.data
+            if form.hanchan_name.data == "other"
+            else form.hanchan_name.data
+        )
+        start_times = [
+            request.form.get(f"round_dates-{i}") for i in range(0, hanchan_count)
+        ]
+
+        @copy_current_request_context
+        def make_sheet():
+            sheet_id: str = googlesheet.create_new_results_googlesheet(
+                table_count=int(form.table_count.data),
+                hanchan_count=hanchan_count,
+                title=f"copy {form.title.data}",
+                owner=owner,
+                scorers=form.emails.data.split(","),
+                notify=form.notify.data,
+                timezone=form.timezone.data,
+                start_times=start_times,
+                round_name_template=round_name_template,
+            )
+
+            msg = messages_by_user.get(owner)
+            if not msg:
+                messages_by_user[owner] = []
+            messages_by_user[owner].append(
+                {
+                    "id": sheet_id,
+                    "title": form.title.data,
+                    "ours": True,
+                }
+            )
+
+        thread = threading.Thread(target=make_sheet)
+        thread.start()
+        return redirect(url_for("create.select_sheet"))
+
+    # Generate labels for the round dates
+    round_labels = []
+    template = (
         form.other_name.data
         if form.hanchan_name.data == "other"
         else form.hanchan_name.data
     )
-    start_times = [request.form.get(f"round{i}") for i in range(1, 1 + hanchan_count)]
+    for i in range(len(form.round_dates)):
+        round_labels.append(template.replace("?", str(i + 1)))
 
-    @copy_current_request_context
-    def make_sheet():
-        sheet_id: str = googlesheet.create_new_results_googlesheet(
-            table_count=int(form.table_count.data),
-            hanchan_count=hanchan_count,
-            title=f"copy {form.title.data}",
-            owner=owner,
-            scorers=form.emails.data.split(","),
-            notify=form.notify.data,
-            timezone=form.timezone.data,
-            start_times=start_times,
-            round_name_template=round_name_template,
-        )
-        tournament.id = sheet_id
-
-        msg = messages_by_user.get(owner)
-        if not msg:
-            messages_by_user[owner] = []
-        messages_by_user[owner].append(
-            {
-                "id": sheet_id,
-                "title": form.title.data,
-                "ours": True,
-            }
-        )
-
-    thread = threading.Thread(target=make_sheet)
-    thread.start()
-    return redirect(url_for("create.select_sheet"))
+    # If the form is not valid or it's a GET request, render the template with the form
+    return render_template(
+        "create_results.html", form=form, round_labels=round_labels, zip=zip_longest
+    )
 
 
 @blueprint.route("/create/is_sheet_created")

@@ -35,8 +35,9 @@
         </p>
         <p>You will be assigned ownership of the Google Sheet, using the
         google account you logged in here ({{ current_user.email }}).<br>
-        Below, you can enter an email address for one other scorer:
-        (you can add other scorers later, via the usual google sheet way)
+        Below, you can enter an email address (this must be a gmail account)
+        for one other scorer:
+        (you can add other scorers later)
         <p>
             {{ form.emails.label }}<br>
             {{ form.emails(size=60)  }}<br>
@@ -55,11 +56,21 @@
         <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
         <label>Enter the start date/time for each round, in the local time for
         the tournament (ie in the above timezone). You can change these later.
-        <div id="datetimeInputs"></div>
+        <div id="datetimeInputs">
+            {% for field, label in zip(form.round_dates, round_labels) %}
+                <label for="{{ field.id }}">{{ label }}: 
+                    {{ field(type="datetime-local", required=true) }}
+                </label>
+            {% endfor %}
+        </div>
         </label>
         <div class="form-group">
             {{ form.web_directory.label }}
             {{ form.web_directory(class="form-control") }}
+            <br>
+            <small class="form-text text-muted">
+                This short name will be used in URLs, so it should be concise, meaningful,
+                and safe for work. Use characters a-z0-9_-</small>
             {% if form.web_directory.errors %}
                 <div class="alert alert-danger">
                     {% for error in form.web_directory.errors %}
@@ -67,10 +78,6 @@
                     {% endfor %}
                 </div>
             {% endif %}
-            <br>
-            <small class="form-text text-muted">
-                This short name will be used in URLs, so it should be concise, meaningful,
-                and safe for work. Use characters a-z0-9_-</small>
         </div>
         <p>{{ form.submit() }}</p>
     </fieldset>
@@ -81,10 +88,11 @@
 <script>
 var hanchanField = document.getElementById('hanchan_name');
 var otherField = document.getElementById('other_name');
+var hanchanCountField = document.getElementById('hanchan_count');
 
 function setDefaultDateTime(input, roundNumber) {
     if (input.value === '') {
-        var previousInput = document.getElementById('round' + (roundNumber - 1));
+        var previousInput = document.getElementById('round_dates-' + (roundNumber - 2));
         if (previousInput && previousInput.value !== '') {
             var previousDateTime = new Date(previousInput.value);
             previousDateTime.setMinutes(previousDateTime.getMinutes() + 105); // Add 1 hour 45 minutes
@@ -93,65 +101,65 @@ function setDefaultDateTime(input, roundNumber) {
             var date = ('0' + previousDateTime.getDate()).slice(-2);
             var hours = ('0' + previousDateTime.getHours()).slice(-2);
             var minutes = ('0' + previousDateTime.getMinutes()).slice(-2);
-            var seconds = ('0' + previousDateTime.getSeconds()).slice(-2);
-            input.value = year + '-' + month + '-' + date + 'T' + hours + ':' + minutes + ':' + seconds;
+            input.value = year + '-' + month + '-' + date + 'T' + hours + ':' + minutes;
         }
     }
 }
 
-
-function set_datetime_fields() {
-  var hanchan_count = document.getElementById('hanchan_count').value;
-  var datetimeInputs = document.getElementById('datetimeInputs');
-  var existingValues = {};
-
-  // Save existing values
-  for (var i = 1; i <= hanchan_count; i++) {
-    var existingInput = document.getElementById(`round${i}`);
-    if (existingInput) {
-      existingValues[i] = existingInput.value;
-    }
-  }
-
-  // Clear and recreate inputs
-  datetimeInputs.innerHTML = '';
-  for (var i = 1; i <= hanchan_count; i++) {
-    let label = getLabel(i);
-    var inputValue = existingValues[i] || '';
-    datetimeInputs.innerHTML += `<label for=round${i}>${label}: `
-       + `<input type="datetime-local" id=round${i} name=round${i} required`
-       + ` onfocus="setDefaultDateTime(this, ${i})" value="${inputValue}"></label>`;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('hanchan_count').addEventListener('change', set_datetime_fields);
-  set_datetime_fields();
-  set_format_listener();
-  otherField.readOnly = hanchanField.value !== 'other';
-});
-
 function getLabel(i) {
-    var template = hanchan_name.value === 'other'
+    var template = hanchanField.value === 'other'
         ? otherField.value
         : hanchanField.options[hanchanField.selectedIndex].text;
     return template.replace('?', i);
 }
 
-function set_format_listener() {
-  var hanchanField = document.getElementById('hanchan_name');
-  var otherField = document.getElementById('other_name');
-  var datetimeInputs = document.getElementById('datetimeInputs').getElementsByTagName('label');
+function set_datetime_fields() {
+    var hanchan_count = parseInt(hanchanCountField.value);
+    var datetimeInputs = document.getElementById('datetimeInputs');
+    var existingValues = {};
 
-  function updateLabels() {
-    otherField.readOnly = hanchanField.value !== 'other';
-    for (var i = 0; i < datetimeInputs.length; i++) {
-        datetimeInputs[i].firstChild.nodeValue = getLabel(i + 1) + ': ';
+    // Save existing values
+    var existingInputs = datetimeInputs.getElementsByTagName('input');
+    for (var i = 0; i < existingInputs.length; i++) {
+        existingValues[i] = existingInputs[i].value;
     }
-  }
 
-  hanchanField.addEventListener('change', updateLabels);
-  otherField.addEventListener('input', updateLabels);
+    // Clear and recreate inputs
+    datetimeInputs.innerHTML = '';
+    for (var i = 0; i < hanchan_count; i++) {
+        let label = getLabel(i + 1);
+        var inputValue = existingValues[i] || '';
+        var inputHtml = `<label for="round_dates-${i}">` +
+            `${label}: <input type="datetime-local" id="round_dates-${i}" ` +
+            `name="round_dates-${i}" required onfocus="setDefaultDateTime(this, ${i+1})" ` +
+            `value="${inputValue}"></label>`;
+        datetimeInputs.innerHTML += inputHtml;
+    }
+
+    // Set default values for empty fields
+    for (var i = 0; i < hanchan_count; i++) {
+        var input = document.getElementById('round_dates-' + i);
+        setDefaultDateTime(input, i + 1);
+    }
 }
+
+function set_format_listener() {
+    var datetimeInputs = document.getElementById('datetimeInputs').getElementsByTagName('label');
+
+    function updateLabels() {
+        otherField.readOnly = hanchanField.value !== 'other';
+        set_datetime_fields(); // Update all labels and fields
+    }
+
+    hanchanField.addEventListener('change', updateLabels);
+    otherField.addEventListener('input', updateLabels);
+}
+
+// Call these functions when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    set_datetime_fields();
+    set_format_listener();
+    hanchanCountField.addEventListener('change', set_datetime_fields);
+});
 </script>
 {% endblock %}

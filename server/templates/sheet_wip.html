@@ -3,8 +3,9 @@
 {% block title %}Your scoresheet is being created now{% endblock %}
 
 {% block content %}
-<h1>Now creating your new tournament scoresheet.</h1>
-<div id="doclist">
+<h1 id=header>Now creating your new tournament scoresheet.</h1>
+<div id=doclist>
+    <p>Your tournament isn't quite created yet. There are a couple more steps to go.</p>
     <p>You should receive an email at {{ current_user.email }} from google,
     with a link to it, as soon as it's ready.</p>
     <p>Additionally, this page should
@@ -33,8 +34,8 @@ function list_sheets(docs) {
         </form></li>`
     );
     out += '</ul>';
-    console.log(out);
     document.getElementById('doclist').innerHTML = out;
+    document.getElementById('header').textContent = "Which google sheet is the correct one?";
 }
 
 
