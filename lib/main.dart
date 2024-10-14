@@ -77,13 +77,11 @@ Future<void> main() async {
 
   // Always initialize permissions and alarms
   await initPermissions();
-  if (enableAlarm) {
-    try {
-      await Alarm.init();
-    } catch (e) {
-      Log.error('Failed to initialize Alarm: $e');
-      // Handle alarm initialization failure
-    }
+  try {
+    await Alarm.init();
+  } catch (e) {
+    Log.error('Failed to initialize Alarm: $e');
+    // Handle alarm initialization failure
   }
 
   runApp(ProviderScope(
@@ -100,8 +98,8 @@ class _MyApp extends ConsumerWidget {
   // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
   // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
   openAlarmPage(BuildContext context, AlarmSettings settings) {
-      if (settings.dateTime.isAfter(
-                DateTime.now().subtract(const Duration(minutes: 30)))) {
+    if (settings.dateTime
+        .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
       globalNavigatorKey.currentState?.push(
         MaterialPageRoute<void>(
           builder: (context) => AlarmPage(settings: settings),
@@ -109,7 +107,6 @@ class _MyApp extends ConsumerWidget {
       );
     }
   }
-
 
   @override
   Widget build(context, ref) {
@@ -125,12 +122,8 @@ class _MyApp extends ConsumerWidget {
     ref.listenAsyncData(
       alarmScheduleProvider,
       (prev, next) => alarmRunner(() async {
-        if (!enableAlarm) return;
-
         final now = DateTime.now().toUtc();
         await Alarm.stopAll();
-
-        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         final vibratePref = ref.read(vibratePrefProvider);
 
@@ -142,7 +135,6 @@ class _MyApp extends ConsumerWidget {
                 ? '${player.name} is at table ${player.table}'
                 : '';
             await setAlarm(alarm, title, body, index + 1, vibratePref);
-            await Future<void>.delayed(const Duration(milliseconds: 100));
           }
         }
       }),
