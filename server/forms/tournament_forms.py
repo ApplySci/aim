@@ -35,38 +35,24 @@ ALLOWED_TAGS = [
 
 
 def url_ok(form, field):
-    if field.data == "":
-        return
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(field.data, headers=headers)
-        if response.status_code >= 400:
-            raise ValidationError(
-                f"Error {response.status_code}: " "URL must be valid and reachable"
-            )
-    except requests.exceptions.RequestException:
-        raise ValidationError("URL must be valid and reachable")
+    if field.data:
+        try:
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(field.data, headers=headers)
+            if response.status_code >= 400:
+                raise ValidationError("URL must be valid and reachable")
+        except requests.exceptions.RequestException:
+            raise ValidationError("URL must be valid and reachable")
 
 
-def start_date_check(custom_start_date):
-    def _start_date_check(form, field):
-        if datetime.strptime(custom_start_date, "%A %d %B %Y, %H:%M") < field.data:
-            print("failed start date validation")
-            raise ValidationError(
-                "Start date must be earlier than or equal to start of first hanchan:"
-            )
-
-    return _start_date_check
+def validate_start_date(form, field):
+    if form.custom_start_date and datetime.strptime(form.custom_start_date, "%A %d %B %Y, %H:%M") < field.data:
+        raise ValidationError("Start date must be earlier than or equal to start of first hanchan")
 
 
-def end_date_check(custom_end_date):
-    def _end_date_check(form, field):
-        if datetime.strptime(custom_end_date, "%A %d %B %Y, %H:%M") >= field.data:
-            raise ValidationError(
-                "End date must be later than the start of the last hanchan."
-            )
-
-    return _end_date_check
+def validate_end_date(form, field):
+    if form.custom_end_date and datetime.strptime(form.custom_end_date, "%A %d %B %Y, %H:%M") >= field.data:
+        raise ValidationError("End date must be later than the start of the last hanchan.")
 
 
 def validate_google_doc_id(form, field):
@@ -86,16 +72,29 @@ def validate_web_directory(form, field):
             "This directory already exists and is not empty. Please choose a different name."
         )
 
-class TournamentFormBase(FlaskForm):
-    name = StringField("Tournament Name", validators=[DataRequired()])
-    start_date = DateTimeLocalField("Start Date", format="%Y-%m-%dT%H:%M")
-    end_date = DateTimeLocalField("End Date", format="%Y-%m-%dT%H:%M")
-    address = StringField("Address", validators=[DataRequired()])
+
+def validate_other_name(form, field):
+    if form.hanchan_name.data == "other":
+        if not field.data:
+            raise ValidationError('This field is required when "Other" is selected in Choice Field')
+        if "?" not in field.data:
+            raise ValidationError('Missing the "?" placeholder')
+
+
+class TournamentForm(FlaskForm):
+    title = StringField(
+        "Tournament name",
+        default="World Riichi League",
+        validators=[DataRequired()],
+    )
+    start_date = DateTimeLocalField("Start Date", format="%Y-%m-%dT%H:%M", validators=[DataRequired(), validate_start_date])
+    end_date = DateTimeLocalField("End Date", format="%Y-%m-%dT%H:%M", validators=[DataRequired(), validate_end_date])
+    address = StringField("Address (this will be used as a lookup string for google maps)", validators=[DataRequired()])
     countries = sorted(
         [(country.alpha_2, country.name) for country in pycountry.countries],
         key=lambda e: e[1],
     )
-    country = SelectField("Country", choices=countries)
+    country = SelectField("Country", choices=countries, default="DE")
     status = RadioField(
         "Status",
         choices=[
@@ -113,13 +112,15 @@ class TournamentFormBase(FlaskForm):
         choices=[("WRC", "WRC"), ("EMA", "EMA"), ("custom", "custom")],
         validators=[DataRequired()],
     )
-    url = StringField("Tournament URL", validators=[Optional(), URL(), url_ok])
+    url = StringField("Tournament URL",
+                      default="https://worldriichileague.com/",
+                      validators=[Optional(), URL(), url_ok])
     url_icon = StringField("Icon URL", validators=[Optional(), URL(), url_ok])
     google_doc_id = StringField(
         "Google Doc ID", validators=[DataRequired(), validate_google_doc_id]
     )
     web_directory = StringField(
-        "Web Directory", validators=[DataRequired(), validate_web_directory]
+        "Short name (for URLs)", validators=[DataRequired(), validate_web_directory]
     )
     htmlnotes = TextAreaField(
         f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
@@ -143,10 +144,46 @@ class TournamentFormBase(FlaskForm):
     )
     round_dates = FieldList(DateTimeLocalField("Round Date/Time"), min_entries=0)
 
+    hanchan_name = SelectField(
+        "What name should be used for tournament rounds?",
+        choices=[
+            ("Round ?", "Round ?"),
+            ("Hanchan ?", "Hanchan ?"),
+            ("Game ?", "Game ?"),
+            ("other", "Custom (please specify)"),
+        ],
+    )
+    other_name = StringField("Custom round name", render_kw={"readonly": ""}, validators=[validate_other_name])
+    emails = StringField(
+        "Scorer's email address (must be a google account)",
+        validators=[
+            Optional(),
+            Email(),
+        ],
+    )
+    notify = BooleanField(
+        "Notify the scorer as soon as the scoresheet has been created",
+        default=True,
+    )
+
     submit = SubmitField("Submit")
+
+    def __init__(self, *args, **kwargs):
+        self.custom_start_date = kwargs.pop('custom_start_date', None)
+        self.custom_end_date = kwargs.pop('custom_end_date', None)
+        super(TournamentForm, self).__init__(*args, **kwargs)
 
     def set_round_dates(self, data):
         while len(self.round_dates) > 0:
             self.round_dates.pop_entry()
         for date in data:
             self.round_dates.append_entry(date)
+
+    @property
+    def round_labels(self):
+        template = (
+            self.other_name.data
+            if self.hanchan_name.data == "other"
+            else self.hanchan_name.data
+        )
+        return [template.replace("?", str(i + 1)) for i in range(len(self.round_dates))]

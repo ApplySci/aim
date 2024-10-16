@@ -21,7 +21,7 @@ from flask import (
 from flask_login import login_required, current_user
 
 from config import GOOGLE_CLIENT_EMAIL
-from .form_create_results import GameParametersForm
+from forms.tournament_forms import TournamentForm
 from models import Access, Role, Tournament, User
 from oauth_setup import db, firestore_client
 from write_sheet import googlesheet
@@ -43,10 +43,9 @@ def index():
 @login_required
 def results_create():
     owner = current_user.email
-    form = GameParametersForm()
+    form = TournamentForm()
 
     if request.method == "POST":
-        # Collect round dates from the form
         round_dates = []
         for key, value in request.form.items():
             if key.startswith("round_dates-") and value:
@@ -56,12 +55,10 @@ def results_create():
                     # Handle invalid date format
                     pass
 
-        # Set the round dates in the form
         form.set_round_dates(round_dates)
 
     if form.validate_on_submit():
         short_name = form.web_directory.data
-        # Create the Tournament object
         tournament: Tournament = Tournament(
             title=form.title.data,
             web_directory=short_name,
@@ -71,18 +68,17 @@ def results_create():
         db.session.add(tournament)
         db.session.commit()
 
-        # Create the Firestore document
         firestore_data = {
             "name": form.title.data,
             "start_date": form.round_dates[0].data,
             "end_date": form.round_dates[-1].data,
             "status": "upcoming",
-            "rules": "EMA",  # You might want to make this configurable
-            "country": "Unknown",  # You might want to add this to your form
-            "address": "Unknown",  # You might want to add this to your form
-            "url": "",  # You might want to add this to your form
-            "url_icon": "",  # You might want to add this to your form
-            "htmlnotes": "",
+            "rules": form.rules.data,
+            "country": form.country.data,
+            "address": form.address.data,
+            "url": form.url.data,
+            "url_icon": form.url_icon.data,
+            "htmlnotes": form.htmlnotes.data,
         }
 
         firestore_client.collection("tournaments").document(short_name).set(firestore_data)
@@ -119,9 +115,9 @@ def results_create():
             sheet_id: str = googlesheet.create_new_results_googlesheet(
                 table_count=int(form.table_count.data),
                 hanchan_count=hanchan_count,
-                title=f"copy {form.title.data}",
+                title=form.title.data,
                 owner=owner,
-                scorers=form.emails.data.split(","),
+                scorers=form.emails.data.split(",") if form.emails.data else [],
                 notify=form.notify.data,
                 timezone=form.timezone.data,
                 start_times=start_times,

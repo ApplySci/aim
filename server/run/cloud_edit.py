@@ -11,7 +11,6 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for,
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
 import pycountry
-import requests
 from wtforms import (
     DateTimeLocalField,
     RadioField,
@@ -22,7 +21,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
-from forms.tournament_forms import TournamentFormBase
+from forms.tournament_forms import TournamentForm
 from oauth_setup import db, firestore_client
 from write_sheet import googlesheet
 
@@ -53,61 +52,6 @@ def validate_web_directory(form, field):
         raise ValidationError("Invalid directory path.")
 
 
-class TournamentForm(TournamentFormBase):
-    def __init__(self, custom_start_date, custom_end_date, *args, **kwargs):
-        super(TournamentForm, self).__init__(*args, **kwargs)
-        self.start_date.validators = [
-            DataRequired(),
-            start_date_check(custom_start_date),
-        ]
-        self.end_date.validators = [
-            DataRequired(),
-            end_date_check(custom_end_date),
-        ]
-
-    start_date = DateTimeLocalField("Start Date", format="%Y-%m-%dT%H:%M")
-    end_date = DateTimeLocalField("End Date", format="%Y-%m-%dT%H:%M")
-
-    address = StringField("Address", validators=[DataRequired()])
-    countries = sorted(
-        [(country.alpha_2, country.name) for country in pycountry.countries],
-        key=lambda e: e[1],
-    )
-    country = SelectField("Country", choices=countries)
-    name = StringField("Name", validators=[DataRequired()])
-    status = RadioField(
-        "Status",
-        choices=[
-            ("upcoming", "Upcoming"),
-            ("live", "Live"),
-            ("past", "Finished"),
-            ("test", "Testing"),
-        ],
-        default="upcoming",
-        validators=[DataRequired()],
-    )
-
-    rules = RadioField(
-        "Rules",
-        default="WRC",
-        choices=[("WRC", "WRC"), ("EMA", "EMA"), ("custom", "custom")],
-        validators=[DataRequired()],
-    )
-
-    url = StringField("Tournament URL", validators=[Optional(), URL(), url_ok])
-    url_icon = StringField("Icon URL", validators=[Optional(), URL(), url_ok])
-    google_doc_id = StringField(
-        "Google Doc ID", validators=[DataRequired(), validate_google_doc_id]
-    )
-    web_directory = StringField(
-        "Web Directory", validators=[DataRequired(), validate_web_directory]
-    )
-    submit = SubmitField("Submit")
-    htmlnotes = TextAreaField(
-        f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
-    )
-
-
 def get_tournament_data(firebase_id):
     ref = firestore_client.collection("tournaments").document(firebase_id)
     doc = ref.get()
@@ -136,7 +80,7 @@ def get_dates_from_sheet():
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
-    form = TournamentForm(dates[1], dates[2])
+    form = TournamentForm(custom_start_date=dates[1], custom_end_date=dates[2])
 
     if request.method == "GET":
         tournament_data = get_tournament_data(firebase_id)

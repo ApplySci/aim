@@ -18,6 +18,80 @@
     <fieldset>
         {{ form.hidden_tag() }}
         <p>
+            {{ form.title.label }}<br>
+            {{ form.title(size=60) }}
+            {% for error in form.title.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <div class="form-group">
+            {{ form.web_directory.label }}
+            {{ form.web_directory(class="form-control") }}
+            <br>
+            <small class="form-text text-muted">
+                This short name will be used in URLs, so it should be concise, meaningful,
+                and safe for work. Use characters a-z0-9_-</small>
+            {% if form.web_directory.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.web_directory.errors %}
+                        <span class=error>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <p>
+            {{ form.address.label }}<br>
+            {{ form.address(size=80) }}
+            {% for error in form.address.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.country.label }}<br>
+            {{ form.country() }}
+            {% for error in form.country.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <fieldset>
+            {{ form.rules.label }}<br>
+            {% for subfield in form.rules %}
+                {{ subfield }} {{ subfield.label }}<br>
+            {% endfor %}
+            {% for error in form.rules.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </fieldset>
+        <p>
+            {{ form.url.label }}<br>
+            {{ form.url(size=80) }}
+            {% for error in form.url.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.url_icon.label }}<br>
+            {{ form.url_icon(size=80) }}
+            {% for error in form.url_icon.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.htmlnotes.label }}<br>
+            {{ form.htmlnotes(rows=4, cols=80) }}
+            {% for error in form.htmlnotes.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.emails.label }}<br>
+            {{ form.emails(size=60)  }}<br>
+            {{ form.notify() }} {{ form.notify.label }}
+            {% for error in form.emails.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
             {{ form.table_count(size=4) }} {{ form.table_count.label }}
             {% for error in form.table_count.errors %}
                 <span class=error>[{{ error }}]</span>
@@ -26,23 +100,6 @@
         <p>
             {{ form.hanchan_count(size=4) }} {{ form.hanchan_count.label }}
             {% for error in form.hanchan_count.errors %}
-                <span class=error>[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.title.label }}<br>
-            {{ form.title(size=60) }}
-        </p>
-        <p>You will be assigned ownership of the Google Sheet, using the
-        google account you logged in here ({{ current_user.email }}).<br>
-        Below, you can enter an email address (this must be a gmail account)
-        for one other scorer:
-        (you can add other scorers later)
-        <p>
-            {{ form.emails.label }}<br>
-            {{ form.emails(size=60)  }}<br>
-            {{ form.notify() }} {{ form.notify.label }}
-            {% for error in form.emails.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
@@ -64,21 +121,6 @@
             {% endfor %}
         </div>
         </label>
-        <div class="form-group">
-            {{ form.web_directory.label }}
-            {{ form.web_directory(class="form-control") }}
-            <br>
-            <small class="form-text text-muted">
-                This short name will be used in URLs, so it should be concise, meaningful,
-                and safe for work. Use characters a-z0-9_-</small>
-            {% if form.web_directory.errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.web_directory.errors %}
-                        <span class=error>{{ error }}</span>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
@@ -143,21 +185,31 @@ function set_datetime_fields() {
     }
 }
 
+function updateLabels() {
+    otherField.readOnly = hanchanField.value !== 'other';
+    set_datetime_fields();
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 function set_format_listener() {
-    var datetimeInputs = document.getElementById('datetimeInputs').getElementsByTagName('label');
-
-    function updateLabels() {
-        otherField.readOnly = hanchanField.value !== 'other';
-        set_datetime_fields(); // Update all labels and fields
-    }
-
-    hanchanField.addEventListener('change', updateLabels);
-    otherField.addEventListener('input', updateLabels);
+    hanchanField.addEventListener('change', updateLabels);    
+    otherField.addEventListener('input', debounce(updateLabels, 300));
 }
 
 // Call these functions when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    set_datetime_fields();
+    updateLabels();
     set_format_listener();
     hanchanCountField.addEventListener('change', set_datetime_fields);
 });
