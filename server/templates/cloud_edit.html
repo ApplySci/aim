@@ -19,9 +19,9 @@
 
     <p>Google sheet says the tournament is {{span}}</p>
     <p>
-        {{ form.name.label }}<br>
-        {{ form.name(size=80) }}
-        {% for error in form.name.errors %}
+        {{ form.title.label }}<br>
+        {{ form.title(size=80) }}
+        {% for error in form.title.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
     </p>
