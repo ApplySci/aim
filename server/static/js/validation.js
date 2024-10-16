@@ -1,4 +1,9 @@
 function checkUrl() {
+    if (this.value.trim() === '') {
+        document.getElementById('url_status').innerHTML = '';
+        return;
+    }
+
     fetch(this.value, { mode: 'no-cors' })
         .then(response => {
             // If we get here, the resource exists, even if we can't access it due to CORS
@@ -11,6 +16,11 @@ function checkUrl() {
 }
 
 function checkImg() {
+    if (this.value.trim() === '') {
+        document.getElementById('icon_status').innerHTML = '';
+        return;
+    }
+
     var img = new Image();
     img.src = this.value;
     img.onload = function() {
@@ -26,7 +36,9 @@ function setupValidation() {
     var iconField = document.getElementById('url_icon');
 
     urlField.addEventListener('change', checkUrl);
+    urlField.addEventListener('input', checkUrl);
     iconField.addEventListener('change', checkImg);
+    iconField.addEventListener('input', checkImg);
     checkUrl.call(urlField);
     checkImg.call(iconField);
 }

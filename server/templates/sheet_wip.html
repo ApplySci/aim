@@ -7,7 +7,7 @@
 <div id=doclist>
     <p>Your tournament isn't quite created yet. There are a couple more steps to go.</p>
     <p>You should receive an email at {{ current_user.email }} from google,
-    with a link to it, as soon as it's ready.</p>
+    with a link to your new schoresheet template, as soon as it's ready.</p>
     <p>Additionally, this page should
     update with a link to the sheet, as soon as it is ready.
     <img src='/static/Loading_Key.gif'></p>
@@ -22,8 +22,10 @@
 
 {% block scripts %}
 <script defer>
-
 var sheetwip_timer;
+var pollCount = 0;
+var maxPollCount = 40; // Stop polling after 10 minutes (40 * 15 seconds)
+var pollInterval = 15000; // 15 seconds
 
 function list_sheets(docs) {
     out = '<ul>';
@@ -37,7 +39,6 @@ function list_sheets(docs) {
     document.getElementById('doclist').innerHTML = out;
     document.getElementById('header').textContent = "Which google sheet is the correct one?";
 }
-
 
 function get_sheet_copy() {
     document.getElementById('doclist').innerHTML =
@@ -69,28 +70,46 @@ function get_sheet_copy() {
     xhr.send();
 }
 
-
 function poll_new_sheet() {
+    if (pollCount >= maxPollCount) {
+        document.getElementById('doclist').innerHTML = 
+            "<p>We couldn't find your sheet. Please try again or contact support.</p>" +
+            "<p><button onclick='resetPolling()'>Try Again</button></p>";
+        return;
+    }
+
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
     xhr.open("GET", "{{ url_for('create.poll_new_sheet')}}?t=" + timestamp, true);
     xhr.onload = function() {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-            var data = JSON.parse(xhr.responseText);
-            document.getElementById('doclist').innerHTML =
+        if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+                var data = JSON.parse(xhr.responseText);
+                document.getElementById('doclist').innerHTML =
   `<p><a target='_blank' href='https://docs.google.com/spreadsheets/d/${data.id}'>
-  Click here to open your new spreadsheet.</a></p>
-  Follow the instructions at the top
-  of the README tab, and when you've created the copy, come back to this tab,
+  Click here to open your new spreadsheet: ${data.title}</a></p>
+  <p>Follow the instructions at the top
+  of the README tab. When you've created the copy, come back to this tab,
   and press this button:</p>
-  <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>`
-        } else {
-            sheetwip_timer = setTimeout(poll_new_sheet, 10000); // 10 seconds
+  <p><button onclick="get_sheet_copy()">I have copied the spreadsheet</button></p>`;
+            } else {
+                pollCount++;
+                sheetwip_timer = setTimeout(poll_new_sheet, pollInterval);
+            }
         }
+    };
+    xhr.onerror = function() {
+        console.error("XHR error occurred");
+        pollCount++;
+        sheetwip_timer = setTimeout(poll_new_sheet, pollInterval);
     };
     xhr.send();
 }
 
+function resetPolling() {
+    pollCount = 0;
+    poll_new_sheet();
+}
 
 poll_new_sheet();
 </script>

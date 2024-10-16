@@ -106,41 +106,56 @@ class GSP:
             )
 
 
-    def list_sheets(self, user_email : str) -> list[dict]:
+    def list_sheets(self, user_email : str, max_retries=3, retry_delay=5) -> list[dict]:
         '''
         Return the list of sheets that the user has access to, with titles,
         and a boolean flag to indicate whether WE (server admin) are the owner.
 
         Args:
             user_email (str): gmail address of the user whose sheets we must list
+            max_retries (int): maximum number of retry attempts
+            retry_delay (int): delay in seconds between retries
 
         Returns:
             list[dict]: {id: sheet.id, title: sheet.title, ours: true if WE own it}
 
         '''
-        sheet_dict : list= self.client.list_spreadsheet_files()
-        out = []
-        for one in sheet_dict:
-            ours = False
-            this_user_can_see_this_sheet : bool = False
-            sheet = self.client.open_by_key(one['id'])
-            details : dict = {
-                'id': one['id'],
-                'title': sheet.title,
-                }
+        for attempt in range(max_retries):
             try:
-                perms = sheet.list_permissions()
-                for perm in perms:
-                    if perm['emailAddress'] == user_email:
-                        this_user_can_see_this_sheet = True
-                    if perm['role'] == 'owner':
-                        ours = perm['emailAddress'] in OUR_EMAILS
-            except:
-                ours = False
-            if this_user_can_see_this_sheet:
-                details['ours'] = ours
-                out.append(details)
-        return out
+                sheet_dict: list = self.client.list_spreadsheet_files()
+                out = []
+                for one in sheet_dict:
+                    ours = False
+                    this_user_can_see_this_sheet: bool = False
+                    try:
+                        sheet = self.client.open_by_key(one['id'])
+                        details: dict = {
+                            'id': one['id'],
+                            'title': sheet.title,
+                        }
+                        try:
+                            perms = sheet.list_permissions()
+                            for perm in perms:
+                                if perm['emailAddress'] == user_email:
+                                    this_user_can_see_this_sheet = True
+                                if perm['role'] == 'owner':
+                                    ours = perm['emailAddress'] in OUR_EMAILS
+                        except:
+                            ours = False
+                        if this_user_can_see_this_sheet:
+                            details['ours'] = ours
+                            out.append(details)
+                    except APIError as e:
+                        print(f"Error accessing sheet {one['id']}: {str(e)}")
+                        continue
+                return out
+            except APIError as e:
+                if attempt < max_retries - 1:
+                    print(f"API Error: {str(e)}. Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    print(f"Max retries reached. Unable to list sheets: {str(e)}")
+                    return []
 
 
     def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:

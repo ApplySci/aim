@@ -15,7 +15,6 @@ from flask import (
     request,
     url_for,
     render_template,
-    current_app,
     copy_current_request_context,
 )
 from flask_login import login_required, current_user
@@ -67,6 +66,7 @@ def results_create():
         )
         db.session.add(tournament)
         db.session.commit()
+        current_user.live_tournament = tournament
 
         firestore_data = {
             "name": form.title.data,
@@ -81,7 +81,9 @@ def results_create():
             "htmlnotes": form.htmlnotes.data,
         }
 
-        firestore_client.collection("tournaments").document(short_name).set(firestore_data)
+        firestore_client.collection("tournaments").document(short_name).set(
+            firestore_data
+        )
 
         # Add access for the current user
         db.session.add(
@@ -94,7 +96,9 @@ def results_create():
                 if scorer is None:
                     scorer = User(email=email)
                     db.session.add(scorer)
-                db.session.add(Access(user=scorer, tournament=tournament, role=Role.scorer))
+                db.session.add(
+                    Access(user=scorer, tournament=tournament, role=Role.scorer)
+                )
         db.session.commit()
         base_dir = os.path.join("myapp/static", form.web_directory.data)
         os.makedirs(base_dir, exist_ok=True)
@@ -118,29 +122,22 @@ def results_create():
                 hanchan_count=hanchan_count,
                 title=form.title.data,
                 owner=owner,
-                scorers=form.emails.data.split(",") if form.emails.data else [],
+                scorers=[email.data for email in form.scorer_emails if email.data],
                 notify=form.notify.data,
                 timezone=form.timezone.data,
                 start_times=start_times,
                 round_name_template=round_name_template,
             )
 
-            msg = messages_by_user.get(owner)
-            if not msg:
-                messages_by_user[owner] = []
-            messages_by_user[owner].append(
-                {
-                    "id": sheet_id,
-                    "title": form.title.data,
-                    "ours": True,
-                }
-            )
+            # Update the tournament in the database with the (temporary) new sheet_id
+            current_user.live_tournament.google_doc_id = sheet_id
+            db.session.commit()
 
         thread = threading.Thread(target=make_sheet)
         thread.start()
         return redirect(url_for("create.select_sheet"))
 
-    print('*** failed validation')
+    print("*** failed validation")
     for field, errors in form.errors.items():
         for error in errors:
             print(f"Field {field}: {error}")
@@ -160,16 +157,19 @@ def results_create():
     )
 
 
-@blueprint.route("/create/is_sheet_created")
+@blueprint.route("/create/poll_new_sheet")
 @login_required
 def poll_new_sheet():
-    messages = messages_by_user.get(current_user.email)
-    if messages:
-        for message in messages:
-            current_app.logger.warning(f"in poll_new_sheet with {message}")
-            if message["ours"]:
-                current_app.logger.warning("sending it!")
-                return jsonify(message)
+    if (
+        current_user.live_tournament
+        and current_user.live_tournament.google_doc_id != "pending"
+    ):
+        return jsonify(
+            {
+                "id": current_user.live_tournament.google_doc_id,
+                "title": current_user.live_tournament.title,
+            }
+        )
 
     return "not ready yet", 204
 
@@ -190,11 +190,7 @@ def get_their_copy():
 @blueprint.route("/create/select/<doc>", methods=["POST", "GET", "PUT"])
 @login_required
 def google_doc_selected(doc):
-    # TODO add to the firebase database too!
-    # and then add the database document ID to our local db here
-    title = request.form.get("submit")
-    tournament = _add_to_db(doc, title)
-    current_user.live_tournament_id = tournament.id
+    current_user.live_tournament.google_doc_id = doc
     db.session.commit()
     return redirect(url_for("run.run_tournament"))
 
@@ -209,23 +205,3 @@ def select_sheet():
         OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
     )
 
-
-def _add_to_db(doc, title):
-    tournament = db.session.query(Tournament).filter_by(google_doc_id=doc).first()
-    if not tournament:
-        tournament = Tournament(google_doc_id=doc, title=title)
-        db.session.add(tournament)
-
-    access = (
-        db.session.query(Access)
-        .filter_by(
-            user_email=current_user.email,
-            tournament_id=tournament.id,
-        )
-        .first()
-    )
-    if not access:
-        access = Access(user=current_user, tournament=tournament, role=Role.admin)
-        db.session.add(access)
-    db.session.commit()
-    return tournament

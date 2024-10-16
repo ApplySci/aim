@@ -48,10 +48,21 @@ def select_tournament():
         current_user.live_tournament_id = new_id
         db.session.commit()
         return redirect(url_for('run.run_tournament'))
+
+    # Clean up Access database - delete entries without valid tournament or user
+    invalid_accesses = db.session.query(Access).filter(
+        (Access.tournament_id.notin_(db.session.query(Tournament.id))) |
+        (Access.user_email.notin_(db.session.query(User.email)))
+    ).all()
+    for invalid_access in invalid_accesses:
+        db.session.delete(invalid_access)
+
     # Query the Access table for all records where the user_email is the current user's email
     accesses = db.session.query(Access).filter_by(
         user_email=current_user.email).all()
     tournaments = [access.tournament for access in accesses]
+
+    db.session.commit()
     return render_template('select_tournament.html', tournaments=tournaments)
 
 

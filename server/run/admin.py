@@ -24,7 +24,10 @@ def delet_dis(doc_id):
 def superuser():
     if current_user.email not in OUR_EMAILS:
         return "not found",  404
-    docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
-    our_docs = [doc for doc in docs if doc['ours'] and \
-                doc['id'] != TEMPLATE_ID]
-    return render_template('adminlist.html', docs=our_docs)
+    try:
+        docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
+        our_docs = [doc for doc in docs if doc['ours'] and \
+                    doc['id'] != TEMPLATE_ID]
+        return render_template('adminlist.html', docs=our_docs)
+    except Exception as e:
+        return f"Error listing sheets: {str(e)}", 500
