@@ -497,10 +497,8 @@ def _save_to_cloud(document: str, data: dict, force_set = False):
 
     doc = ref.get()
     if doc.exists and not force_set:
-        # If the document exists, update the field
         ref.update(data)
     else:
-        # If the document does not exist, create it with the field
         ref.set(data)
 
 @blueprint.route('/run/add_user', methods=['POST'])
@@ -517,7 +515,7 @@ def add_user_post():
     tournament_id = form.tournament.data
     role = form.role.data
 
-    # Check if the user already exists
+    # Ensure the user record exists
     user = db.session.query(User).filter_by(email=email).first()
     if not user:
         user = User(email=email)
@@ -525,6 +523,7 @@ def add_user_post():
         db.session.commit()
 
     # Add the user to the tournament with the specified role
+    # TODO this doesn't allow us to change a user's role yet
     access = db.session.query(Access).filter_by(
             user_email=email, tournament_id=tournament_id).first()
     if not access:

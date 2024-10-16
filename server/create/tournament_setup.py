@@ -88,13 +88,14 @@ def results_create():
             Access(user=current_user, tournament=tournament, role=Role.admin)
         )
         db.session.commit()
-        if form.emails.data:
-            scorer = db.session.query(User).filter_by(email=form.emails.data).first()
-            if scorer is None:
-                scorer = User(email=form.emails.data)
-                db.session.add(scorer)
-            db.session.add(Access(user=scorer, tournament=tournament, role=Role.scorer))
-            db.session.commit()
+        for email in form.scorer_emails.data:
+            if email:  # Only process non-empty email fields
+                scorer = db.session.query(User).filter_by(email=email).first()
+                if scorer is None:
+                    scorer = User(email=email)
+                    db.session.add(scorer)
+                db.session.add(Access(user=scorer, tournament=tournament, role=Role.scorer))
+        db.session.commit()
         base_dir = os.path.join("myapp/static", form.web_directory.data)
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(os.path.join(base_dir, "rounds"), exist_ok=True)
@@ -139,6 +140,10 @@ def results_create():
         thread.start()
         return redirect(url_for("create.select_sheet"))
 
+    print('*** failed validation')
+    for field, errors in form.errors.items():
+        for error in errors:
+            print(f"Field {field}: {error}")
     # Generate labels for the round dates
     round_labels = []
     template = (

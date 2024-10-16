@@ -30,7 +30,20 @@ from write_sheet import googlesheet
 
 BASEDIR = "/home/model/apps/tournaments/static/"
 ALLOWED_TAGS = [
-    "p", "b", "i", "h1", "h2", "h3", "a", "br", "strong", "em", "u", "ol", "ul", "li",
+    "p",
+    "b",
+    "i",
+    "h1",
+    "h2",
+    "h3",
+    "a",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "ol",
+    "ul",
+    "li",
 ]
 
 
@@ -46,13 +59,23 @@ def url_ok(form, field):
 
 
 def validate_start_date(form, field):
-    if form.custom_start_date and datetime.strptime(form.custom_start_date, "%A %d %B %Y, %H:%M") < field.data:
-        raise ValidationError("Start date must be earlier than or equal to start of first hanchan")
+    if (
+        form.custom_start_date
+        and datetime.strptime(form.custom_start_date, "%A %d %B %Y, %H:%M") < field.data
+    ):
+        raise ValidationError(
+            "Start date must be earlier than or equal to start of first hanchan"
+        )
 
 
 def validate_end_date(form, field):
-    if form.custom_end_date and datetime.strptime(form.custom_end_date, "%A %d %B %Y, %H:%M") >= field.data:
-        raise ValidationError("End date must be later than the start of the last hanchan.")
+    if (
+        form.custom_end_date
+        and datetime.strptime(form.custom_end_date, "%A %d %B %Y, %H:%M") >= field.data
+    ):
+        raise ValidationError(
+            "End date must be later than the start of the last hanchan."
+        )
 
 
 def validate_google_doc_id(form, field):
@@ -76,7 +99,9 @@ def validate_web_directory(form, field):
 def validate_other_name(form, field):
     if form.hanchan_name.data == "other":
         if not field.data:
-            raise ValidationError('This field is required when "Other" is selected in Choice Field')
+            raise ValidationError(
+                'This field is required when "Other" is selected in Choice Field'
+            )
         if "?" not in field.data:
             raise ValidationError('Missing the "?" placeholder')
 
@@ -87,9 +112,20 @@ class TournamentForm(FlaskForm):
         default="World Riichi League",
         validators=[DataRequired()],
     )
-    start_date = DateTimeLocalField("Start Date", format="%Y-%m-%dT%H:%M", validators=[DataRequired(), validate_start_date])
-    end_date = DateTimeLocalField("End Date", format="%Y-%m-%dT%H:%M", validators=[DataRequired(), validate_end_date])
-    address = StringField("Address (this will be used as a lookup string for google maps)", validators=[DataRequired()])
+    start_date = DateTimeLocalField(
+        "Start Date",
+        format="%Y-%m-%dT%H:%M",
+        validators=[Optional(), validate_start_date],
+    )
+    end_date = DateTimeLocalField(
+        "End Date",
+        format="%Y-%m-%dT%H:%M",
+        validators=[Optional(), validate_end_date],
+    )
+    address = StringField(
+        "Address (this will be used as a lookup string for google maps)",
+        validators=[Optional()],
+    )
     countries = sorted(
         [(country.alpha_2, country.name) for country in pycountry.countries],
         key=lambda e: e[1],
@@ -112,12 +148,14 @@ class TournamentForm(FlaskForm):
         choices=[("WRC", "WRC"), ("EMA", "EMA"), ("custom", "custom")],
         validators=[DataRequired()],
     )
-    url = StringField("Tournament URL",
-                      default="https://worldriichileague.com/",
-                      validators=[Optional(), URL(), url_ok])
+    url = StringField(
+        "Tournament URL",
+        default="https://worldriichileague.com/",
+        validators=[Optional(), URL(), url_ok],
+    )
     url_icon = StringField("Icon URL", validators=[Optional(), URL(), url_ok])
     google_doc_id = StringField(
-        "Google Doc ID", validators=[DataRequired(), validate_google_doc_id]
+        "Google Doc ID", validators=[Optional(), validate_google_doc_id]
     )
     web_directory = StringField(
         "Short name (for URLs)", validators=[DataRequired(), validate_web_directory]
@@ -125,7 +163,7 @@ class TournamentForm(FlaskForm):
     htmlnotes = TextAreaField(
         f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
     )
-    
+
     # Fields specific to tournament creation
     table_count = IntegerField(
         "Number of tables (players divided by 4) [4-43]",
@@ -153,24 +191,28 @@ class TournamentForm(FlaskForm):
             ("other", "Custom (please specify)"),
         ],
     )
-    other_name = StringField("Custom round name", render_kw={"readonly": ""}, validators=[validate_other_name])
-    emails = StringField(
-        "Scorer's email address (must be a google account)",
-        validators=[
-            Optional(),
-            Email(),
-        ],
+    other_name = StringField(
+        "Custom round name",
+        render_kw={"readonly": ""},
+        validators=[validate_other_name],
     )
     notify = BooleanField(
         "Notify the scorer as soon as the scoresheet has been created",
         default=True,
     )
+    scorer_emails = FieldList(
+        StringField(
+            "Scorer Emails (each must be a google account)",
+            validators=[Optional(), Email()],
+        ),
+        min_entries=1,
+    )
 
     submit = SubmitField("Submit")
 
     def __init__(self, *args, **kwargs):
-        self.custom_start_date = kwargs.pop('custom_start_date', None)
-        self.custom_end_date = kwargs.pop('custom_end_date', None)
+        self.custom_start_date = kwargs.pop("custom_start_date", None)
+        self.custom_end_date = kwargs.pop("custom_end_date", None)
         super(TournamentForm, self).__init__(*args, **kwargs)
 
     def set_round_dates(self, data):

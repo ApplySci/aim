@@ -64,14 +64,16 @@
         </fieldset>
         <p>
             {{ form.url.label }}<br>
-            {{ form.url(size=80) }}
+            {{ form.url(size=80, id="url") }}
+            <span id="url_status"></span>
             {% for error in form.url.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             {{ form.url_icon.label }}<br>
-            {{ form.url_icon(size=80) }}
+            {{ form.url_icon(size=80, id="url_icon") }}
+            <span id="icon_status"></span>
             {% for error in form.url_icon.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
@@ -83,50 +85,59 @@
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
-        <p>
-            {{ form.emails.label }}<br>
-            {{ form.emails(size=60)  }}<br>
-            {{ form.notify() }} {{ form.notify.label }}
-            {% for error in form.emails.errors %}
-                <span class=error>[{{ error }}]</span>
+        <div id="scorer-emails">
+            {% for email_field in form.scorer_emails %}
+            <div class="scorer-email-field">
+                {{ email_field.label }}
+                {{ email_field(class="form-control") }}
+                {% for error in email_field.errors %}
+                    <span class="error">{{ error }}</span>
+                {% endfor %}
+            </div>
             {% endfor %}
-        </p>
+        </div>
+        <button type="button" id="add-scorer">Add Another Scorer</button>
+
         <p>
-            {{ form.table_count(size=4) }} {{ form.table_count.label }}
+            {{ form.table_count.label }} {{ form.table_count(size=4) }} 
             {% for error in form.table_count.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
-        <p>
-            {{ form.hanchan_count(size=4) }} {{ form.hanchan_count.label }}
-            {% for error in form.hanchan_count.errors %}
+        <fieldset>
+            <p>
+                {{ form.hanchan_count.label }} {{ form.hanchan_count(size=4) }} 
+                {% for error in form.hanchan_count.errors %}
+                    <span class=error>[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>{{ form.hanchan_name.label }} {{ form.hanchan_name() }}</p>
+            <p>{{ form.other_name.label }} {{ form.other_name() }}
+                <small>You must use ? (question mark) as the placeholder for the number of the round</small>
+            </p>
+            {% for error in form.other_name.errors %}
                 <span class=error>[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>{{ form.hanchan_name.label }} {{ form.hanchan_name() }}</p>
-        <p>{{ form.other_name.label }} {{ form.other_name() }}
-            <small>You must use ? (question mark) as the placeholder for the number of the round</small>
-        </p>
-        {% for error in form.other_name.errors %}
-            <span class=error>[{{ error }}]</span>
-        {% endfor %}
-        <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
-        <label>Enter the start date/time for each round, in the local time for
-        the tournament (ie in the above timezone). You can change these later.
-        <div id="datetimeInputs">
-            {% for field, label in zip(form.round_dates, round_labels) %}
-                <label for="{{ field.id }}">{{ label }}: 
-                    {{ field(type="datetime-local", required=true) }}
-                </label>
-            {% endfor %}
-        </div>
-        </label>
+            {% endfor %}    
+            <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
+            <label>Enter the start date/time for each round, in the local time for
+            the tournament (ie in the above timezone). You can change these later.
+            <div id="datetimeInputs">
+                {% for field, label in zip(form.round_dates, round_labels) %}
+                    <label for="{{ field.id }}">{{ label }}: 
+                        {{ field(type="datetime-local", required=true) }}
+                    </label>
+                {% endfor %}
+            </div>
+            </label>
+        </fieldset>
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/validation.js') }}"></script>
 <script>
 var hanchanField = document.getElementById('hanchan_name');
 var otherField = document.getElementById('other_name');
@@ -212,6 +223,18 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLabels();
     set_format_listener();
     hanchanCountField.addEventListener('change', set_datetime_fields);
+});
+
+document.getElementById('add-scorer').addEventListener('click', function() {
+    var emailFields = document.getElementById('scorer-emails');
+    var newField = emailFields.children[0].cloneNode(true);
+    var fieldCount = emailFields.children.length;
+    
+    newField.querySelector('input').name = 'scorer_emails-' + fieldCount;
+    newField.querySelector('input').id = 'scorer_emails-' + fieldCount;
+    newField.querySelector('input').value = '';
+    
+    emailFields.appendChild(newField);
 });
 </script>
 {% endblock %}

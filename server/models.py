@@ -20,6 +20,7 @@ metadata = Base.metadata
 class Role(PyEnum):
     admin = "admin"
     editor = "editor"
+    scorer = "scorer"
 
 
 class Access(Base):

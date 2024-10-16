@@ -2,10 +2,6 @@
 
 {% block title %}Edit Tournament Metadata{% endblock %}
 
-{% block extra_head %}
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-{% endblock %}
-
 {% block content %}
 <h1>Edit Tournament</h1>
 <form method="POST">
@@ -84,19 +80,19 @@
 
     <p>
         {{ form.url.label }}<br>
-        {{ form.url(id="url", size=80) }}
+        {{ form.url(size=80, id="url") }}
         <span id="url_status"></span>
         {% for error in form.url.errors %}
-          <span class=formError>[{{ error }}]</span>
+          <span class=error>[{{ error }}]</span>
         {% endfor %}
     </p>
 
     <p>
         {{ form.url_icon.label }}<br>
-        {{ form.url_icon(id="url_icon", size=80) }}
+        {{ form.url_icon(size=80, id="url_icon") }}
         <span id="icon_status"></span>
         {% for error in form.url_icon.errors %}
-          <span class=formError>[{{ error }}]</span>
+          <span class=error>[{{ error }}]</span>
         {% endfor %}
     </p>
 
@@ -140,93 +136,73 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="{{ url_for('static', filename='js/validation.js') }}"></script>
 <script>
-function checkUrl() {
-    $.get(this.value).done(function() {
-        $('#url_status').html('<span style="color:green;">✔️</span>');
-    }).fail(function() {
-        $('#url_status').html('<span style="color:red;">❌</span>');
-    });
-}
-function checkImg(){
-    var img = new Image();
-    img.src = this.value;
-    console.log(this.value);
-    img.onload = function() {
-        $('#icon_status').html('<img src="' + img.src + '" width="50" height="50">');
-    }
-    img.onerror = function() {
-        $('#icon_status').html('<span style="color:red;">❌</span>');
-    }
-}
-var urlField = $('#url');
-var iconField =$('#url_icon') ;
-
-$(document).ready(function(){
-    urlField.change(checkUrl);
-    iconField.change(checkImg);
-    checkUrl.call(urlField.get()[0]);
-    checkImg.call(iconField.get()[0]);
-});
-
-var googleDocField = $('#google_doc_id');
-var unlockButton = $('#unlock_google_doc');
-var revertButton = $('#revert_google_doc');
-var originalGoogleDocId = googleDocField.val();
+var googleDocField = document.getElementById('google_doc_id');
+var unlockButton = document.getElementById('unlock_google_doc');
+var revertButton = document.getElementById('revert_google_doc');
+var originalGoogleDocId = googleDocField.value;
 var alertWasShown = false;
 
 function checkGoogleDoc() {
-    var docId = googleDocField.val();
+    var docId = googleDocField.value;
 
-    $.ajax({
-        url: '/run/validate_google_doc',
+    fetch('/run/validate_google_doc', {
         method: 'POST',
-        data: { doc_id: docId },
-        success: function(response) {
-            if (response.valid) {
-                $('#google_doc_status').html('<span style="color:green;">✔️</span>');
-                var url = 'https://docs.google.com/spreadsheets/d/' + docId;
-                $('#google_doc_link').attr('href', url).show();
-                $('#google_doc_link').next('.formError').hide();
-            } else {
-                $('#google_doc_status').html('<span style="color:red;">❌</span>');
-                $('#google_doc_link').hide();
-            }
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
         },
-        error: function() {
-            $('#google_doc_status').html('<span style="color:red;">❌</span>');
-            $('#google_doc_link').hide();
+        body: 'doc_id=' + encodeURIComponent(docId)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valid) {
+            document.getElementById('google_doc_status').innerHTML = '<span style="color:green;">✔️</span>';
+            var url = 'https://docs.google.com/spreadsheets/d/' + docId;
+            var linkElement = document.getElementById('google_doc_link');
+            linkElement.href = url;
+            linkElement.style.display = 'inline';
+            linkElement.nextElementSibling.style.display = 'none';
+        } else {
+            throw new Error('Invalid Google Doc');
         }
+    })
+    .catch(() => {
+        document.getElementById('google_doc_status').innerHTML = '<span style="color:red;">❌</span>';
+        document.getElementById('google_doc_link').style.display = 'none';
     });
 }
 
-unlockButton.click(function() {
-    let goodToGo = alertWasShown || confirm("It is dangerous to change this field. "
-        + " Are you sure you want to proceed?");
+unlockButton.addEventListener('click', function() {
+    let goodToGo = alertWasShown || confirm("It is dangerous to change this field. Are you sure you want to proceed?");
     if (goodToGo) {
-        googleDocField.prop('readonly', false);
-        unlockButton.hide();
-        revertButton.show();
+        googleDocField.readOnly = false;
+        unlockButton.style.display = 'none';
+        revertButton.style.display = 'inline';
     }
     alertWasShown = true;
 });
 
-revertButton.click(function() {
-    googleDocField.val(originalGoogleDocId);
-    googleDocField.prop('readonly', true);
+revertButton.addEventListener('click', function() {
+    googleDocField.value = originalGoogleDocId;
+    googleDocField.readOnly = true;
     checkGoogleDoc();
-    unlockButton.show();
-    revertButton.hide();
+    unlockButton.style.display = 'inline';
+    revertButton.style.display = 'none';
 });
 
-googleDocField.change(checkGoogleDoc);
+googleDocField.addEventListener('change', checkGoogleDoc);
 
-$(document).ready(function(){
+document.addEventListener('DOMContentLoaded', function() {
     checkGoogleDoc();
-    $('#htmlnotes').on('input', function() {
-        $('#htmlnotes_preview').html($(this).val());
+    var htmlnotesField = document.getElementById('htmlnotes');
+    var htmlnotesPreview = document.getElementById('htmlnotes_preview');
+    
+    htmlnotesField.addEventListener('input', function() {
+        htmlnotesPreview.innerHTML = this.value;
     });
-    $('#htmlnotes').trigger('input');
+    
+    htmlnotesField.dispatchEvent(new Event('input'));
 });
 
 </script>
