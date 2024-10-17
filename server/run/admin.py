@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, render_template, jsonify
-from flask_login import current_user, login_required
+from flask import Blueprint, render_template, jsonify, abort
+from flask_login import login_required, current_user
 import os
 import shutil
+from functools import wraps
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
 from write_sheet import googlesheet
 from models import Tournament, Access
@@ -12,14 +13,23 @@ from oauth_setup import db, firestore_client
 blueprint = Blueprint("admin", __name__)
 
 
+def superadmin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.email not in OUR_EMAILS:
+            abort(404)  # or you could use 403 for Forbidden if you prefer
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 @blueprint.route(
     "/admin/delete_sheet/<doc_id>",
     methods=["DELETE"],
 )
+@superadmin_required
 @login_required
 def delete_sheet(doc_id):
-    if current_user.email not in OUR_EMAILS:
-        return "not found", 404
     if doc_id == TEMPLATE_ID:
         return "Sorry Dave, I can't do that", 403
     googlesheet.delete_sheet(doc_id)
@@ -30,13 +40,12 @@ def delete_sheet(doc_id):
     "/admin/delete_tournament/<int:t_id>",
     methods=["DELETE"],
 )
+@superadmin_required
 @login_required
 def delete_tournament(t_id):
-    if current_user.email not in OUR_EMAILS:
-        return "not found", 404
     if t_id < 4:
         return "Sorry Dave, I can't do that", 403
-    
+
     try:
         # Fetch the tournament
         tournament = db.session.query(Tournament).get(t_id)
@@ -45,7 +54,9 @@ def delete_tournament(t_id):
 
         # Delete from Firestore
         if tournament.firebase_doc:
-            firestore_client.collection('tournaments').document(tournament.firebase_doc).delete()
+            firestore_client.collection("tournaments").document(
+                tournament.firebase_doc
+            ).delete()
 
         # Delete web directory
         if tournament.web_directory:
@@ -65,28 +76,31 @@ def delete_tournament(t_id):
 
 
 @blueprint.route("/admin/list")
+@superadmin_required
 @login_required
-def superuser():
-    if current_user.email not in OUR_EMAILS:
-        return "not found", 404
+def superadmin():
     try:
         # Fetch all tournaments from the database
         all_tournaments = db.session.query(Tournament).all()
-        
+
         # Filter tournaments based on Firestore status
         filtered_tournaments = []
         for tournament in all_tournaments:
             if tournament.firebase_doc:
-                doc_ref = firestore_client.collection('tournaments').document(tournament.firebase_doc)
+                doc_ref = firestore_client.collection("tournaments").document(
+                    tournament.firebase_doc
+                )
                 doc = doc_ref.get()
                 if doc.exists:
-                    status = doc.to_dict().get('status')
-                    if status in ('upcoming', 'test'):
+                    status = doc.to_dict().get("status")
+                    if status in ("upcoming", "test"):
                         filtered_tournaments.append(tournament)
 
         docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
-        our_docs = [doc for doc in docs if doc['ours'] and doc['id'] != TEMPLATE_ID]
+        our_docs = [doc for doc in docs if doc["ours"] and doc["id"] != TEMPLATE_ID]
 
-        return render_template('adminlist.html', docs=our_docs, tournaments=filtered_tournaments)
+        return render_template(
+            "adminlist.html", docs=our_docs, tournaments=filtered_tournaments
+        )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500

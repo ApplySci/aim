@@ -23,9 +23,10 @@
     <h2>List of tournaments in database</h2>
     <ul>
         {% for t in tournaments %}
-            <li>
+            <li id="tournament-{{ t.id }}">
+                {{ t.title }}
                 <button onclick="delete_tournament({{ t.id }})">
-                delete {{ t.title }}
+                    Delete
                 </button>
             </li>
         {% endfor %}
@@ -46,7 +47,7 @@ function delet_dis(index, id) {
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
     xhr.open("DELETE",
-      `{{ url_for('admin.delet_sheet', doc_id='') }}${id}`,
+      `{{ url_for('admin.delete_sheet', doc_id='') }}${id}`,
       true);
     xhr.onload = function() {
         if (xhr.readyState == 4) {
@@ -57,6 +58,36 @@ function delet_dis(index, id) {
         }
     }
     xhr.send();
+}
+</script>
+<script>
+function delete_tournament(tournamentId) {
+    if (confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) {
+        fetch(`/admin/delete_tournament/${tournamentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            throw new Error('Network response was not ok.');
+        })
+        .then(data => {
+            alert(data);  // Show success message
+            // Remove the tournament from the DOM
+            const tournamentElement = document.getElementById(`tournament-${tournamentId}`);
+            if (tournamentElement) {
+                tournamentElement.remove();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the tournament. Please try again.');
+        });
+    }
 }
 </script>
 {% endblock %}
