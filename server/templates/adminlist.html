@@ -20,6 +20,19 @@
 </section>
 
 <section>
+    <h2>List of tournaments in database</h2>
+    <ul>
+        {% for t in tournaments %}
+            <li>
+                <button onclick="delete_tournament({{ t.id }})">
+                delete {{ t.title }}
+                </button>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section>
 <h2>Firestore database:</h2>
 <a target="_blank"
 href='https://console.firebase.google.com/u/0/project/ie-mahjong-tournament/firestore/databases/-default-/data/~2Ftournaments~2FY3sDqxajiXefmP9XBTvY'
@@ -33,7 +46,7 @@ function delet_dis(index, id) {
     let xhr = new XMLHttpRequest();
     let timestamp = new Date().getTime();
     xhr.open("DELETE",
-      `{{ url_for('admin.delet_dis', doc_id='') }}${id}`,
+      `{{ url_for('admin.delet_sheet', doc_id='') }}${id}`,
       true);
     xhr.onload = function() {
         if (xhr.readyState == 4) {
