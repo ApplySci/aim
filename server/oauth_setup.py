@@ -32,47 +32,7 @@ def config_db(app):
         os.path.join(app_directory, db_file)
 
     db.init_app(app)
-    with app.app_context():
-        # ensure our defaults are in place
-        scoresheet_ids = (
-            '1wbxTZJnF-CE90xYEk34z9WgDjawdbHbW_Rb8fQ9yd6A',
-            )
-        firebase_docs = (
-            'test2',
-            )
-        webdirs = (
-            'wr',
-            )
-        titles = (
-            'World Riichi App - demo tournament for testing',
-            )
-        addresses = (
-            'Grimsby Dock Tower, Wharncliffe Rd N, Grimsby DN31 3QL, UK',
-            )
 
-        for email in DEFAULT_USERS:
-            if not db.session.query(User).get(email):
-                db.session.add(User(email=email))
-        db.session.commit()
-
-        for i in range(2):
-            if not db.session.query(Tournament).filter_by(
-                    google_doc_id=scoresheet_ids[i]).first():
-                t = Tournament(
-                    google_doc_id=scoresheet_ids[i],
-                    title=titles[i],
-                    web_directory=webdirs[i],
-                    firebase_doc=firebase_docs[i],
-                    address=addresses[i],
-                    )
-                db.session.add(t)
-                for email in DEFAULT_USERS:
-                    db.session.add(Access(
-                        user_email=email,
-                        tournament_id=t.id,
-                        role=Role.admin,
-                        ))
-                db.session.commit()
 
 
 def config_jinja(app):

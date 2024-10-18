@@ -93,7 +93,7 @@ def edit_tournament():
     else:
         if form.validate_on_submit():
             updated_data = {
-                "name": form.name.data,
+                "name": form.title.data,
                 "address": form.address.data,
                 "country": form.country.data,
                 "start_date": form.start_date.data,

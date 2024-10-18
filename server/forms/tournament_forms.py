@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import re
 
 from config import BASEDIR
 from flask_wtf import FlaskForm
@@ -107,6 +108,11 @@ def validate_other_name(form, field):
             raise ValidationError('Missing the "?" placeholder')
 
 
+def validate_web_directory_format(form, field):
+    if not re.match(r'^[-_a-z0-9]+$', field.data):
+        raise ValidationError("Web directory can only contain letters, numbers, hyphens, and underscores.")
+
+
 class TournamentForm(FlaskForm):
     title = StringField(
         "Tournament name",
@@ -159,7 +165,12 @@ class TournamentForm(FlaskForm):
         "Google Doc ID", validators=[Optional(), validate_google_doc_id]
     )
     web_directory = StringField(
-        "Short name (for URLs)", validators=[DataRequired(), validate_web_directory]
+        "Short name (for URLs); use only -_a-z0-9", 
+        validators=[
+            DataRequired(), 
+            validate_web_directory, 
+            Regexp(r'^[-_a-z0-9]+$', message="Only letters, numbers, hyphens, and underscores are allowed")
+        ]
     )
     htmlnotes = TextAreaField(
         f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
@@ -242,4 +253,17 @@ class EditTournamentForm(TournamentForm):
         super(EditTournamentForm, self).__init__(*args, **kwargs)
         # Remove validators from fields that shouldn't be validated during edit
         self.google_doc_id.validators = [Optional()]
-        self.web_directory.validators = [DataRequired()]
+        self.web_directory.validators = [
+            DataRequired(),
+            Regexp(r'^[-_a-zA-Z0-9]+$', message="Only letters, numbers, hyphens, and underscores are allowed")
+        ]
+
+        # Remove fields that are not needed for editing
+        del self.hanchan_name
+        del self.other_name
+        del self.table_count
+        del self.hanchan_count
+        del self.timezone
+        del self.round_dates
+        del self.notify
+        del self.scorer_emails

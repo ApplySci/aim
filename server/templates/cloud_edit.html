@@ -109,8 +109,8 @@
     </p>
 
     <p>
-        {{ form.web_directory.label }} DANGER<br>
-        {{ form.web_directory(size=80) }}
+        {{ form.web_directory.label }} <B>DANGER</B><br>
+        {{ form.web_directory(size=80, pattern="[-_a-z0-9]+", title="Only -_a-z0-9 are allowed") }}
         {% for error in form.web_directory.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
