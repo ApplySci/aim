@@ -21,13 +21,13 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
-from forms.tournament_forms import TournamentForm
+from config import BASEDIR
+from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client
 from write_sheet import googlesheet
 
 blueprint = Blueprint("edit", __name__)
 
-BASEDIR = "/home/model/apps/tournaments/static/"
 ALLOWED_TAGS = [
     "p",
     "b",
@@ -49,7 +49,7 @@ ALLOWED_TAGS = [
 def validate_web_directory(form, field):
     full_path = os.path.join(BASEDIR, field.data)
     if not os.path.isdir(full_path):
-        raise ValidationError("Invalid directory path.")
+        raise ValidationError("Directory does not exist")
 
 
 def get_tournament_data(firebase_id):
@@ -80,7 +80,7 @@ def get_dates_from_sheet():
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
-    form = TournamentForm(custom_start_date=dates[1], custom_end_date=dates[2])
+    form = EditTournamentForm(is_edit=True, custom_start_date=dates[1], custom_end_date=dates[2])
 
     if request.method == "GET":
         tournament_data = get_tournament_data(firebase_id)
@@ -89,9 +89,7 @@ def edit_tournament():
 
         # Populate form with local database data
         form.google_doc_id.data = current_user.live_tournament.google_doc_id
-        form.web_directory.data = current_user.live_tournament.web_directory.replace(
-            BASEDIR, ""
-        )
+        form.web_directory.data = current_user.live_tournament.web_directory
     else:
         if form.validate_on_submit():
             updated_data = {
@@ -116,19 +114,32 @@ def edit_tournament():
 
             # Update local database
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
-            current_user.live_tournament.web_directory = os.path.join(
-                BASEDIR, form.web_directory.data
-            )
+            current_user.live_tournament.web_directory = form.web_directory.data
             db.session.commit()
 
-            # TODO create the web directory if it doesn't exist
-            #      and if that fails, we need to abort. Perhaps we should do
-            #      this in a custom validator
+            # Create the web directory if it doesn't exist
+            full_path = os.path.join(BASEDIR, form.web_directory.data)
+            if not os.path.exists(full_path):
+                try:
+                    os.makedirs(full_path)
+                except OSError:
+                    flash("Failed to create web directory", "error")
+                    return render_template(
+                        "cloud_edit.html",
+                        form=form,
+                        firebase_id=firebase_id,
+                        timezone=dates[0],
+                        span=f"{dates[1]} - {dates[2]}",
+                    )
 
             flash("Tournament data updated successfully", "success")
             return redirect(url_for("run.run_tournament"))
 
         flash("validation failed", "error")
+        print("Form validation failed. Specific errors:")
+        for field, errors in form.errors.items():
+            for error in errors:
+                print(f"Field '{field}': {error}")
 
     return render_template(
         "cloud_edit.html",

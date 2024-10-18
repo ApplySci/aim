@@ -109,8 +109,8 @@
     </p>
 
     <p>
-        {{ form.web_directory.label }}<br>
-        {{BASEDIR}}{{ form.web_directory(size=80) }}
+        {{ form.web_directory.label }} DANGER<br>
+        {{ form.web_directory(size=80) }}
         {% for error in form.web_directory.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -146,8 +146,15 @@ var alertWasShown = false;
 
 function checkGoogleDoc() {
     var docId = googleDocField.value;
+    var statusElement = document.getElementById('google_doc_status');
+    var linkElement = document.getElementById('google_doc_link');
 
-    fetch('/run/validate_google_doc', {
+    function failCheck() {
+        statusElement.innerHTML = '<span style="color:red;">❌</span>';
+        linkElement.style.display = 'none';
+    }
+
+    fetch('{{ url_for("edit.validate_google_doc") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -157,20 +164,16 @@ function checkGoogleDoc() {
     .then(response => response.json())
     .then(data => {
         if (data.valid) {
-            document.getElementById('google_doc_status').innerHTML = '<span style="color:green;">✔️</span>';
+            statusElement.innerHTML = '<span style="color:green;">✔️</span>';
             var url = 'https://docs.google.com/spreadsheets/d/' + docId;
-            var linkElement = document.getElementById('google_doc_link');
             linkElement.href = url;
             linkElement.style.display = 'inline';
-            linkElement.nextElementSibling.style.display = 'none';
+            linkElement.textContent = 'View Sheet'; // Add text to the link
         } else {
-            throw new Error('Invalid Google Doc');
+            failCheck();
         }
     })
-    .catch(() => {
-        document.getElementById('google_doc_status').innerHTML = '<span style="color:red;">❌</span>';
-        document.getElementById('google_doc_link').style.display = 'none';
-    });
+    .catch(failCheck);
 }
 
 unlockButton.addEventListener('click', function() {

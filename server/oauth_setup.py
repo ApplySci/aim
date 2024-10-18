@@ -35,23 +35,18 @@ def config_db(app):
     with app.app_context():
         # ensure our defaults are in place
         scoresheet_ids = (
-            '1kTAYPtyX_Exl6LcpyCO3-TOCr36Mf-w8z8Jtg_O6Gw8',
             '1wbxTZJnF-CE90xYEk34z9WgDjawdbHbW_Rb8fQ9yd6A',
             )
         firebase_docs = (
-            'Y3sDqxajiXefmP9XBTvY',
             'test2',
             )
         webdirs = (
-            '/home/model/apps/tournaments/myapp/static/',
-            '/home/model/apps/tournaments/myapp/static/wr/',
+            'wr',
             )
         titles = (
-            'Irish Riichi Open, Cork 2024',
             'World Riichi App - demo tournament for testing',
             )
         addresses = (
-            'The Crows Nest, Victoria Cross Road, Cork, Ireland',
             'Grimsby Dock Tower, Wharncliffe Rd N, Grimsby DN31 3QL, UK',
             )
 

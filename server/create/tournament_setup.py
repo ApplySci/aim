@@ -19,7 +19,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from config import GOOGLE_CLIENT_EMAIL
+from config import GOOGLE_CLIENT_EMAIL, BASEDIR
 from forms.tournament_forms import TournamentForm
 from models import Access, Role, Tournament, User
 from oauth_setup import db, firestore_client
@@ -33,7 +33,7 @@ messages_by_user = {}
 @blueprint.route("/create/")
 def index():
     if current_user.is_authenticated:
-        return render_template("welcome_admin.html")
+        return redirect(url_for('run.select_tournament'))
     else:
         return render_template("welcome_anon.html")
 
@@ -100,7 +100,7 @@ def results_create():
                     Access(user=scorer, tournament=tournament, role=Role.scorer)
                 )
         db.session.commit()
-        base_dir = os.path.join("myapp/static", form.web_directory.data)
+        base_dir = tournament.full_web_directory()
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(os.path.join(base_dir, "rounds"), exist_ok=True)
         os.makedirs(os.path.join(base_dir, "players"), exist_ok=True)

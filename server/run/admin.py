@@ -60,7 +60,7 @@ def delete_tournament(t_id):
 
         # Delete web directory
         if tournament.web_directory:
-            web_dir_path = f"myapp/static/{tournament.web_directory}"
+            web_dir_path = tournament.full_web_directory
             if os.path.exists(web_dir_path):
                 shutil.rmtree(web_dir_path)
 

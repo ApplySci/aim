@@ -88,7 +88,7 @@ def _ranking_to_web(scores, games, players, done, schedule):
                            webroot=webroot(),
                            )
     fn = os.path.join(
-        current_user.live_tournament.web_directory,
+        current_user.live_tournament.full_web_directory,
         'projector.html')
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
@@ -118,7 +118,7 @@ def _ranking_to_web(scores, games, players, done, schedule):
                            games=scores_by_player,
                            )
     fn = os.path.join(
-        current_user.live_tournament.web_directory,
+        current_user.live_tournament.full_web_directory,
         'ranking.html')
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
@@ -189,7 +189,7 @@ def _seating_to_web(sheet, seating):
         roundNames=_round_names(schedule),
         )
     fn = os.path.join(
-        current_user.live_tournament.web_directory,
+        current_user.live_tournament.full_web_directory,
         'seating.html')
     with open(fn, 'w', encoding='utf-8') as f:
         f.write(html)
@@ -263,12 +263,7 @@ def _get_one_round_results(sheet, rnd: int):
     return {f"{rnd}": tables}
 
 def webroot():
-    start = "/static/"
-    # TODO this crashes when we've just created the tournament,
-    # as the web_directory is not yet set. Maybe fix the creation form
-    # to set the web_directory. And check whether it already exists.
-    result = current_user.live_tournament.web_directory.split(start, 1)[-1]
-    return start + result
+    return '/static/' + current_user.live_tournament.web_directory
 
 def _round_names(schedule):
     roundNames = {}
@@ -279,7 +274,7 @@ def _round_names(schedule):
 @login_required
 def _games_to_web(games, schedule, players):
     roundNames = _round_names(schedule)
-    player_dir = os.path.join(current_user.live_tournament.web_directory,
+    player_dir = os.path.join(current_user.live_tournament.full_web_directory,
                               "players",)
 
     if not os.path.exists(player_dir):
@@ -317,7 +312,7 @@ def _games_to_web(games, schedule, players):
 
     # =======================================================
 
-    round_dir = os.path.join(current_user.live_tournament.web_directory,
+    round_dir = os.path.join(current_user.live_tournament.full_web_directory,
                               "rounds",)
 
     if not os.path.exists(round_dir):

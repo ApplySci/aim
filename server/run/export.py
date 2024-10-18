@@ -35,22 +35,6 @@ css_cache = {}
 all_css_content = ""
 
 
-def get_tournament_short_name(web_directory):
-    """
-    Extract the tournament short name from the web directory path.
-
-    Args:
-        web_directory (str): The web directory path.
-
-    Returns:
-        str: The tournament short name, or None if not found.
-    """
-    parts = web_directory.split("static/", 1)
-    if len(parts) > 1:
-        return parts[1].split("/", 1)[0]
-    return None
-
-
 def read_css_file(filepath):
     """
     Read the contents of a CSS file.
@@ -65,12 +49,11 @@ def read_css_file(filepath):
         return f.read()
 
 
-def get_css_content(web_directory, html_soup):
+def get_css_content(html_soup):
     """
     Extract and cache CSS content from linked stylesheets in the HTML.
 
     Args:
-        web_directory (str): The web directory path.
         html_soup (BeautifulSoup): The parsed HTML content.
 
     Returns:
@@ -107,14 +90,13 @@ def preprocess_html(html_content):
     return html_content
 
 
-def read_html_file(filepath, web_directory, tournament_short_name, is_root=False):
+def read_html_file(filepath, tournament_short_name, is_root=False):
     """
     Read and process an HTML file, modifying links and content for WordPress
     compatibility.
 
     Args:
         filepath (str): The path to the HTML file.
-        web_directory (str): The web directory path.
         tournament_short_name (str): The short name of the tournament.
         is_root (bool): Whether this is the root (main tournament) page.
 
@@ -136,7 +118,7 @@ def read_html_file(filepath, web_directory, tournament_short_name, is_root=False
     # Parse the preprocessed HTML with html5lib parser
     soup = BeautifulSoup(html_content, "html5lib")
 
-    get_css_content(web_directory, soup)
+    get_css_content(soup)
     main_content = soup.body
     if main_content:
         player_name = None
@@ -308,7 +290,7 @@ def generate_wordpress_pages():
     wp_pages = []
     web_directory = current_user.live_tournament.web_directory
     tournament_id = current_user.live_tournament.id
-    tournament_tag = get_tournament_short_name(web_directory)
+    tournament_tag = current_user.live_tournament.web_directory
     tournament_parent_title = tournament_tag.capitalize()
     tournament_parent_slug = f"t{tournament_id}_{tournament_tag.lower()}"
 
@@ -347,7 +329,7 @@ def generate_wordpress_pages():
     ranking_content = ""
     if os.path.exists(ranking_filepath):
         ranking_content, _ = read_html_file(
-            ranking_filepath, web_directory, tournament_tag, is_root=True
+            ranking_filepath, tournament_tag, is_root=True
         )
 
     main_content = f"""
@@ -366,9 +348,7 @@ def generate_wordpress_pages():
         for filename in os.listdir(player_dir):
             if filename.endswith(".html"):
                 filepath = os.path.join(player_dir, filename)
-                content, player_name = read_html_file(
-                    filepath, web_directory, tournament_tag
-                )
+                content, player_name = read_html_file(filepath, tournament_tag)
                 player_id = filename.replace(".html", "")
                 title = (
                     f"{tournament_name} - {player_name}"
@@ -385,7 +365,7 @@ def generate_wordpress_pages():
         for filename in os.listdir(rounds_dir):
             if filename.endswith(".html"):
                 filepath = os.path.join(rounds_dir, filename)
-                content, _ = read_html_file(filepath, web_directory, tournament_tag)
+                content, _ = read_html_file(filepath, tournament_tag)
                 round_name = filename.replace(".html", "")
                 title = f"{tournament_name} - Round {round_name}"
                 slug = f"{tournament_parent_slug}/r{round_name}"
@@ -488,9 +468,7 @@ def export_wordpress():
     """
     global all_css_content
     export_data = generate_wordpress_wxr()
-    tournament_tag = get_tournament_short_name(
-        current_user.live_tournament.web_directory
-    )
+    tournament_tag = current_user.live_tournament.web_directory
     modified_css_content = modify_css_content(all_css_content, tournament_tag)
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, "w") as zf:

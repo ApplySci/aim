@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 
+from config import BASEDIR
 from flask_wtf import FlaskForm
 import pycountry
 import pytz
@@ -28,7 +29,6 @@ from wtforms.validators import (
 
 from write_sheet import googlesheet
 
-BASEDIR = "/home/model/apps/tournaments/static/"
 ALLOWED_TAGS = [
     "p",
     "b",
@@ -86,14 +86,15 @@ def validate_google_doc_id(form, field):
 
 
 def validate_web_directory(form, field):
-    directory_path = os.path.join(BASEDIR, field.data)
-    if os.path.exists(directory_path) and any(
-        os.path.isfile(os.path.join(directory_path, entry))
-        for entry in os.listdir(directory_path)
-    ):
-        raise ValidationError(
-            "This directory already exists and is not empty. Please choose a different name."
-        )
+    if not hasattr(form, 'is_edit') or not form.is_edit:
+        directory_path = os.path.join(BASEDIR, field.data)
+        if os.path.exists(directory_path) and any(
+            os.path.isfile(os.path.join(directory_path, entry))
+            for entry in os.listdir(directory_path)
+        ):
+            raise ValidationError(
+                "This directory already exists and is not empty. Please choose a different name."
+            )
 
 
 def validate_other_name(form, field):
@@ -211,6 +212,7 @@ class TournamentForm(FlaskForm):
     submit = SubmitField("Submit")
 
     def __init__(self, *args, **kwargs):
+        self.is_edit = kwargs.pop('is_edit', False)
         self.custom_start_date = kwargs.pop("custom_start_date", None)
         self.custom_end_date = kwargs.pop("custom_end_date", None)
         super(TournamentForm, self).__init__(*args, **kwargs)
@@ -229,3 +231,15 @@ class TournamentForm(FlaskForm):
             else self.hanchan_name.data
         )
         return [template.replace("?", str(i + 1)) for i in range(len(self.round_dates))]
+
+
+class EditTournamentForm(TournamentForm):
+    class Meta:
+        # List of fields to include
+        include = ['title', 'start_date', 'end_date', 'address', 'country', 'status', 'rules', 'url', 'url_icon', 'google_doc_id', 'web_directory', 'htmlnotes', 'submit']
+
+    def __init__(self, *args, **kwargs):
+        super(EditTournamentForm, self).__init__(*args, **kwargs)
+        # Remove validators from fields that shouldn't be validated during edit
+        self.google_doc_id.validators = [Optional()]
+        self.web_directory.validators = [DataRequired()]

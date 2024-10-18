@@ -18,3 +18,4 @@ DEFAULT_USERS = (
                  DEFAULT_OWNER,
                  {other gmail addresses for default users you want to seed the db with},
                  )
+BASEDIR = "/var/www/tournaments/"

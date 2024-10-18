@@ -5,12 +5,14 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import List, Optional
+import os
 
 from flask_login import UserMixin
 from sqlalchemy import Enum, ForeignKey, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String
 
+from config import BASEDIR
 
 class Base(DeclarativeBase):
     pass
@@ -63,13 +65,17 @@ class Tournament(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     google_doc_id: Mapped[str] # google sheet id
     title: Mapped[str]
-    web_directory: Mapped[Optional[str]]
+    web_directory: Mapped[str]  # Store only the short name
     firebase_doc: Mapped[Optional[str]]
     users: Mapped[List[Access]] = relationship(back_populates="tournament")
     hanchans: Mapped[List[Hanchan]] = relationship(
        "Hanchan",
        back_populates="tournament",
     )
+
+    @property
+    def full_web_directory(self):
+        return os.path.join(BASEDIR, self.web_directory)
 
 
 class User(Base, UserMixin):
