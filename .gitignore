@@ -65,3 +65,4 @@ app.*.map.json
 /server/seating/gams/cplex.opt
 /server/seating/gams/seats/*
 /server/seating/gams/225*
+/server/.server-admin/tournaments.sqlite3

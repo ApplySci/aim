@@ -60,20 +60,14 @@ def url_ok(form, field):
 
 
 def validate_start_date(form, field):
-    if (
-        form.custom_start_date
-        and datetime.strptime(form.custom_start_date, "%A %d %B %Y, %H:%M") < field.data
-    ):
+    if form.custom_start_date and form.custom_start_date < field.data:
         raise ValidationError(
             "Start date must be earlier than or equal to start of first hanchan"
         )
 
 
 def validate_end_date(form, field):
-    if (
-        form.custom_end_date
-        and datetime.strptime(form.custom_end_date, "%A %d %B %Y, %H:%M") >= field.data
-    ):
+    if form.custom_end_date and form.custom_end_date >= field.data:
         raise ValidationError(
             "End date must be later than the start of the last hanchan."
         )

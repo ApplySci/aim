@@ -93,7 +93,7 @@ def edit_tournament():
     friendly_end_date = end_date_plus_3.strftime("%A %d %B %Y, %H:%M")
 
     form = EditTournamentForm(
-        is_edit=True, custom_start_date=start_date, custom_end_date=end_date_plus_3
+        is_edit=True, custom_start_date=start_date, custom_end_date=end_date
     )
 
     if request.method == "GET":

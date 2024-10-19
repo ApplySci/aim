@@ -1,0 +1,1 @@
+supervisord -c /home/model/supervisord.conf
