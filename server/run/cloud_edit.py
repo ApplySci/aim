@@ -3,7 +3,7 @@
 TODO get tournament hanchan times, and timezone, from googlesheet
 
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 import bleach
@@ -80,7 +80,21 @@ def get_dates_from_sheet():
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
-    form = EditTournamentForm(is_edit=True, custom_start_date=dates[1], custom_end_date=dates[2])
+
+    # Parse the dates and format them for the datetime-local input
+    start_date = datetime.strptime(dates[1], "%A %d %B %Y, %H:%M")
+    end_date = datetime.strptime(dates[2], "%A %d %B %Y, %H:%M")
+    end_date_plus_3 = end_date + timedelta(hours=3)
+
+    formatted_start_date = start_date.strftime("%Y-%m-%dT%H:%M")
+    formatted_end_date = end_date_plus_3.strftime("%Y-%m-%dT%H:%M")
+
+    # Format end_date_plus_3 in the same friendly format as the original dates
+    friendly_end_date = end_date_plus_3.strftime("%A %d %B %Y, %H:%M")
+
+    form = EditTournamentForm(
+        is_edit=True, custom_start_date=start_date, custom_end_date=end_date_plus_3
+    )
 
     if request.method == "GET":
         tournament_data = get_tournament_data(firebase_id)
@@ -113,6 +127,7 @@ def edit_tournament():
             update_tournament_data(firebase_id, updated_data)
 
             # Update local database
+            current_user.live_tournament.title = form.title.data
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = form.web_directory.data
             db.session.commit()
@@ -146,7 +161,10 @@ def edit_tournament():
         form=form,
         firebase_id=firebase_id,
         timezone=dates[0],
-        span=f"{dates[1]} - {dates[2]}",
+        startdate=formatted_start_date,
+        enddate=formatted_end_date,
+        friendly_startdate=dates[1],
+        friendly_enddate=friendly_end_date
     )
 
 

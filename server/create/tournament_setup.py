@@ -2,7 +2,7 @@
 """
 creates the front-end pages for the user to set up a new google scoresheet.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import zip_longest  # Add this import at the top of the file
 import os
 import threading
@@ -68,10 +68,13 @@ def results_create():
         db.session.commit()
         current_user.live_tournament = tournament
 
+        # Calculate end_date by adding 3 hours to the last round date
+        end_date = form.round_dates[-1].data + timedelta(hours=3)
+
         firestore_data = {
             "name": form.title.data,
             "start_date": form.round_dates[0].data,
-            "end_date": form.round_dates[-1].data,
+            "end_date": end_date,
             "status": "upcoming",
             "rules": form.rules.data,
             "country": form.country.data,

@@ -12,12 +12,11 @@
     </p>
 
     <p>
-        Note: Hanchan times should be updated in the google sheet, not here.
-        All date/times must be given local to the tournament's timezone:
-        <code>{{ timezone }}</code>
+        Date/times are local to the tournament's timezone:
+        <b>{{ timezone }}</b>. The recommended start and end times of the tournament have
+        been taken from the google sheet.
     </p>
-
-    <p>Google sheet says the tournament is {{span}}</p>
+    
     <p>
         {{ form.title.label }}<br>
         {{ form.title(size=80) }}
@@ -29,6 +28,7 @@
     <p>
         {{ form.start_date.label }}<br>
         {{ form.start_date() }}
+        <button type="button" id="set_start_date">{{ friendly_startdate }}</button>
         {% for error in form.start_date.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -37,6 +37,7 @@
     <p>
         {{ form.end_date.label }}<br>
         {{ form.end_date() }}
+        <button type="button" id="set_end_date">{{ friendly_enddate }}</button>
         {% for error in form.end_date.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -109,8 +110,10 @@
     </p>
 
     <p>
-        {{ form.web_directory.label }} <B>DANGER</B><br>
-        {{ form.web_directory(size=80, pattern="[-_a-z0-9]+", title="Only -_a-z0-9 are allowed") }}
+        {{ form.web_directory.label }}<br>
+        {{ form.web_directory(size=80, pattern="[-_a-zA-Z0-9]+", title="Only letters, numbers, hyphens, and underscores are allowed", readonly=true, id="web_directory") }}
+        <button type="button" id="unlock_web_directory">Unlock</button>
+        <button type="button" id="revert_web_directory" style="display:none;">Revert</button>
         {% for error in form.web_directory.errors %}
           <span class=formError>[{{ error }}]</span>
         {% endfor %}
@@ -138,66 +141,100 @@
 {{ super() }}
 <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
 <script>
-var googleDocField = document.getElementById('google_doc_id');
-var unlockButton = document.getElementById('unlock_google_doc');
-var revertButton = document.getElementById('revert_google_doc');
-var originalGoogleDocId = googleDocField.value;
-var alertWasShown = false;
-
-function checkGoogleDoc() {
-    var docId = googleDocField.value;
-    var statusElement = document.getElementById('google_doc_status');
-    var linkElement = document.getElementById('google_doc_link');
-
-    function failCheck() {
-        statusElement.innerHTML = '<span style="color:red;">❌</span>';
-        linkElement.style.display = 'none';
-    }
-
-    fetch('{{ url_for("edit.validate_google_doc") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'doc_id=' + encodeURIComponent(docId)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.valid) {
-            statusElement.innerHTML = '<span style="color:green;">✔️</span>';
-            var url = 'https://docs.google.com/spreadsheets/d/' + docId;
-            linkElement.href = url;
-            linkElement.style.display = 'inline';
-            linkElement.textContent = 'View Sheet'; // Add text to the link
-        } else {
-            failCheck();
-        }
-    })
-    .catch(failCheck);
-}
-
-unlockButton.addEventListener('click', function() {
-    let goodToGo = alertWasShown || confirm("It is dangerous to change this field. Are you sure you want to proceed?");
-    if (goodToGo) {
-        googleDocField.readOnly = false;
-        unlockButton.style.display = 'none';
-        revertButton.style.display = 'inline';
-    }
-    alertWasShown = true;
-});
-
-revertButton.addEventListener('click', function() {
-    googleDocField.value = originalGoogleDocId;
-    googleDocField.readOnly = true;
-    checkGoogleDoc();
-    unlockButton.style.display = 'inline';
-    revertButton.style.display = 'none';
-});
-
-googleDocField.addEventListener('change', checkGoogleDoc);
-
 document.addEventListener('DOMContentLoaded', function() {
-    checkGoogleDoc();
+    var startDateField = document.getElementById('start_date');
+    var endDateField = document.getElementById('end_date');
+    var setStartDateButton = document.getElementById('set_start_date');
+    var setEndDateButton = document.getElementById('set_end_date');
+
+    setStartDateButton.addEventListener('click', function() {
+        startDateField.value = '{{ startdate }}';
+    });
+
+    setEndDateButton.addEventListener('click', function() {
+        endDateField.value = '{{ enddate }}';
+    });
+
+    var googleDocField = document.getElementById('google_doc_id');
+    var unlockGoogleDocButton = document.getElementById('unlock_google_doc');
+    var revertGoogleDocButton = document.getElementById('revert_google_doc');
+    var originalGoogleDocId = googleDocField.value;
+
+    var webDirectoryField = document.getElementById('web_directory');
+    var unlockWebDirectoryButton = document.getElementById('unlock_web_directory');
+    var revertWebDirectoryButton = document.getElementById('revert_web_directory');
+    var originalWebDirectory = webDirectoryField.value;
+
+    var alertWasShown = false;
+
+    function checkGoogleDoc() {
+        var docId = googleDocField.value;
+        var statusElement = document.getElementById('google_doc_status');
+        var linkElement = document.getElementById('google_doc_link');
+
+        function failCheck() {
+            statusElement.innerHTML = '<span style="color:red;">❌</span>';
+            linkElement.style.display = 'none';
+        }
+
+        fetch('{{ url_for("edit.validate_google_doc") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'doc_id=' + encodeURIComponent(docId)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                statusElement.innerHTML = '<span style="color:green;">✔️</span>';
+                var url = 'https://docs.google.com/spreadsheets/d/' + docId;
+                linkElement.href = url;
+                linkElement.style.display = 'inline';
+                linkElement.textContent = 'View Sheet'; // Add text to the link
+            } else {
+                failCheck();
+            }
+        })
+        .catch(failCheck);
+    }
+
+    function handleUnlock(field, unlockButton, revertButton) {
+        let goodToGo = alertWasShown || confirm("It is dangerous to change this field. Are you sure you want to proceed?");
+        if (goodToGo) {
+            field.readOnly = false;
+            unlockButton.style.display = 'none';
+            revertButton.style.display = 'inline';
+        }
+        alertWasShown = true;
+    }
+
+    function handleRevert(field, originalValue, unlockButton, revertButton) {
+        field.value = originalValue;
+        field.readOnly = true;
+        unlockButton.style.display = 'inline';
+        revertButton.style.display = 'none';
+    }
+
+    unlockGoogleDocButton.addEventListener('click', function() {
+        handleUnlock(googleDocField, unlockGoogleDocButton, revertGoogleDocButton);
+    });
+
+    revertGoogleDocButton.addEventListener('click', function() {
+        handleRevert(googleDocField, originalGoogleDocId, unlockGoogleDocButton, revertGoogleDocButton);
+        checkGoogleDoc();
+    });
+
+    unlockWebDirectoryButton.addEventListener('click', function() {
+        handleUnlock(webDirectoryField, unlockWebDirectoryButton, revertWebDirectoryButton);
+    });
+
+    revertWebDirectoryButton.addEventListener('click', function() {
+        handleRevert(webDirectoryField, originalWebDirectory, unlockWebDirectoryButton, revertWebDirectoryButton);
+    });
+
+    googleDocField.addEventListener('change', checkGoogleDoc);
+
     var htmlnotesField = document.getElementById('htmlnotes');
     var htmlnotesPreview = document.getElementById('htmlnotes_preview');
     
@@ -207,6 +244,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     htmlnotesField.dispatchEvent(new Event('input'));
 });
-
 </script>
 {% endblock %}
