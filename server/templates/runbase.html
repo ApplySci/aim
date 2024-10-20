@@ -18,7 +18,11 @@
             <a href="{{ url_for('create.results_create') }}">Create New Tournament</a>
             <a href="{{ url_for('run.select_tournament') }}">Select Tournament</a>
             <a href="{{ url_for('run.run_tournament') }}">Run Tournament</a>
-            <a href="{{ url_for('edit.edit_tournament') }}">Edit Tournament Metadata</a>
+            {% if current_user.live_tournament_role %}
+                {% if current_user.live_tournament_role.value in ['admin', 'editor'] %}
+                    <a href="{{ url_for('edit.edit_tournament') }}">Edit Tournament Metadata</a>
+                {% endif %}
+            {% endif %}
             <a href="{{ url_for('run.add_user_get') }}">Add Scorer</a>
             <a href="{{ url_for('export.export_wordpress') }}">Export result pages for wordpress</a>
             <a href="{{ url_for('accounts.logout') }}">Logout</a>

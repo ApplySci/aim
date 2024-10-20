@@ -10,7 +10,6 @@ from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS
-from models import User, Tournament, Access, Role
 
 oauth = OAuth()
 login_manager = LoginManager()

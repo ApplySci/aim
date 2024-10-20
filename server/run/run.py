@@ -138,12 +138,14 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 @blueprint.route('/run/')
 @login_required
 def run_tournament():
-    # TODO allow the user to update the schedule on firebase WITHOUT seating
     if current_user.live_tournament:
+        is_past = current_user.live_tournament.status == "past"
+        
         return render_template(
             'run_tournament.html',
             webroot=webroot(),
-            )
+            is_past=is_past,
+        )
     return redirect(url_for('run.select_tournament'))
 
 

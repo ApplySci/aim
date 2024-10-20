@@ -10,6 +10,7 @@ import bleach
 from flask import Blueprint, flash, redirect, render_template, request, url_for, jsonify
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
+from functools import wraps
 import pycountry
 from wtforms import (
     DateTimeLocalField,
@@ -25,6 +26,7 @@ from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client
 from write_sheet import googlesheet
+from models import Role
 
 blueprint = Blueprint("edit", __name__)
 
@@ -75,8 +77,26 @@ def get_dates_from_sheet():
     return (timezone, start_date, end_date)
 
 
+def admin_or_editor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('accounts.login'))
+        
+        if not current_user.live_tournament:
+            flash("No tournament selected", "error")
+            return redirect(url_for('run.select_tournament'))
+        
+        if current_user.live_tournament_role not in [Role.admin, Role.editor]:
+            flash("You don't have permission to edit this tournament", "error")
+            return redirect(url_for('run.run_tournament'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 @blueprint.route("/run/edit", methods=["GET", "POST"])
 @login_required
+@admin_or_editor_required
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
@@ -104,6 +124,8 @@ def edit_tournament():
         # Populate form with local database data
         form.google_doc_id.data = current_user.live_tournament.google_doc_id
         form.web_directory.data = current_user.live_tournament.web_directory
+        form.title.data = current_user.live_tournament.title
+        form.status.data = current_user.live_tournament.status
     else:
         if form.validate_on_submit():
             updated_data = {
@@ -130,6 +152,7 @@ def edit_tournament():
             current_user.live_tournament.title = form.title.data
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = form.web_directory.data
+            current_user.live_tournament.status = form.status.data  # This will update Firestore and clear cache
             db.session.commit()
 
             # Create the web directory if it doesn't exist

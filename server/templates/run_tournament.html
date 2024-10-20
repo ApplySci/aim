@@ -19,8 +19,13 @@
 <form>
   <div>
     <label for="sendNotifications">
-      <input type="checkbox" id="sendNotifications" name="sendNotifications" checked>
-      Send notifications to users on update (you almost always want this ON)
+      <input type="checkbox" id="sendNotifications" name="sendNotifications" {% if not is_past %}checked{% endif %}>
+      Send notifications to users on update 
+      {% if is_past %}
+        (tournament is marked as past, notifications off by default)
+      {% else %}
+        (you almost always want this ON)
+      {% endif %}
     </label>
   </div>
 
