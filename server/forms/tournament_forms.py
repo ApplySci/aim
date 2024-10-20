@@ -81,7 +81,7 @@ def validate_google_doc_id(form, field):
 
 
 def validate_web_directory(form, field):
-    if not hasattr(form, 'is_edit') or not form.is_edit:
+    if not hasattr(form, "is_edit") or not form.is_edit:
         directory_path = os.path.join(BASEDIR, field.data)
         if os.path.exists(directory_path) and any(
             os.path.isfile(os.path.join(directory_path, entry))
@@ -100,11 +100,6 @@ def validate_other_name(form, field):
             )
         if "?" not in field.data:
             raise ValidationError('Missing the "?" placeholder')
-
-
-def validate_web_directory_format(form, field):
-    if not re.match(r'^[-_a-z0-9]+$', field.data):
-        raise ValidationError("Web directory can only contain letters, numbers, hyphens, and underscores.")
 
 
 class TournamentForm(FlaskForm):
@@ -159,12 +154,15 @@ class TournamentForm(FlaskForm):
         "Google Doc ID", validators=[Optional(), validate_google_doc_id]
     )
     web_directory = StringField(
-        "Short name (for URLs); use only -_a-z0-9", 
+        "Short name (for URLs); use only -_a-z0-9",
         validators=[
-            DataRequired(), 
-            validate_web_directory, 
-            Regexp(r'^[-_a-z0-9]+$', message="Only letters, numbers, hyphens, and underscores are allowed")
-        ]
+            DataRequired(),
+            validate_web_directory,
+            Regexp(
+                r"^[-_a-z0-9]+$",
+                message="Only letters, numbers, hyphens, and underscores are allowed",
+            ),
+        ],
     )
     htmlnotes = TextAreaField(
         f'HTML Notes (tags allowed: {", ".join(ALLOWED_TAGS)})', validators=[Optional()]
@@ -217,7 +215,7 @@ class TournamentForm(FlaskForm):
     submit = SubmitField("Submit")
 
     def __init__(self, *args, **kwargs):
-        self.is_edit = kwargs.pop('is_edit', False)
+        self.is_edit = kwargs.pop("is_edit", False)
         self.custom_start_date = kwargs.pop("custom_start_date", None)
         self.custom_end_date = kwargs.pop("custom_end_date", None)
         super(TournamentForm, self).__init__(*args, **kwargs)
@@ -241,7 +239,21 @@ class TournamentForm(FlaskForm):
 class EditTournamentForm(TournamentForm):
     class Meta:
         # List of fields to include
-        include = ['title', 'start_date', 'end_date', 'address', 'country', 'status', 'rules', 'url', 'url_icon', 'google_doc_id', 'web_directory', 'htmlnotes', 'submit']
+        include = [
+            "title",
+            "start_date",
+            "end_date",
+            "address",
+            "country",
+            "status",
+            "rules",
+            "url",
+            "url_icon",
+            "google_doc_id",
+            "web_directory",
+            "htmlnotes",
+            "submit",
+        ]
 
     def __init__(self, *args, **kwargs):
         super(EditTournamentForm, self).__init__(*args, **kwargs)
@@ -249,7 +261,10 @@ class EditTournamentForm(TournamentForm):
         self.google_doc_id.validators = [Optional()]
         self.web_directory.validators = [
             DataRequired(),
-            Regexp(r'^[-_a-zA-Z0-9]+$', message="Only letters, numbers, hyphens, and underscores are allowed")
+            Regexp(
+                r"^[-_a-zA-Z0-9]+$",
+                message="Only letters, numbers, hyphens, and underscores are allowed",
+            ),
         ]
 
         # Remove fields that are not needed for editing

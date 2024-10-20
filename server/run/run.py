@@ -14,10 +14,11 @@ from flask import Blueprint, redirect, url_for, render_template, \
     copy_current_request_context, request, flash, jsonify, make_response
 from flask_login import login_required, current_user
 
-from write_sheet import googlesheet
 from models import Access, User, Tournament, Role
 from oauth_setup import db, firestore_client
+from run.cloud_edit import admin_or_editor_required
 from run.userform import AddUserForm
+from write_sheet import googlesheet
 
 blueprint = Blueprint('run', __name__)
 
@@ -510,6 +511,7 @@ def _save_to_cloud(document: str, data: dict, force_set = False):
         ref.set(data)
 
 @blueprint.route('/run/add_user', methods=['POST'])
+@admin_or_editor_required
 @login_required
 def add_user_post():
     form = AddUserForm(request.form)
@@ -551,6 +553,7 @@ def add_user_post():
     return redirect(url_for('run.run_tournament'))
 
 @blueprint.route('/run/add_user', methods=['GET'])
+@admin_or_editor_required
 @login_required
 def add_user_get():
     tournaments = current_user.get_tournaments(db.session)

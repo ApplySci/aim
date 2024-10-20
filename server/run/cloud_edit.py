@@ -81,22 +81,24 @@ def admin_or_editor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
-            return redirect(url_for('accounts.login'))
-        
+            return redirect(url_for("accounts.login"))
+
         if not current_user.live_tournament:
             flash("No tournament selected", "error")
-            return redirect(url_for('run.select_tournament'))
-        
+            return redirect(url_for("run.select_tournament"))
+
         if current_user.live_tournament_role not in [Role.admin, Role.editor]:
             flash("You don't have permission to edit this tournament", "error")
-            return redirect(url_for('run.run_tournament'))
-        
+            return redirect(url_for("run.run_tournament"))
+
         return f(*args, **kwargs)
+
     return decorated_function
 
+
 @blueprint.route("/run/edit", methods=["GET", "POST"])
-@login_required
 @admin_or_editor_required
+@login_required
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
@@ -152,7 +154,9 @@ def edit_tournament():
             current_user.live_tournament.title = form.title.data
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = form.web_directory.data
-            current_user.live_tournament.status = form.status.data  # This will update Firestore and clear cache
+            current_user.live_tournament.status = (
+                form.status.data
+            )  # This will update Firestore and clear cache
             db.session.commit()
 
             # Create the web directory if it doesn't exist
@@ -187,7 +191,7 @@ def edit_tournament():
         startdate=formatted_start_date,
         enddate=formatted_end_date,
         friendly_startdate=dates[1],
-        friendly_enddate=friendly_end_date
+        friendly_enddate=friendly_end_date,
     )
 
 
