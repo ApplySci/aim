@@ -5,7 +5,7 @@ import inspect
 import os
 import sys
 
-from flask import Flask
+from flask import Flask, make_response, request
 
 # add directory of this file, to the start of the path,
 # before importing any of the app
@@ -37,6 +37,22 @@ def create_app():
     config_login_manager(app)
     config_db(app)
     config_jinja(app)
+
+    @app.after_request
+    def add_header(response):
+        if request.path.startswith("/static/"):
+            # Allow caching for static files
+            print("*** serving /static/ through flask")
+            return response
+
+        # Disable caching for HTML and JSON responses
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "-1"
+        return response
+
     return app
 
 

@@ -31,7 +31,7 @@ def delete_account():
 
 @blueprint.route('/login')
 def login():
-    redirect_uri = url_for('accounts.authorized', _external=True)
+    redirect_uri = url_for('accounts.authorized', _external=True, _scheme='https')
     return oauth.google.authorize_redirect(redirect_uri)
 
 
