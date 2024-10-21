@@ -26,7 +26,7 @@ from flask_login import login_required, current_user
 from models import Access, User, Tournament, Role
 from oauth_setup import db, firestore_client
 from run.cloud_edit import admin_or_editor_required
-from run.userform import AddUserForm
+from forms.userform import AddUserForm
 from write_sheet import googlesheet
 
 blueprint = Blueprint("run", __name__)
@@ -563,15 +563,16 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
 @admin_or_editor_required
 @login_required
 def add_user_post():
-    form = AddUserForm(request.form)
-    tournaments = current_user.get_tournaments(db.session)
-    form.tournament.choices = [(t.id, t.title) for t in tournaments]
+    if not current_user.live_tournament_id:
+        flash("Please select a tournament first.", "warning")
+        return redirect(url_for("run.select_tournament"))
+
+    form = AddUserForm()
 
     if not form.validate_on_submit():
         return add_user_get()
 
     email = form.email.data
-    tournament_id = form.tournament.data
     role = form.role.data
 
     # Ensure the user record exists
@@ -582,14 +583,13 @@ def add_user_post():
         db.session.commit()
 
     # Add the user to the tournament with the specified role
-    # TODO this doesn't allow us to change a user's role yet
     access = (
         db.session.query(Access)
-        .filter_by(user_email=email, tournament_id=tournament_id)
+        .filter_by(user_email=email, tournament_id=current_user.live_tournament_id)
         .first()
     )
     if not access:
-        tournament = db.session.query(Tournament).get(tournament_id)
+        tournament = db.session.query(Tournament).get(current_user.live_tournament_id)
         access = Access(user=user, tournament=tournament, role=Role[role])
         db.session.add(access)
         db.session.commit()
@@ -597,64 +597,58 @@ def add_user_post():
             tournament.google_doc_id, email, notify=False
         )
         if share_result == True:
-            flash("Scorer added successfully!", "success")
+            flash("User added successfully!", "success")
         else:
-            flash(f"Failed to add scorer: {share_result}", "danger")
+            flash(f"Failed to add user: {share_result}", "danger")
     else:
-        flash("Scorer is already attached this tournament.", "success")
+        flash("User is already attached to this tournament.", "info")
 
-    return redirect(url_for("run.run_tournament"))
+    return redirect(url_for("run.add_user_get"))
 
 
 @blueprint.route("/run/add_user", methods=["GET"])
 @admin_or_editor_required
 @login_required
 def add_user_get():
-    tournaments = current_user.get_tournaments(db.session)
-    tournament_choices = [(str(t.id), t.title) for t in tournaments]
+    if not current_user.live_tournament_id:
+        flash("Please select a tournament first.", "warning")
+        return redirect(url_for("run.select_tournament"))
 
-    form = AddUserForm(request.form)
-    form.tournament.choices = tournament_choices
+    form = AddUserForm()
 
-    if current_user.live_tournament_id:
-        form.tournament.data = str(current_user.live_tournament_id)
+    # Fetch users for the current tournament
+    users = (
+        db.session.query(User, Access.role)
+        .join(Access)
+        .filter(Access.tournament_id == current_user.live_tournament_id)
+        .all()
+    )
 
-        # Fetch users for the current tournament
-        users = (
-            db.session.query(User, Access.role)
-            .join(Access)
-            .filter(Access.tournament_id == current_user.live_tournament_id)
-            .all()
-        )
+    # Check if the current user is an admin for this tournament
+    is_admin = current_user.live_tournament_role == Role.admin
 
-        # Check if the current user is an admin for this tournament
-        is_admin = current_user.live_tournament_role == Role.admin
+    # Filter out admin users if the current user is not an admin
+    if not is_admin:
+        users = [user for user in users if user[1] != Role.admin]
 
-        # Filter out admin users if the current user is not an admin
-        if not is_admin:
-            users = [user for user in users if user[1] != Role.admin]
+    # Convert to list of dictionaries and sort
+    users = [{"email": user.email, "role": role.value} for user, role in users]
 
-        # Convert to list of dictionaries and sort
-        users = [{"email": user.email, "role": role.value} for user, role in users]
+    # Separate current user and sort others
+    current_user_data = next(
+        (user for user in users if user["email"] == current_user.email), None
+    )
+    other_users = [user for user in users if user["email"] != current_user.email]
+    other_users.sort(key=lambda x: x["email"].lower())
 
-        # Separate current user and sort others
-        current_user_data = next(
-            (user for user in users if user["email"] == current_user.email), None
-        )
-        other_users = [user for user in users if user["email"] != current_user.email]
-        other_users.sort(key=lambda x: x["email"].lower())
+    # Combine lists with current user at the top
+    users = ([current_user_data] if current_user_data else []) + other_users
 
-        # Combine lists with current user at the top
-        users = ([current_user_data] if current_user_data else []) + other_users
-
-        # Modify form choices based on user role
-        if not is_admin:
-            form.role.choices = [
-                choice for choice in form.role.choices if choice[0] != "admin"
-            ]
-    else:
-        users = []
-        is_admin = False
+    # Modify form choices based on user role
+    if not is_admin:
+        form.role.choices = [
+            choice for choice in form.role.choices if choice[0] != "admin"
+        ]
 
     return render_template(
         "add_user.html",
@@ -703,3 +697,4 @@ def update_user_role():
         return jsonify(
             {"success": False, "error": "User not found for this tournament"}
         )
+

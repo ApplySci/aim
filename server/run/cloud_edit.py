@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-TODO get tournament hanchan times, and timezone, from googlesheet
 
 """
 from datetime import datetime, timedelta
@@ -9,7 +8,6 @@ import os
 import bleach
 from flask import Blueprint, flash, redirect, render_template, request, url_for, jsonify
 from flask_login import current_user, login_required
-from flask_wtf import FlaskForm
 from functools import wraps
 import pycountry
 from wtforms import (

@@ -4,8 +4,7 @@ from wtforms.validators import DataRequired, Email
 
 
 class AddUserForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email()])
-    tournament = RadioField("Tournament", validators=[DataRequired()])
+    email = StringField("Email (must be a google account)", validators=[DataRequired(), Email()])
     role = RadioField(
         "Role",
         choices=[("admin", "Admin"), ("editor", "Editor"), ("scorer", "Scorer")],

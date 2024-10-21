@@ -3,20 +3,14 @@
 {% block title %}Add Scorer{% endblock %}
 
 {% block content %}
-<h1>Add scorer to tournament management team</h1>
+<fieldset>
+<h3>Add scorer to tournament management team</h3>
 <form method="POST">
     {{ form.hidden_tag() }}
     <div>
         <p>{{ form.email.label }}:</p>
         {{ form.email(size=80) }}
         {% for error in form.email.errors %}
-          <span class="formError">[{{ error }}]</span>
-        {% endfor %}
-    </div>
-    <div>
-        <p>{{ form.tournament.label }}:</p>
-        {{ form.tournament() }}
-        {% for error in form.tournament.errors %}
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
     </div>
@@ -31,7 +25,7 @@
         {{ form.submit() }}
     </p>
 </form>
-
+</fieldset>
 <style>
     #userTable {
         border-collapse: collapse;
