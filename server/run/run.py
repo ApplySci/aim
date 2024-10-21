@@ -553,3 +553,4 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         ref.update(data)
     else:
         ref.set(data)
+

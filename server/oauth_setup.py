@@ -2,6 +2,10 @@
 
 import os
 from urllib.parse import quote_plus
+from functools import wraps
+from flask import abort
+from flask_login import current_user
+from models import Role
 
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
@@ -9,7 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, OUR_EMAILS
 
 oauth = OAuth()
 login_manager = LoginManager()
@@ -76,3 +80,35 @@ def config_oauth(app):
             "scope": "email",
         },
     )
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return login_manager.unauthorized()
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.live_tournament_role != Role.admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_editor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.live_tournament_role not in [Role.admin, Role.editor]:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def superadmin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.email not in OUR_EMAILS:
+            abort(404)  # or 403 for Forbidden
+        return f(*args, **kwargs)
+    return decorated_function

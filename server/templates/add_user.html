@@ -3,7 +3,19 @@
 {% block title %}Manage Users{% endblock %}
 
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 <h2>Manage Users for {{ current_user.live_tournament.title }}</h2>
+{% if current_user.live_tournament_role.value == 'admin' %}
+<form action="{{ url_for('user_management.sync_access_route') }}" method="POST">
+    <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">Sync Database with Google Sheet</button>
+</form>
+{% endif %}
 
 <style>
     table {
@@ -134,6 +146,7 @@
 
 <script>
 function fixAccess(email, action) {
+    email = email.toLowerCase();
     fetch('/run/fix_access', {
         method: 'POST',
         headers: {
@@ -169,6 +182,7 @@ document.querySelectorAll('.role-select').forEach(select => {
 });
 
 function updateUserRole(email, newRole) {
+    email = email.toLowerCase();
     fetch("{{ url_for('user_management.update_user_role') }}", {
         method: 'POST',
         headers: {
@@ -196,5 +210,32 @@ function updateUserRole(email, newRole) {
         alert('An error occurred while updating the role');
     });
 }
+
+{% if current_user.live_tournament_role.value == 'admin' %}
+document.getElementById('syncAccessBtn').addEventListener('click', function() {
+    fetch("{{ url_for('user_management.sync_access_route') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            tournament_id: {{ current_user.live_tournament_id }}
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Access synchronized successfully');
+            location.reload();
+        } else {
+            alert('Failed to synchronize access: ' + data.error);
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('An error occurred while synchronizing access');
+    });
+});
+{% endif %}
 </script>
 {% endblock %}

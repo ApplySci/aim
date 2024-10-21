@@ -7,28 +7,18 @@ import shutil
 from functools import wraps
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
 from write_sheet import googlesheet
-from models import Tournament, Access
-from oauth_setup import db, firestore_client
+from models import Tournament, Access, User
+from oauth_setup import db, firestore_client, login_required, superadmin_required
 
 blueprint = Blueprint("admin", __name__)
-
-
-def superadmin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if current_user.email not in OUR_EMAILS:
-            abort(404)  # or you could use 403 for Forbidden if you prefer
-        return f(*args, **kwargs)
-
-    return decorated_function
 
 
 @blueprint.route(
     "/admin/delete_sheet/<doc_id>",
     methods=["DELETE"],
 )
-@superadmin_required
 @login_required
+@superadmin_required
 def delete_sheet(doc_id):
     if doc_id == TEMPLATE_ID:
         return "Sorry Dave, I can't do that", 403
@@ -40,8 +30,8 @@ def delete_sheet(doc_id):
     "/admin/delete_tournament/<int:t_id>",
     methods=["DELETE"],
 )
-@superadmin_required
 @login_required
+@superadmin_required
 def delete_tournament(t_id):
     if t_id < 4:
         return "Sorry Dave, I can't do that", 403
@@ -76,8 +66,8 @@ def delete_tournament(t_id):
 
 
 @blueprint.route("/admin/list")
-@superadmin_required
 @login_required
+@superadmin_required
 def superadmin():
     try:
         # Fetch all tournaments from the database
@@ -99,8 +89,14 @@ def superadmin():
         docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
         our_docs = [doc for doc in docs if doc["ours"] and doc["id"] != TEMPLATE_ID]
 
+        # Fetch users without access to any tournament
+        users_without_access = db.session.query(User).outerjoin(Access).filter(Access.user_email == None).all()
+
         return render_template(
-            "adminlist.html", docs=our_docs, tournaments=filtered_tournaments
+            "adminlist.html", 
+            docs=our_docs, 
+            tournaments=filtered_tournaments,
+            users_without_access=users_without_access
         )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500

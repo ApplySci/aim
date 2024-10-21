@@ -6,10 +6,18 @@ from datetime import datetime, timedelta
 import os
 
 import bleach
-from flask import Blueprint, flash, redirect, render_template, request, url_for, jsonify
+from flask import (
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+    jsonify,
+    abort,
+)
 from flask_login import current_user, login_required
 from functools import wraps
-import pycountry
 from wtforms import (
     DateTimeLocalField,
     RadioField,
@@ -22,7 +30,7 @@ from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
 from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
-from oauth_setup import db, firestore_client
+from oauth_setup import db, firestore_client, admin_or_editor_required
 from write_sheet import googlesheet
 from models import Role
 
@@ -73,25 +81,6 @@ def get_dates_from_sheet():
     start_date = vals[2][2]
     end_date = vals[-1][2]
     return (timezone, start_date, end_date)
-
-
-def admin_or_editor_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return redirect(url_for("accounts.login"))
-
-        if not current_user.live_tournament:
-            flash("No tournament selected", "error")
-            return redirect(url_for("run.select_tournament"))
-
-        if current_user.live_tournament_role not in [Role.admin, Role.editor]:
-            flash("You don't have permission to edit this tournament", "error")
-            return redirect(url_for("run.run_tournament"))
-
-        return f(*args, **kwargs)
-
-    return decorated_function
 
 
 @blueprint.route("/run/edit", methods=["GET", "POST"])

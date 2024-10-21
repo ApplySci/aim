@@ -46,6 +46,10 @@ class Access(Base):
     user: Mapped["User"] = relationship(back_populates="tournaments")
     tournament: Mapped["Tournament"] = relationship(back_populates="users")
 
+    def __init__(self, user_email, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user_email = user_email.lower()
+
 
 class Hanchan(Base):
     # we store these so that we can spot when a scorer changes the hanchan
@@ -162,3 +166,7 @@ class User(Base, UserMixin):
             None,
         )
         return access.role if access else None
+
+    def __init__(self, email, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.email = email.lower()
