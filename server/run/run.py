@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 pages and backend for the user running the tournament
-'''
+"""
 from functools import wraps
 import os
 import sys
@@ -10,8 +10,17 @@ import traceback
 import uuid
 
 from firebase_admin import messaging
-from flask import Blueprint, redirect, url_for, render_template, \
-    copy_current_request_context, request, flash, jsonify, make_response
+from flask import (
+    Blueprint,
+    redirect,
+    url_for,
+    render_template,
+    copy_current_request_context,
+    request,
+    flash,
+    jsonify,
+    make_response,
+)
 from flask_login import login_required, current_user
 
 from models import Access, User, Tournament, Role
@@ -20,7 +29,8 @@ from run.cloud_edit import admin_or_editor_required
 from run.userform import AddUserForm
 from write_sheet import googlesheet
 
-blueprint = Blueprint('run', __name__)
+blueprint = Blueprint("run", __name__)
+
 
 def wrap_and_catch(myfunc):
     @wraps(myfunc)
@@ -38,66 +48,75 @@ def wrap_and_catch(myfunc):
             else:
                 msg = f"ERROR: {str(e)}"
             return msg, 200
+
     return wrapper
 
 
-@blueprint.route('/run/select_tournament', methods=['GET', 'POST',])
+@blueprint.route(
+    "/run/select_tournament",
+    methods=[
+        "GET",
+        "POST",
+    ],
+)
 @login_required
 def select_tournament():
-    new_id = request.form.get('id')
+    new_id = request.form.get("id")
     if new_id:
         current_user.live_tournament_id = new_id
         db.session.commit()
-        return redirect(url_for('run.run_tournament'))
+        return redirect(url_for("run.run_tournament"))
 
     # Clean up Access database - delete entries without valid tournament or user
-    invalid_accesses = db.session.query(Access).filter(
-        (Access.tournament_id.notin_(db.session.query(Tournament.id))) |
-        (Access.user_email.notin_(db.session.query(User.email)))
-    ).all()
+    invalid_accesses = (
+        db.session.query(Access)
+        .filter(
+            (Access.tournament_id.notin_(db.session.query(Tournament.id)))
+            | (Access.user_email.notin_(db.session.query(User.email)))
+        )
+        .all()
+    )
     for invalid_access in invalid_accesses:
         db.session.delete(invalid_access)
 
     # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(
-        user_email=current_user.email).all()
+    accesses = db.session.query(Access).filter_by(user_email=current_user.email).all()
     tournaments = [access.tournament for access in accesses]
 
     db.session.commit()
-    return render_template('select_tournament.html', tournaments=tournaments)
+    return render_template("select_tournament.html", tournaments=tournaments)
 
 
 @login_required
 def _ranking_to_web(scores, games, players, done, schedule):
     items = list(scores.items())
-    sorted_scores = sorted(items, key=lambda item: item[1]['r']) # sort by rank
+    sorted_scores = sorted(items, key=lambda item: item[1]["r"])  # sort by rank
     title = current_user.live_tournament.title
     if done > 0:
         roundName = f"Scores after {schedule['rounds'][done-1]['name']}"
     else:
-        roundName = 'End-of-round scores will appear here'
+        roundName = "End-of-round scores will appear here"
     try:
-        nextName = schedule['rounds'][done]['name']
+        nextName = schedule["rounds"][done]["name"]
     except:
         nextName = ""
-    html = render_template('projector.html',
-                           title=title,
-                           scores=sorted_scores,
-                           round_name=roundName,
-                           next_roundname=nextName,
-                           players=players,
-                           webroot=webroot(),
-                           )
-    fn = os.path.join(
-        current_user.live_tournament.full_web_directory,
-        'projector.html')
-    with open(fn, 'w', encoding='utf-8') as f:
+    html = render_template(
+        "projector.html",
+        title=title,
+        scores=sorted_scores,
+        round_name=roundName,
+        next_roundname=nextName,
+        players=players,
+        webroot=webroot(),
+    )
+    fn = os.path.join(current_user.live_tournament.full_web_directory, "projector.html")
+    with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
 
     # ======================================
 
     scores_by_player = {}
-    for r in range(1, done+1):
+    for r in range(1, done + 1):
         rs = str(r)
         for t in games[rs]:
             for idx, line in games[rs][t].items():
@@ -106,48 +125,50 @@ def _ranking_to_web(scores, games, players, done, schedule):
                     scores_by_player[p] = {}
                 scores_by_player[p][r] = (line[4], t)
     if done == 0:
-        render_template('noranking.html', title=title, done=done)
+        render_template("noranking.html", title=title, done=done)
     else:
-        html = render_template('ranking.html',
-                           title=title,
-                           scores=sorted_scores,
-                           round_name=roundName,
-                           players=players,
-                           webroot=webroot(),
-                           roundNames=_round_names(schedule),
-                           done=done,
-                           games=scores_by_player,
-                           )
-    fn = os.path.join(
-        current_user.live_tournament.full_web_directory,
-        'ranking.html')
-    with open(fn, 'w', encoding='utf-8') as f:
+        html = render_template(
+            "ranking.html",
+            title=title,
+            scores=sorted_scores,
+            round_name=roundName,
+            players=players,
+            webroot=webroot(),
+            roundNames=_round_names(schedule),
+            done=done,
+            games=scores_by_player,
+        )
+    fn = os.path.join(current_user.live_tournament.full_web_directory, "ranking.html")
+    with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
 
-    return 'ranking pages updated, notifications sent', 200
+    return "ranking pages updated, notifications sent", 200
 
 
 @login_required
 def _send_topic_fcm(topic: str, title: str, body: str):
     message = messaging.Message(
-        notification = messaging.Notification(title=title,body=body,),
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
         topic=topic,  # The topic name
-        )
+    )
     messaging.send(message)
 
 
-@blueprint.route('/run/')
+@blueprint.route("/run/")
 @login_required
 def run_tournament():
     if current_user.live_tournament:
         is_past = current_user.live_tournament.status == "past"
-        
+
         return render_template(
-            'run_tournament.html',
+            "run_tournament.html",
             webroot=webroot(),
             is_past=is_past,
         )
-    return redirect(url_for('run.select_tournament'))
+    return redirect(url_for("run.select_tournament"))
 
 
 @login_required
@@ -156,59 +177,67 @@ def _get_sheet():
     return googlesheet.get_sheet(sheet_id)
 
 
-@blueprint.route('/run/update_schedule')
+@blueprint.route("/run/update_schedule")
 @wrap_and_catch
 @login_required
 def update_schedule():
     sheet = _get_sheet()
     schedule: dict = googlesheet.get_schedule(sheet)
     seating = _seating_to_map(sheet, schedule)
-    _save_to_cloud('seating', {
-        'rounds': seating,
-        'timezone': schedule['timezone'],
-        })
+    _save_to_cloud(
+        "seating",
+        {
+            "rounds": seating,
+            "timezone": schedule["timezone"],
+        },
+    )
     _seating_to_web(sheet=sheet, seating=seating)
 
-    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
+    send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages('seating & schedule updated')
-        return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
+        _send_messages("seating & schedule updated")
+        return (
+            jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
+            200,
+        )
     else:
-        return jsonify({"status": "SEATING & SCHEDULE updated, notifications not sent"}), 200
+        return (
+            jsonify({"status": "SEATING & SCHEDULE updated, notifications not sent"}),
+            200,
+        )
 
 
 @login_required
 def _seating_to_web(sheet, seating):
-    done : int = googlesheet.count_completed_hanchan(sheet)
+    done: int = googlesheet.count_completed_hanchan(sheet)
     players = _get_players(sheet, False)
     schedule: dict = googlesheet.get_schedule(sheet)
 
-    html : str = render_template('seating.html',
+    html: str = render_template(
+        "seating.html",
         done=done,
         title=current_user.live_tournament.title,
         seating=seating,
         schedule=schedule,
         players=players,
         roundNames=_round_names(schedule),
-        )
-    fn = os.path.join(
-        current_user.live_tournament.full_web_directory,
-        'seating.html')
-    with open(fn, 'w', encoding='utf-8') as f:
+    )
+    fn = os.path.join(current_user.live_tournament.full_web_directory, "seating.html")
+    with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
     return "Seating published on web", 200
 
 
-@blueprint.route('/run/update_players')
+@blueprint.route("/run/update_players")
 @wrap_and_catch
 @login_required
 def update_players():
     sheet = _get_sheet()
     _get_players(sheet, True)
 
-    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
+    send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages('player list updated')
+        _send_messages("player list updated")
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
         return jsonify({"status": "PLAYERS updated, notifications not sent"}), 200
@@ -216,32 +245,33 @@ def update_players():
 
 @login_required
 def _send_messages(msg: str):
-    '''
-    '''
+    """ """
     firebase_id = current_user.live_tournament.firebase_doc
     _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title)
 
 
 @login_required
 def _message_player_topics(scores: dict, done: int, players):
-    '''
+    """
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
-    '''
-    if done==0: return
+    """
+    if done == 0:
+        return
     firebase_id = current_user.live_tournament.firebase_doc
-    for k,v in scores.items():
+    for k, v in scores.items():
         name = players[int(k)]
         _send_topic_fcm(
             f"{firebase_id}-{k}",
             f"{name} is now in position {('','=')[v['t']]}{v['r']}",
             f"with {v['total']/10} points after {done} round(s)",
-            )
+        )
+
 
 @login_required
 def _get_one_round_results(sheet, rnd: int):
     vals = googlesheet.get_table_results(rnd, sheet)
-    row : int = 4
+    row: int = 4
     tables = {}
     while row + 3 < len(vals):
         # Get the table number from column 1
@@ -254,31 +284,36 @@ def _get_one_round_results(sheet, rnd: int):
         for i in range(4):
             player_id = vals[row + i][1]
             tables[table][f"{i}"] = [
-                player_id,                         # player_id: int
-                round(10 * vals[row + i][5] or 0), # chombo: int
-                round(10* vals[row + i][3]),       # game score: int
-                vals[row + i][4],                  # placement: int
-                round(10 * vals[row + i][6]),      # final score: int
-                ]
+                player_id,  # player_id: int
+                round(10 * vals[row + i][5] or 0),  # chombo: int
+                round(10 * vals[row + i][3]),  # game score: int
+                vals[row + i][4],  # placement: int
+                round(10 * vals[row + i][6]),  # final score: int
+            ]
 
         # Move to the next table
         row += 7
     return {f"{rnd}": tables}
 
+
 def webroot():
-    return '/static/' + current_user.live_tournament.web_directory
+    return "/static/" + current_user.live_tournament.web_directory
+
 
 def _round_names(schedule):
     roundNames = {}
-    for r in schedule['rounds']:
-        roundNames[r['id']] = r['name']
+    for r in schedule["rounds"]:
+        roundNames[r["id"]] = r["name"]
     return roundNames
+
 
 @login_required
 def _games_to_web(games, schedule, players):
     roundNames = _round_names(schedule)
-    player_dir = os.path.join(current_user.live_tournament.full_web_directory,
-                              "players",)
+    player_dir = os.path.join(
+        current_user.live_tournament.full_web_directory,
+        "players",
+    )
 
     if not os.path.exists(player_dir):
         os.makedirs(player_dir)
@@ -294,56 +329,60 @@ def _games_to_web(games, schedule, players):
                         if s[0] == pid:
                             present = True
                             break
-                    if (present):
+                    if present:
                         player_games[r] = {t: games[r][t]}
 
-            html = render_template('player_page.html',
-                                games=player_games,
-                                players=players,
-                                roundNames=roundNames,
-                                done=len(games),
-                                webroot=webroot(),
-                                pid=pid,
-                                title=current_user.live_tournament.title,
-                                )
+            html = render_template(
+                "player_page.html",
+                games=player_games,
+                players=players,
+                roundNames=roundNames,
+                done=len(games),
+                webroot=webroot(),
+                pid=pid,
+                title=current_user.live_tournament.title,
+            )
 
             fn = os.path.join(player_dir, f"{pid}.html")
-            with open(fn, 'w', encoding='utf-8') as f:
-                    f.write(html)
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(html)
         except Exception as e:
             print(f"Error writing player page for {pid} ({name}): {e}")
 
     # =======================================================
 
-    round_dir = os.path.join(current_user.live_tournament.full_web_directory,
-                              "rounds",)
+    round_dir = os.path.join(
+        current_user.live_tournament.full_web_directory,
+        "rounds",
+    )
 
     if not os.path.exists(round_dir):
         os.makedirs(round_dir)
 
     for r in games:
         # for each round, create a page for all its games
-        html = render_template('round_page.html',
-                               games=games[r],
-                               players=players,
-                               roundNames=roundNames,
-                               done=len(games),
-                               roundname=roundNames[r],
-                               webroot=webroot(),
-                               title=current_user.live_tournament.title,
-                               )
+        html = render_template(
+            "round_page.html",
+            games=games[r],
+            players=players,
+            roundNames=roundNames,
+            done=len(games),
+            roundname=roundNames[r],
+            webroot=webroot(),
+            title=current_user.live_tournament.title,
+        )
 
         fn = os.path.join(round_dir, f"{r}.html")
-        with open(fn, 'w', encoding='utf-8') as f:
+        with open(fn, "w", encoding="utf-8") as f:
             f.write(html)
 
     return f"{games}", 200
 
 
-@blueprint.route('/run/get_results')
+@blueprint.route("/run/get_results")
 @login_required
 def update_ranking_and_scores():
-    send_notifications = request.args.get('sendNotifications', 'true') == 'true'
+    send_notifications = request.args.get("sendNotifications", "true") == "true"
 
     # Create a unique job ID
     job_id = str(uuid.uuid4())
@@ -353,7 +392,7 @@ def update_ranking_and_scores():
         try:
             sheet = _get_sheet()
             schedule: dict = googlesheet.get_schedule(sheet)
-            done : int = googlesheet.count_completed_hanchan(sheet)
+            done: int = googlesheet.count_completed_hanchan(sheet)
             ranking = _ranking_to_cloud(sheet, done)
             players = _get_players(sheet, False)
             games = _games_to_cloud(sheet, done, players)
@@ -361,7 +400,7 @@ def update_ranking_and_scores():
             _ranking_to_web(ranking, games, players, done, schedule)
             if send_notifications:
                 _message_player_topics(ranking, done, players)
-            
+
             # Store completion status
             _store_job_status(job_id, "Scores updated successfully")
         except Exception as e:
@@ -372,28 +411,33 @@ def update_ranking_and_scores():
 
     return jsonify({"status": "processing", "job_id": job_id}), 202
 
+
 # Add these new functions
-@blueprint.route('/run/job_status/<job_id>')
+@blueprint.route("/run/job_status/<job_id>")
 @login_required
 def get_job_status(job_id):
     status = _get_job_status(job_id)
     response = make_response(jsonify({"status": status}))
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     return response
+
 
 def _store_job_status(job_id, status):
     # You can use a database or cache here. For simplicity, we'll use a global dictionary
     global job_statuses
     job_statuses[job_id] = status
 
+
 def _get_job_status(job_id):
     global job_statuses
     return job_statuses.get(job_id, "processing")
 
+
 # Initialize the global dictionary at the top of the file
 job_statuses = {}
+
 
 @login_required
 def _games_to_cloud(sheet, done: int, players):
@@ -418,15 +462,15 @@ def _games_to_cloud(sheet, done: int, players):
         if missed > 0 and missed < 3:
             for i in range(missed, 4):
                 cleaned_scores[r]["missing"][str(i)] = cleaned_scores[r]["missing"]["0"]
-    _save_to_cloud('scores', cleaned_scores, force_set=True)
+    _save_to_cloud("scores", cleaned_scores, force_set=True)
     return results
 
 
 @login_required
-def _ranking_to_cloud(sheet, done : int) -> dict:
+def _ranking_to_cloud(sheet, done: int) -> dict:
     results = googlesheet.get_results(sheet)
     body = results[1:]
-    body.sort(key=lambda x: -x[3]) # sort by descending cumulative score
+    body.sort(key=lambda x: -x[3])  # sort by descending cumulative score
     all_scores = {}
     previous_score = -99999
     for i in range(len(body)):
@@ -443,19 +487,16 @@ def _ranking_to_cloud(sheet, done : int) -> dict:
             "p": round(body[i][4] * 10),
             "r": rank,
             "t": tied,
-            }
+        }
 
-    round_index : str = f"{done}"
-    _save_to_cloud('ranking', {
-        round_index: all_scores,
-        'roundDone': round_index
-        })
+    round_index: str = f"{done}"
+    _save_to_cloud("ranking", {round_index: all_scores, "roundDone": round_index})
     return all_scores
 
 
 @login_required
 def _get_players(sheet, to_cloud=True):
-    raw : list(list) = googlesheet.get_players(sheet)
+    raw: list(list) = googlesheet.get_players(sheet)
     players = []
     player_map = {}
     if len(raw) and len(raw[0]) > 2:
@@ -464,13 +505,15 @@ def _get_players(sheet, to_cloud=True):
             seating_id = p[0] if p[0] != "" else None
             name = p[2]
             player_map[seating_id] = name
-            players.append({
-                'registration_id': str(registration_id),
-                'seating_id': seating_id,
-                'name': name
-            })
+            players.append(
+                {
+                    "registration_id": str(registration_id),
+                    "seating_id": seating_id,
+                    "name": name,
+                }
+            )
     if to_cloud:
-        _save_to_cloud('players', {'players': players})
+        _save_to_cloud("players", {"players": players})
     return player_map
 
 
@@ -478,7 +521,7 @@ def _get_players(sheet, to_cloud=True):
 def _seating_to_map(sheet, schedule):
     raw = googlesheet.get_seating(sheet)
     seating = []
-    previous_round = ''
+    previous_round = ""
     hanchan_number = 0
     for t in raw:
         this_round = str(t[0])
@@ -486,23 +529,28 @@ def _seating_to_map(sheet, schedule):
         players = t[2:6]
         if this_round != previous_round:
             previous_round = this_round
-            seating.append({
-                'id': this_round,
-                'name': schedule['rounds'][hanchan_number]['name'],
-                'start': schedule['rounds'][hanchan_number]['start'],
-                'tables': {},
-                })
+            seating.append(
+                {
+                    "id": this_round,
+                    "name": schedule["rounds"][hanchan_number]["name"],
+                    "start": schedule["rounds"][hanchan_number]["start"],
+                    "tables": {},
+                }
+            )
             hanchan_number = hanchan_number + 1
-        seating[-1]['tables'][table] = [f"Player {p}" if p == "" else p for p in players]
+        seating[-1]["tables"][table] = [
+            f"Player {p}" if p == "" else p for p in players
+        ]
 
     return seating
 
 
 @login_required
-def _save_to_cloud(document: str, data: dict, force_set = False):
-    firebase_id : str = current_user.live_tournament.firebase_doc
+def _save_to_cloud(document: str, data: dict, force_set=False):
+    firebase_id: str = current_user.live_tournament.firebase_doc
     ref = firestore_client.collection("tournaments").document(
-        f"{firebase_id}/v3/{document}")
+        f"{firebase_id}/v3/{document}"
+    )
 
     doc = ref.get()
     if doc.exists and not force_set:
@@ -510,7 +558,8 @@ def _save_to_cloud(document: str, data: dict, force_set = False):
     else:
         ref.set(data)
 
-@blueprint.route('/run/add_user', methods=['POST'])
+
+@blueprint.route("/run/add_user", methods=["POST"])
 @admin_or_editor_required
 @login_required
 def add_user_post():
@@ -534,25 +583,30 @@ def add_user_post():
 
     # Add the user to the tournament with the specified role
     # TODO this doesn't allow us to change a user's role yet
-    access = db.session.query(Access).filter_by(
-            user_email=email, tournament_id=tournament_id).first()
+    access = (
+        db.session.query(Access)
+        .filter_by(user_email=email, tournament_id=tournament_id)
+        .first()
+    )
     if not access:
         tournament = db.session.query(Tournament).get(tournament_id)
         access = Access(user=user, tournament=tournament, role=Role[role])
         db.session.add(access)
         db.session.commit()
         share_result = googlesheet.share_sheet(
-                tournament.google_doc_id, email, notify=False)
+            tournament.google_doc_id, email, notify=False
+        )
         if share_result == True:
-            flash('Scorer added successfully!', 'success')
+            flash("Scorer added successfully!", "success")
         else:
-            flash(f'Failed to add scorer: {share_result}', 'danger')
+            flash(f"Failed to add scorer: {share_result}", "danger")
     else:
-        flash('Scorer is already attached this tournament.', 'success')
+        flash("Scorer is already attached this tournament.", "success")
 
-    return redirect(url_for('run.run_tournament'))
+    return redirect(url_for("run.run_tournament"))
 
-@blueprint.route('/run/add_user', methods=['GET'])
+
+@blueprint.route("/run/add_user", methods=["GET"])
 @admin_or_editor_required
 @login_required
 def add_user_get():
@@ -565,4 +619,87 @@ def add_user_get():
     if current_user.live_tournament_id:
         form.tournament.data = str(current_user.live_tournament_id)
 
-    return render_template('add_user.html', form=form)
+        # Fetch users for the current tournament
+        users = (
+            db.session.query(User, Access.role)
+            .join(Access)
+            .filter(Access.tournament_id == current_user.live_tournament_id)
+            .all()
+        )
+
+        # Check if the current user is an admin for this tournament
+        is_admin = current_user.live_tournament_role == Role.admin
+
+        # Filter out admin users if the current user is not an admin
+        if not is_admin:
+            users = [user for user in users if user[1] != Role.admin]
+
+        # Convert to list of dictionaries and sort
+        users = [{"email": user.email, "role": role.value} for user, role in users]
+
+        # Separate current user and sort others
+        current_user_data = next(
+            (user for user in users if user["email"] == current_user.email), None
+        )
+        other_users = [user for user in users if user["email"] != current_user.email]
+        other_users.sort(key=lambda x: x["email"].lower())
+
+        # Combine lists with current user at the top
+        users = ([current_user_data] if current_user_data else []) + other_users
+
+        # Modify form choices based on user role
+        if not is_admin:
+            form.role.choices = [
+                choice for choice in form.role.choices if choice[0] != "admin"
+            ]
+    else:
+        users = []
+        is_admin = False
+
+    return render_template(
+        "add_user.html",
+        form=form,
+        users=users,
+        is_admin=is_admin,
+        current_user_email=current_user.email,
+    )
+
+
+@blueprint.route("/run/update_user_role", methods=["POST"])
+@admin_or_editor_required
+@login_required
+def update_user_role():
+    data = request.json
+    email = data.get("email")
+    new_role = data.get("role")
+    tournament_id = data.get("tournament_id")
+    access = (
+        db.session.query(Access)
+        .filter_by(user_email=email, tournament_id=tournament_id)
+        .first()
+    )
+
+    if access:
+        try:
+            # Check if the current user is an admin for this tournament
+            is_admin = current_user.live_tournament_role == Role.admin
+            # Prevent non-admin users from changing any admin role
+            if not is_admin and (new_role == "admin" or access.role == Role.admin):
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "You don't have permission to change admin role",
+                    }
+                )
+            access.role = Role[new_role]
+            db.session.commit()
+            return jsonify({"success": True, "current_role": new_role})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify(
+                {"success": False, "current_role": access.role.value, "error": str(e)}
+            )
+    else:
+        return jsonify(
+            {"success": False, "error": "User not found for this tournament"}
+        )

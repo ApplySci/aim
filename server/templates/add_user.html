@@ -20,15 +20,146 @@
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
     </div>
-    <!--div>
+    <div>
         <p>{{ form.role.label }}:</p>
-        {{  form.role }}
+        {{ form.role() }}
         {% for error in form.role.errors %}
           <span class="formError">[{{ error }}]</span>
         {% endfor %}
-    </div-->
+    </div>
     <p>
         {{ form.submit() }}
     </p>
 </form>
+
+<style>
+    #userTable {
+        border-collapse: collapse;
+    }
+    #userTable th, #userTable td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+    #userTable tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    #userTable tr.current-user {
+        background-color: #e6f3ff;
+    }
+    .confirm-btn {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .confirm-btn.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .result-icon {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+    }
+</style>
+
+<h2>Current Users</h2>
+<table id="userTable">
+    <thead>
+        <tr>
+            <th>Email</th>
+            {% if is_admin %}
+            <th>Admin</th>
+            {% endif %}
+            <th>Editor</th>
+            <th>Scorer</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr data-user-email="{{ user.email }}" {% if user.email == current_user_email %}class="current-user"{% endif %}>
+            <td>{{ user.email }}</td>
+            {% if is_admin %}
+            <td><input type="radio" name="role_{{ user.email }}" value="admin" {% if user.role == 'admin' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
+            {% endif %}
+            <td><input type="radio" name="role_{{ user.email }}" value="editor" {% if user.role == 'editor' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
+            <td><input type="radio" name="role_{{ user.email }}" value="scorer" {% if user.role == 'scorer' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
+            <td>
+                <button class="confirm-btn" {% if user.email == current_user_email %}disabled{% endif %}>Confirm</button>
+                <span class="result-icon"></span>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userTable = document.getElementById('userTable');
+    const isAdmin = {{ is_admin|tojson }};
+    const currentUserEmail = "{{ current_user_email }}";
+
+    function showResultIcon(row, isSuccess, target, currentRole) {
+        target.classList.remove('visible');
+        const resultIcon = row.querySelector('.result-icon');
+        resultIcon.textContent = isSuccess ? '✅' : '❌';
+        setTimeout(() => {
+            resultIcon.textContent = '';
+        }, 3000);
+        if (!isSuccess && currentRole) {
+            row.querySelector(`input[value="${currentRole}"]`).checked = true;
+        }
+    }
+
+    userTable.addEventListener('change', function(event) {
+        if (event.target.type === 'radio') {
+            const row = event.target.closest('tr');
+            const confirmBtn = row.querySelector('.confirm-btn');
+            confirmBtn.classList.add('visible');
+        }
+    });
+
+    userTable.addEventListener('click', function(event) {
+        if (event.target.classList.contains('confirm-btn')) {
+            const row = event.target.closest('tr');
+            const userEmail = row.dataset.userEmail;
+            const newRole = row.querySelector('input[type="radio"]:checked').value;
+            
+            // Prevent users from changing their own role
+            if (userEmail === currentUserEmail) {
+                showResultIcon(row, false, event.target);
+                return;
+            }
+
+            // Prevent non-admin users from setting admin role
+            if (!isAdmin && newRole === 'admin') {
+                showResultIcon(row, false, event.target);
+                return;
+            }
+
+            fetch('/run/update_user_role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: userEmail,
+                    role: newRole,
+                    tournament_id: {{ current_user.live_tournament_id }}
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                showResultIcon(row, data.success, event.target, data.current_role);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showResultIcon(row, false, event.target);
+            });
+        }
+    });
+});
+</script>
 {% endblock %}
