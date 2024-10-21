@@ -21,7 +21,7 @@
             {% if current_user.live_tournament_role %}
                 {% if current_user.live_tournament_role.value in ['admin', 'editor'] %}
                     <a href="{{ url_for('edit.edit_tournament') }}">Edit Tournament Metadata</a>
-                    <a href="{{ url_for('run.add_user_get') }}">Manage team</a>
+                    <a href="{{ url_for('user_management.add_user_get') }}">Manage team</a>
                 {% endif %}
             {% endif %}
             <a href="{{ url_for('export.export_wordpress') }}">Export result pages for wordpress</a>

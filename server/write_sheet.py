@@ -8,12 +8,15 @@ import importlib
 import random
 import re
 
+from google.oauth2.service_account import Credentials
+from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pytz
 
-from oauth_setup import KEYFILE
 from config import TEMPLATE_ID, OUR_EMAILS
+from oauth_setup import KEYFILE
 
 MAX_HANCHAN = 20
 MAX_TABLES = 20
@@ -24,9 +27,9 @@ SCOPE = ['https://spreadsheets.google.com/feeds',
 
 class GSP:
     def __init__(self) -> None:
-        creds = ServiceAccountCredentials.from_json_keyfile_name(
+        self.creds = ServiceAccountCredentials.from_json_keyfile_name(
             KEYFILE, SCOPE)
-        self.client = gspread.authorize(creds)
+        self.client = gspread.authorize(self.creds)
 
 
     def get_sheet(self, id: str):
@@ -428,6 +431,60 @@ class GSP:
             return f"Error sharing sheet: {str(e)}"
 
 
+    def revoke_sheet_access(self, sheet_id: str, email: str):
+        """
+        Revoke a user's access to a Google Sheet.
+
+        Args:
+            sheet_id (str): The ID of the Google Sheet.
+            email (str): The email address of the user whose access should be revoked.
+
+        Returns:
+            success: True (bool) if the access was successfully revoked, error message (str) otherwise.
+        """
+        try:
+            drive_service = build('drive', 'v3', credentials=self.creds)
+            
+            permissions = drive_service.permissions().list(fileId=sheet_id).execute()
+            permission_id = None
+            for permission in permissions.get('permissions', []):
+                if permission.get('emailAddress') == email:
+                    permission_id = permission.get('id')
+                    break
+
+            if permission_id:
+                drive_service.permissions().delete(
+                    fileId=sheet_id,
+                    permissionId=permission_id
+                ).execute()
+                return True
+            else:
+                return "User not found in sheet permissions"
+        except HttpError as error:
+            return f"An error occurred: {error}"
+        except Exception as e:
+            return f"Error revoking sheet access: {str(e)}"
+
+
+    def get_sheet_users(self, sheet_id: str):
+        """
+        Get a list of users who have access to the specified Google Sheet.
+
+        Args:
+            sheet_id (str): The ID of the Google Sheet.
+
+        Returns:
+            list: A list of dictionaries containing user emails and their roles.
+        """
+        try:
+            sheet = self.get_sheet(sheet_id)
+            permissions = sheet.list_permissions()
+            return [{'email': p['emailAddress'], 'role': p['role']} 
+                    for p in permissions if 'emailAddress' in p]
+        except Exception as e:
+            return f"Error getting sheet users: {str(e)}"
+
+
 googlesheet = GSP()
 
 if __name__ == '__main__':
@@ -438,3 +495,4 @@ if __name__ == '__main__':
         )
 
     print(out)
+

@@ -17,18 +17,28 @@ sys.path.insert(
 )
 
 from accounts.accounts import blueprint as bp_accounts
-from run.admin import blueprint as bp_admin
 from create.tournament_setup import blueprint as bp_create
+from oauth_setup import config_oauth, config_login_manager, config_db, config_jinja
+from run.admin import blueprint as bp_admin
 from root import blueprint as bp_root
 from run.run import blueprint as bp_run
 from run.cloud_edit import blueprint as bp_edit
 from run.export import blueprint as bp_export
-from oauth_setup import config_oauth, config_login_manager, config_db, config_jinja
+from run.user_management import blueprint as bp_user_management
 
 
 def create_app():
     app = Flask(__name__)
-    for bp in (bp_accounts, bp_create, bp_root, bp_run, bp_admin, bp_edit, bp_export):
+    for bp in (
+        bp_accounts,
+        bp_create,
+        bp_root,
+        bp_run,
+        bp_admin,
+        bp_edit,
+        bp_export,
+        bp_user_management,
+    ):
         app.register_blueprint(bp)
 
     app.config.from_object("config")

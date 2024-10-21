@@ -1,88 +1,131 @@
 {% extends "runbase.html" %}
 
-{% block title %}Add Scorer{% endblock %}
+{% block title %}Manage Users{% endblock %}
 
 {% block content %}
+<h2>Manage Users for {{ current_user.live_tournament.title }}</h2>
+
+<style>
+    table {
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    td:first-child {
+        text-align: left;
+    }
+    td:not(:first-child):not(.actions-column), th:not(:first-child):not(.actions-column) {
+        text-align: center;
+    }
+    .check {
+        color: green;
+        font-size: 1.2em;
+    }
+    .cross {
+        color: red;
+        font-size: 1.2em;
+    }
+    .current-user {
+        font-weight: bold;
+        background-color: #e6f3ff !important;
+    }
+    .btn {
+        padding: 5px 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 3px;
+        margin: 2px;
+    }
+    .btn-remove {
+        background-color: #ff4d4d;
+        color: white;
+    }
+    .btn-add {
+        background-color: #4da6ff;
+        color: white;
+    }
+    .actions-column {
+        text-align: right !important;
+    }
+    .actions-column button {
+        margin-left: 5px;
+    }
+    .role-select {
+        padding: 5px;
+        border-radius: 3px;
+        border: 1px solid #ddd;
+        background-color: white;
+    }
+    .role-select:disabled {
+        background-color: #f2f2f2;
+        cursor: not-allowed;
+    }
+</style>
 <fieldset>
-<h3>Add scorer to tournament management team</h3>
 <form method="POST">
     {{ form.hidden_tag() }}
     <div>
-        <p>{{ form.email.label }}:</p>
-        {{ form.email(size=80) }}
+        {{ form.email.label }}: {{ form.email(size=30) }}
         {% for error in form.email.errors %}
-          <span class="formError">[{{ error }}]</span>
+            <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
     </div>
     <div>
-        <p>{{ form.role.label }}:</p>
-        {{ form.role() }}
+        {{ form.role.label }}: {{ form.role() }}
         {% for error in form.role.errors %}
-          <span class="formError">[{{ error }}]</span>
+            <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
     </div>
-    <p>
-        {{ form.submit() }}
-    </p>
+    <div>{{ form.submit() }}</div>
 </form>
 </fieldset>
-<style>
-    #userTable {
-        border-collapse: collapse;
-    }
-    #userTable th, #userTable td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        text-align: left;
-    }
-    #userTable tr:nth-child(even) {
-        background-color: #f2f2f2;
-    }
-    #userTable tr.current-user {
-        background-color: #e6f3ff;
-    }
-    .confirm-btn {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-    }
-    .confirm-btn.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .result-icon {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        text-align: center;
-    }
-</style>
-
-<h2>Current Users</h2>
+<h3>Current Users</h3>
 <table id="userTable">
     <thead>
         <tr>
             <th>Email</th>
-            {% if is_admin %}
-            <th>Admin</th>
-            {% endif %}
-            <th>Editor</th>
-            <th>Scorer</th>
-            <th>Action</th>
+            <th>Role</th>
+            <th>In DB</th>
+            <th>In Sheet</th>
+            <th class="actions-column">Actions</th>
         </tr>
     </thead>
     <tbody>
     {% for user in users %}
-        <tr data-user-email="{{ user.email }}" {% if user.email == current_user_email %}class="current-user"{% endif %}>
+        <tr {% if user.email == current_user_email %}class="current-user"{% endif %}>
             <td>{{ user.email }}</td>
-            {% if is_admin %}
-            <td><input type="radio" name="role_{{ user.email }}" value="admin" {% if user.role == 'admin' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
-            {% endif %}
-            <td><input type="radio" name="role_{{ user.email }}" value="editor" {% if user.role == 'editor' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
-            <td><input type="radio" name="role_{{ user.email }}" value="scorer" {% if user.role == 'scorer' %}checked{% endif %} {% if user.email == current_user_email %}disabled{% endif %}></td>
             <td>
-                <button class="confirm-btn" {% if user.email == current_user_email %}disabled{% endif %}>Confirm</button>
-                <span class="result-icon"></span>
+                <select class="role-select" data-email="{{ user.email }}" {% if user.email == current_user_email %}disabled{% endif %}>
+                    <option value="scorer" {% if user.role == 'scorer' %}selected{% endif %}>Scorer</option>
+                    <option value="editor" {% if user.role == 'editor' %}selected{% endif %}>Editor</option>
+                    {% if is_admin %}
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                    {% endif %}
+                </select>
+            </td>
+            <td>{% if user.get('in_db', True) %}<span class="check">✓</span>{% else %}<span class="cross">✗</span>{% endif %}</td>
+            <td>{% if user.in_sheet %}<span class="check">✓</span>{% else %}<span class="cross">✗</span>{% endif %}</td>
+            <td class="actions-column">
+                {% if is_admin or current_user.email != user.email %}
+                    {% if not user.in_sheet %}
+                        <button class="btn btn-add" onclick="fixAccess('{{ user.email }}', 'add_to_sheet')">+ Sheet</button>
+                    {% endif %}
+                    {% if not user.get('in_db', True) %}
+                        <button class="btn btn-add" onclick="fixAccess('{{ user.email }}', 'add_to_db')">+ DB</button>
+                    {% endif %}
+                    {% if user.email != current_user_email %}
+                        <button class="btn btn-remove" onclick="fixAccess('{{ user.email }}', 'remove')" title="Remove Access">🗑️</button>
+                    {% endif %}
+                {% endif %}
             </td>
         </tr>
     {% endfor %}
@@ -90,70 +133,68 @@
 </table>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const userTable = document.getElementById('userTable');
-    const isAdmin = {{ is_admin|tojson }};
-    const currentUserEmail = "{{ current_user_email }}";
-
-    function showResultIcon(row, isSuccess, target, currentRole) {
-        target.classList.remove('visible');
-        const resultIcon = row.querySelector('.result-icon');
-        resultIcon.textContent = isSuccess ? '✅' : '❌';
-        setTimeout(() => {
-            resultIcon.textContent = '';
-        }, 3000);
-        if (!isSuccess && currentRole) {
-            row.querySelector(`input[value="${currentRole}"]`).checked = true;
+function fixAccess(email, action) {
+    fetch('/run/fix_access', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email,
+            action: action,
+            tournament_id: {{ current_user.live_tournament_id }}
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Access updated successfully');
+            location.reload();
+        } else {
+            alert('Failed to update access: ' + data.error);
         }
-    }
-
-    userTable.addEventListener('change', function(event) {
-        if (event.target.type === 'radio') {
-            const row = event.target.closest('tr');
-            const confirmBtn = row.querySelector('.confirm-btn');
-            confirmBtn.classList.add('visible');
-        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('An error occurred while updating access');
     });
+}
 
-    userTable.addEventListener('click', function(event) {
-        if (event.target.classList.contains('confirm-btn')) {
-            const row = event.target.closest('tr');
-            const userEmail = row.dataset.userEmail;
-            const newRole = row.querySelector('input[type="radio"]:checked').value;
-            
-            // Prevent users from changing their own role
-            if (userEmail === currentUserEmail) {
-                showResultIcon(row, false, event.target);
-                return;
-            }
-
-            // Prevent non-admin users from setting admin role
-            if (!isAdmin && newRole === 'admin') {
-                showResultIcon(row, false, event.target);
-                return;
-            }
-
-            fetch('/run/update_user_role', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: userEmail,
-                    role: newRole,
-                    tournament_id: {{ current_user.live_tournament_id }}
-                }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                showResultIcon(row, data.success, event.target, data.current_role);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showResultIcon(row, false, event.target);
-            });
-        }
+document.querySelectorAll('.role-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const email = this.dataset.email;
+        const newRole = this.value;
+        updateUserRole(email, newRole);
     });
 });
+
+function updateUserRole(email, newRole) {
+    fetch("{{ url_for('user_management.update_user_role') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email,
+            role: newRole,
+            tournament_id: {{ current_user.live_tournament_id }}
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Role updated successfully');
+        } else {
+            alert('Failed to update role: ' + data.error);
+            // Reset the select to the previous value
+            const select = document.querySelector(`.role-select[data-email="${email}"]`);
+            select.value = data.current_role;
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the role');
+    });
+}
 </script>
 {% endblock %}
