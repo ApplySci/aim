@@ -7,16 +7,18 @@ from datetime import datetime
 import importlib
 import random
 import re
+import time
 
-from google.oauth2.service_account import Credentials
+from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 import gspread
+from gspread.exceptions import APIError as GspreadAPIError
 from oauth2client.service_account import ServiceAccountCredentials
 import pytz
 
 from config import TEMPLATE_ID, OUR_EMAILS
-from oauth_setup import KEYFILE
+from oauth_setup import KEYFILE, logging
 
 MAX_HANCHAN = 20
 MAX_TABLES = 20
@@ -143,21 +145,21 @@ class GSP:
                                     this_user_can_see_this_sheet = True
                                 if perm["role"] == "owner":
                                     ours = perm["emailAddress"] in OUR_EMAILS
-                        except:
+                        except (GspreadAPIError, HttpError) as e:
+                            logging.error(f"Error listing permissions for sheet {one['id']}: {str(e)}")
                             ours = False
                         if this_user_can_see_this_sheet:
                             details["ours"] = ours
                             out.append(details)
-                    except APIError as e:
-                        print(f"Error accessing sheet {one['id']}: {str(e)}")
+                    except (GspreadAPIError, HttpError) as e:
+                        logging.error(f"Error accessing sheet {one['id']}: {str(e)}")
                         continue
                 return out
-            except APIError as e:
+            except (GspreadAPIError, HttpError, RefreshError) as e:
                 if attempt < max_retries - 1:
-                    print(f"API Error: {str(e)}. Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                 else:
-                    print(f"Max retries reached. Unable to list sheets: {str(e)}")
+                    logging.error(f"Max retries reached. Unable to list sheets: {str(e)}")
                     return []
 
     def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:
@@ -436,16 +438,21 @@ class GSP:
         try:
             drive_service = build("drive", "v3", credentials=self.creds)
 
-            permissions = drive_service.permissions().list(fileId=sheet_id).execute()
+            permissions = drive_service.permissions().list(
+                fileId=sheet_id,
+                fields="permissions(id,emailAddress,role)"
+            ).execute()
+
             permission_id = None
             for permission in permissions.get("permissions", []):
-                if permission.get("emailAddress").lower() == email.lower():
+                if permission.get("emailAddress", "").lower() == email:
                     permission_id = permission.get("id")
                     break
 
             if permission_id:
                 drive_service.permissions().delete(
-                    fileId=sheet_id, permissionId=permission_id
+                    fileId=sheet_id,
+                    permissionId=permission_id
                 ).execute()
                 return True
             else:
@@ -487,5 +494,9 @@ if __name__ == "__main__":
     )
 
     print(out)
+
+
+
+
 
 

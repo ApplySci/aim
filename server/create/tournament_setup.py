@@ -22,7 +22,7 @@ from flask_login import login_required, current_user
 from config import GOOGLE_CLIENT_EMAIL, BASEDIR
 from forms.tournament_forms import TournamentForm
 from models import Access, Tournament, User
-from oauth_setup import db, firestore_client, Role
+from oauth_setup import db, firestore_client, logging, Role
 from write_sheet import googlesheet
 
 
@@ -140,10 +140,10 @@ def results_create():
         thread.start()
         return redirect(url_for("create.select_sheet"))
 
-    print("*** failed validation")
+    logging.error("*** failed validation")
     for field, errors in form.errors.items():
         for error in errors:
-            print(f"Field {field}: {error}")
+            logging.error(f"Field {field}: {error}")
     # Generate labels for the round dates
     round_labels = []
     template = (

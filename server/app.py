@@ -51,8 +51,6 @@ def create_app():
     @app.after_request
     def add_header(response):
         if request.path.startswith("/static/"):
-            # Allow caching for static files
-            print("*** serving /static/ through flask")
             return response
 
         # Disable caching for HTML and JSON responses

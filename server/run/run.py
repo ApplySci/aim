@@ -23,7 +23,7 @@ from flask import (
 from flask_login import login_required, current_user
 
 from models import Access, User, Tournament
-from oauth_setup import db, firestore_client
+from oauth_setup import db, firestore_client, logging
 from write_sheet import googlesheet
 
 blueprint = Blueprint("run", __name__)
@@ -344,7 +344,7 @@ def _games_to_web(games, schedule, players):
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(html)
         except Exception as e:
-            print(f"Error writing player page for {pid} ({name}): {e}")
+            logging.error(f"Error writing player page for {pid} ({name}): {e}")
 
     # =======================================================
 

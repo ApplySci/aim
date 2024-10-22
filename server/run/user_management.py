@@ -2,12 +2,13 @@ from flask import Blueprint, redirect, url_for, render_template, request, flash,
 from flask_login import login_required, current_user
 from models import Access, User, Tournament
 from oauth_setup import (
-    db,
-    login_required,
     admin_required,
     admin_or_editor_required,
-    superadmin_required,
+    db,
+    login_required,
+    logging,
     Role,
+    superadmin_required,
 )
 from forms.userform import AddUserForm
 from write_sheet import googlesheet
@@ -236,8 +237,6 @@ def remove_user_access():
             # Revoke Google Sheet access
             tournament = db.session.query(Tournament).get(tournament_id)
 
-            # TODO this doesn't seem to be working reliably *********
-
             revoke_result = googlesheet.revoke_sheet_access(
                 tournament.google_doc_id, email
             )
@@ -307,7 +306,6 @@ def fix_access():
                 db.session.rollback()
                 error_message += f"Failed to remove database access: {str(e)}. "
 
-        # Remove Google Sheet access
         sheet_result = googlesheet.revoke_sheet_access(tournament.google_doc_id, email)
         if sheet_result == True:
             sheet_removed = True

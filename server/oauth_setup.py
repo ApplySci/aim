@@ -2,6 +2,7 @@
 
 from enum import Enum as PyEnum
 from functools import wraps
+import logging
 import os
 from urllib.parse import quote_plus
 
@@ -13,6 +14,12 @@ from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OUR_EMAILS
+
+logging.basicConfig(
+    filename='/home/model/apps/tournaments/app.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+)
 
 oauth = OAuth()
 login_manager = LoginManager()

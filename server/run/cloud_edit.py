@@ -30,7 +30,7 @@ from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
 from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
-from oauth_setup import db, firestore_client, admin_or_editor_required, Role
+from oauth_setup import db, firestore_client, admin_or_editor_required, logging, Role
 from write_sheet import googlesheet
 
 blueprint = Blueprint("edit", __name__)
@@ -164,10 +164,10 @@ def edit_tournament():
             return redirect(url_for("run.run_tournament"))
 
         flash("validation failed", "error")
-        print("Form validation failed. Specific errors:")
+        logging.error("Form validation failed. Specific errors:")
         for field, errors in form.errors.items():
             for error in errors:
-                print(f"Field '{field}': {error}")
+                logging.error(f"Field '{field}': {error}")
 
     return render_template(
         "cloud_edit.html",
