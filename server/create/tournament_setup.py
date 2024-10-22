@@ -21,8 +21,8 @@ from flask_login import login_required, current_user
 
 from config import GOOGLE_CLIENT_EMAIL, BASEDIR
 from forms.tournament_forms import TournamentForm
-from models import Access, Role, Tournament, User
-from oauth_setup import db, firestore_client
+from models import Access, Tournament, User
+from oauth_setup import db, firestore_client, Role
 from write_sheet import googlesheet
 
 

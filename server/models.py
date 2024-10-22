@@ -3,7 +3,6 @@
 
 """
 from datetime import datetime, timedelta
-from enum import Enum as PyEnum
 from typing import List, Optional
 import os
 from functools import lru_cache
@@ -15,7 +14,7 @@ from sqlalchemy.types import String
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from config import BASEDIR
-from oauth_setup import firestore_client
+from oauth_setup import firestore_client, Role
 
 
 class Base(DeclarativeBase):
@@ -23,12 +22,6 @@ class Base(DeclarativeBase):
 
 
 metadata = Base.metadata
-
-
-class Role(PyEnum):
-    admin = "admin"
-    editor = "editor"
-    scorer = "scorer"
 
 
 class Access(Base):

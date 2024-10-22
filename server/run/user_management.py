@@ -1,7 +1,14 @@
 from flask import Blueprint, redirect, url_for, render_template, request, flash, jsonify
 from flask_login import login_required, current_user
-from models import Access, User, Tournament, Role
-from oauth_setup import db, login_required, admin_required, admin_or_editor_required, superadmin_required
+from models import Access, User, Tournament
+from oauth_setup import (
+    db,
+    login_required,
+    admin_required,
+    admin_or_editor_required,
+    superadmin_required,
+    Role,
+)
 from forms.userform import AddUserForm
 from write_sheet import googlesheet
 
@@ -39,7 +46,7 @@ def add_user_post():
     )
     if not access:
         tournament = db.session.query(Tournament).get(current_user.live_tournament_id)
-        access = Access(user=user, tournament=tournament, role=Role[role])
+        access = Access(user_email=email, tournament=tournament, role=Role[role])
         db.session.add(access)
         db.session.commit()
         share_result = googlesheet.share_sheet(
@@ -228,6 +235,9 @@ def remove_user_access():
 
             # Revoke Google Sheet access
             tournament = db.session.query(Tournament).get(tournament_id)
+
+            # TODO this doesn't seem to be working reliably *********
+
             revoke_result = googlesheet.revoke_sheet_access(
                 tournament.google_doc_id, email
             )
@@ -268,7 +278,7 @@ def fix_access():
         if not user:
             user = User(email=email)
             db.session.add(user)
-        access = Access(user=user, tournament=tournament, role=Role.scorer)
+        access = Access(user_email=email, tournament=tournament, role=Role.scorer)
         db.session.add(access)
         try:
             db.session.commit()
@@ -339,7 +349,7 @@ def sync_access_route():
         flash(f"Failed to synchronize access: {str(e)}", "error")
 
     # Redirect back to the referring page
-    return redirect(request.referrer or url_for('user_management.add_user_get'))
+    return redirect(request.referrer or url_for("user_management.add_user_get"))
 
 
 @admin_required

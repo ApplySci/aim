@@ -30,9 +30,8 @@ from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
 from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
-from oauth_setup import db, firestore_client, admin_or_editor_required
+from oauth_setup import db, firestore_client, admin_or_editor_required, Role
 from write_sheet import googlesheet
-from models import Role
 
 blueprint = Blueprint("edit", __name__)
 

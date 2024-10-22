@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
+from enum import Enum as PyEnum
+from functools import wraps
 import os
 from urllib.parse import quote_plus
-from functools import wraps
-from flask import abort
-from flask_login import current_user
-from models import Role
 
 from authlib.integrations.flask_client import OAuth
-from flask_login import LoginManager
+from flask import abort
+from flask_login import current_user, LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from firebase_admin import credentials, initialize_app as initialize_firebase
 from firebase_admin import firestore
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEFAULT_USERS, OUR_EMAILS
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OUR_EMAILS
 
 oauth = OAuth()
 login_manager = LoginManager()
@@ -24,6 +23,12 @@ KEYFILE = os.path.join(app_directory, "fcm-admin.json")
 
 initialize_firebase(credentials.Certificate(KEYFILE))
 firestore_client = firestore.client()
+
+
+class Role(PyEnum):
+    admin = "admin"
+    editor = "editor"
+    scorer = "scorer"
 
 
 def config_db(app):

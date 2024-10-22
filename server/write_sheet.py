@@ -439,7 +439,7 @@ class GSP:
             permissions = drive_service.permissions().list(fileId=sheet_id).execute()
             permission_id = None
             for permission in permissions.get("permissions", []):
-                if permission.get("emailAddress") == email:
+                if permission.get("emailAddress").lower() == email.lower():
                     permission_id = permission.get("id")
                     break
 
@@ -487,3 +487,5 @@ if __name__ == "__main__":
     )
 
     print(out)
+
+
