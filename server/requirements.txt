@@ -1,17 +1,32 @@
-firebase-admin
-gspread
-oauth2client
-flask
-authlib
-flask_wtf
-flask_login
-email_validator
-flask_sqlalchemy
+## manage database versions
 alembic
-pytz
-pycountry
-bleach
-gamsapi
-openpyxl
+## oauth integration for flask-client
+authlib
+## webpage parsing for the export function 
 beautifulsoup4
+## sanitize html entered as notes on a tournament
+bleach
+## email validation
+email_validator
+## firebase firestore and cloud notifications
+firebase-admin
+## the core framework
+flask
+## form validation
+flask_wtf
+## user management
+flask_login
+## sqlite3 in a db-agnostic way
+flask_sqlalchemy
+## read & write google sheets
+gspread
+## parse html as part of the export function
 html5lib
+## google oauth2 is how we authenticate users
+oauth2client
+## write output from the seating generator to an excel file
+openpyxl
+## country names
+pycountry
+## timezones are hard
+pytz
