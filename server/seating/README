@@ -1,8 +1,20 @@
-
-Seating for mahjong tournaments with 16-172 players. For any given number of players, a seating arrangement has been generated for up to 15 hanchan without repeat meetups between players.
+Seating for mahjong tournaments with 16-172 players. For any given number of players, a seating arrangement has been generated for up to 15 hanchan without repeat meetups between players (where possible).
 
 The seating allocation is designed to: minimize repeat meetups between players, & repeat visits to tables; balance wind allocations; and maximise the number of indirect meets between any pair of players via a third player.
 
+Player IDs are a 1-based sequence: e.g. for a 48-player tournament, player IDs run 1-48
+
+This dataset is built on some of the solutions in Alice Miller's Breakout Room Allocation schedule Tool (Miller et al, 2020). Each such solution avoids repeat meetups between any pair of players.
+
+We have reordered the data so that repeat vists to specific tables (breakout rooms, in Miller's format) are minimised for each player. When we have taken a subset of the data, this has been done to maximise indirect meetups for pairs of players who do not meet directly. This indirect meetup criterion was developed by Lester (2021). An indirect meetup is a player who plays each of players A and B, for players A and B who do not play each other,
+
+After all these optimisations were carried out, we finally rearrange the order of players on each table in each hanchan, so that each player takes each seat number the same number of times. This is done so that tournament schedulers can, if they choose to, use pre-assigned starting winds for players, with seats 1-4 being East, South, West and North respectively.
+
+For Excel users
+
+The Excel file contains one tab for each number of hanchan: the seating arrangements for 16-172 players are on each sheet. For example, sheet "10 h" contains seating arrangements for tournaments with 10 hanchan, for 16-172 players.
+
+For Python users
 
 Each .py file contains all the seating for a specific number of hanchan. e.g. seats_8.py contains all the seating for mahjong tournaments with 8 hanchan, with 16-172 players.
 
@@ -12,8 +24,7 @@ The corresponding dict value is a list of hanchan.
 Each hanchan is a list of tables. 
 Each table is a list of players, indexed from 1 upwards, in wind order (ESWN).
 
-
-For Python Users
+To use:
 
 1. Import the seats dictionary from the appropriate file:
 from seats_13 import seats
