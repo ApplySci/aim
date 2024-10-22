@@ -26,8 +26,9 @@ It's designed in a way that a browser with 3 tabs can do everything:
 The client-side written in Dart with the **Flutter** framework. It's developed and
 tested for **android**, in Android Studio, and for iPhone & iPad(Mini) on xCode.
 
-The server-side is written in **Python**, with the **Flask** framework. I'm running it
-on the server with **wsgi**. Note that the oauth2 authentication won't work on localhost: you need
+The server-side is written in **Python**, with the **Flask** framework. See [server/README.md](server/README.md) for details.
+I'm running it
+on the server with **gunicorn**. Note that the oauth2 authentication won't work on localhost: you need
 a google project that knows about the domain that the app is being served from, and must be given
 the post-authentication URL to redirect back to.  **GSPRead** is used to read the
 scoresheet, to create the live score web page, and to put the data into the
@@ -82,7 +83,7 @@ happens in [lib/score_cell.dart](lib/score_cell.dart#L12) and [server/run/run.py
 All info is public. This bypasses any issues around privacy policies, age requirements, etc.
 
 There *are* logins for tournament admin and server admin on the web,
-using Google oauth2 and Flask logins.
+using Google oauth2, so everyone who's going to run or score a tournament needs a google account.
 
 And the Google Sheet that is used for scoring for any given tournament,
 has access permissions managed by Google.
@@ -91,6 +92,71 @@ That score sheet is not public: the only accounts that can see it,
 will be the tournament scorers. We don't release the scores for a round, until
 all games in that round have finished. This is important. It removes an incentive
 to bad behaviour among players.
+
+# Setting up the cloud stuff
+
+If you're creating your own version of this app, rather than running off my instance,
+you'll need to set up the cloud stuff.
+- First you'll need a google cloud project.
+- Then you'll need a google-services.json file from it
+- and an fcm-admin.json file from it
+- you'll need an account on the play store
+
+## APN - Apple Push Notifications
+Once you've got the google firebase cloud messaging working, you'll need to set up the APN to reach Apple devices.
+
+First, an APN authentication key is needed:
+
+- Go to the Apple Developer website (https://developer.apple.com/) and sign in.
+- Navigate to "Certificates, Identifiers & Profiles".
+- In the left sidebar, under "Keys", click on "All".
+- Click the "+" button to create a new key.
+- Give your key a name (e.g., "Firebase APNs Key").
+- Check the box for "Apple Push Notifications service (APNs)".
+- Click "Continue" and then "Register".
+- Download the key file (.p8). You'll only be able to download it once, so keep it safe.
+- Note the Key ID and the Team ID (visible in the top right of the page).
+
+The p8 key file, Key ID and Team ID then go into the firebase console.
+
+Check your App ID:
+- In the left sidebar, click on "Certificates, Identifiers & Profiles".
+- Under "Identifiers", click on "App IDs".
+- Find your app's identifier (it should match your bundle ID - ie.mahjong.tournament).
+- Click on it and ensure that "Push Notifications" is enabled in the capabilities list.
+
+Check your Certificates:
+- In the left sidebar, under "Certificates, Identifiers & Profiles", click on "Certificates".
+- You should see an Apple Push Notification service SSL (Sandbox & Production) certificate for the app. You'll need this on the device where you compile the Apple version of the app.
+- If it's expired, you'll need to create a new one.
+
+Create a new Push Notification Certificate if needed:
+- Click the "+" button to add a new certificate.
+- Select "Apple Push Notification service SSL (Sandbox & Production)".
+- Choose the App ID for your application.
+- Follow the instructions to create a Certificate Signing Request (CSR) using Keychain Access on your Mac.
+- Upload the CSR and download the resulting certificate.
+
+Install the certificate on the device where you compile the Apple version of the app:
+- Double-click the downloaded certificate to install it in your Keychain
+
+Regenerate Provisioning Profile:
+- Back in the Apple Developer portal, go to "Profiles".
+- Find your app's provisioning profile.
+- Click on it and then click "Edit".
+- No changes are necessary, just proceed through the steps and regenerate the profile.
+- Download the new profile.
+
+Update Xcode:
+- In Xcode, go to Xcode > Preferences > Accounts.
+- Select your Apple ID and click "Download Manual Profiles" or "Refresh".
+- Close Preferences and select your project in the Project Navigator.
+- In the "Signing & Capabilities" tab, ensure that the newly downloaded provisioning profile is selected.
+
+After completing these steps, clean and rebuild your project in Xcode. This should ensure that your app is using the correct certificates and provisioning profile for push notifications.
+
+You'll need an account on the Apple store. It can take several days to get approved,
+and several more to get your app approved.
 
 ### App screenshots (TODO - UPDATE)
 
