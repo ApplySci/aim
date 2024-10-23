@@ -4,6 +4,31 @@
 
 {% block content %}
 <!-- Add this section to display flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<h3>Tournament Status: {{ current_status }}</h3>
+{% if status_mismatch %}
+<div class="alert alert-warning">
+  <p>The current status ({{ current_status }}) doesn't match the expected status ({{ expected_status }}) based on the tournament schedule:</p>
+  <p>All times are in the tournament timezone: {{ tournament_timezone }}</p>
+  <ul>
+    <li>First hanchan starts: {{ first_hanchan.strftime('%Y-%m-%d %H:%M') }}</li>
+    <li>Last hanchan starts: {{ last_hanchan.strftime('%Y-%m-%d %H:%M') }}</li>
+    <li>Current time: {{ now.strftime('%Y-%m-%d %H:%M') }}</li>
+  </ul>
+  <form id="updateStatusForm" method="POST" action="{{ url_for('run.update_tournament_status') }}">
+    <input type="hidden" name="new_status" value="{{ expected_status }}">
+    <button type="submit" class="btn btn-primary">Update status to {{ expected_status }}</button>
+  </form>
+</div>
+{% endif %}
+
 <h3>Available actions:</h3>
 <p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
   Open the google score sheet
@@ -50,7 +75,7 @@
 {% endblock %}
 
 {% block scripts %}
-
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   let buttons = document.querySelectorAll('button.action');
@@ -116,6 +141,30 @@ document.addEventListener('DOMContentLoaded', function() {
       messageElement.appendChild(timestampSpan);
       messageElement.appendChild(document.createTextNode(': ' + message));
       log.insertBefore(messageElement, log.firstChild);
+  }
+
+  // Add event listener for the update status form
+  const updateStatusForm = document.getElementById('updateStatusForm');
+  if (updateStatusForm) {
+    updateStatusForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      fetch(this.action, {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          location.reload();
+        } else {
+          alert('Error updating status: ' + data.message);
+        }
+      })
+      .catch(error => {
+        alert('Error: ' + error);
+      });
+    });
   }
 });
 </script>

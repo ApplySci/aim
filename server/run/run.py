@@ -8,6 +8,8 @@ import sys
 import threading
 import traceback
 import uuid
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from firebase_admin import messaging
 from flask import (
@@ -158,14 +160,47 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 @login_required
 def run_tournament():
     if current_user.live_tournament:
-        is_past = current_user.live_tournament.status == "past"
+        tournament = current_user.live_tournament
+        sheet = _get_sheet()
+        schedule = googlesheet.get_schedule(sheet)
+        
+        tournament_tz = ZoneInfo(schedule['timezone'])
+        now = datetime.now(tournament_tz)
+        first_hanchan = datetime.fromisoformat(schedule['rounds'][0]['start']).astimezone(tournament_tz)
+        last_hanchan = datetime.fromisoformat(schedule['rounds'][-1]['start']).astimezone(tournament_tz)
+        
+        expected_status = 'live'
+        if now < first_hanchan - timedelta(hours=24):
+            expected_status = 'upcoming'
+        elif now > last_hanchan + timedelta(hours=24):
+            expected_status = 'past'
+        
+        current_status = tournament.status
+        status_mismatch = current_status != expected_status # and current_status != 'test'
 
         return render_template(
             "run_tournament.html",
             webroot=webroot(),
-            is_past=is_past,
+            current_status=current_status,
+            expected_status=expected_status,
+            status_mismatch=status_mismatch,
+            first_hanchan=first_hanchan,
+            last_hanchan=last_hanchan,
+            now=now,
+            tournament_timezone=schedule['timezone'],
         )
     return redirect(url_for("run.select_tournament"))
+
+
+@blueprint.route("/run/update_status", methods=["POST"])
+@login_required
+def update_tournament_status():
+    new_status = request.form.get("new_status")
+    if new_status in ["upcoming", "live", "past"]:
+        current_user.live_tournament.status = new_status
+        db.session.commit()
+        return jsonify({"status": "success", "new_status": new_status})
+    return jsonify({"status": "error", "message": "Invalid status"}), 400
 
 
 @login_required
@@ -553,4 +588,6 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         ref.update(data)
     else:
         ref.set(data)
+
+
 
