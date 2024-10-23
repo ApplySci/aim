@@ -48,3 +48,8 @@ input:invalid {
 .wrap {
   word-wrap: break-word;
 }
+
+#doclist li {
+  padding-bottom: 1em;
+  list-style-type: none;
+}

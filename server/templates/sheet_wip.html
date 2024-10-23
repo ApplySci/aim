@@ -28,13 +28,16 @@ var maxPollCount = 40; // Stop polling after 10 minutes (40 * 15 seconds)
 var pollInterval = 15000; // 15 seconds
 
 function list_sheets(docs) {
-    out = '<ul>';
-    docs.forEach((doc) => out +=
-        `<li><form action='/create/select/${doc["id"]}' method=post>
-        <input type=submit name=submit value="${doc['title']}">
-        (${doc['id']})
-        </form></li>`
-    );
+    out = '<ul id="doclist">';
+    docs.forEach((doc) => {
+        let createdDate = new Date(doc['created']);
+        let localCreatedDate = createdDate.toLocaleString();
+        out +=
+            `<li><form action='/create/select/${doc["id"]}' method=post>
+            <input type=submit name=submit value="${doc['title']}">
+            <em>Created: ${localCreatedDate}</em> (${doc['id']})
+            </form></li>`;
+    });
     out += '</ul>';
     document.getElementById('doclist').innerHTML = out;
     document.getElementById('header').textContent = "Which google sheet is the correct one?";

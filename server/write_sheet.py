@@ -127,7 +127,11 @@ class GSP:
         """
         for attempt in range(max_retries):
             try:
+                # get the list of all the sheets that the user has access to
                 sheet_dict: list = self.client.list_spreadsheet_files()
+                # get creation date of each sheet
+                sheet_dict.sort(key=lambda x: x['createdTime'], reverse=True)
+
                 out = []
                 for one in sheet_dict:
                     ours = False
@@ -137,6 +141,7 @@ class GSP:
                         details: dict = {
                             "id": one["id"],
                             "title": sheet.title,
+                            "created": one["createdTime"],
                         }
                         try:
                             perms = sheet.list_permissions()
