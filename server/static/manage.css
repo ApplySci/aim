@@ -39,3 +39,8 @@ button {
 input[readonly] {
   background-color: #AAA;
 }
+
+input:invalid {
+  border: 2px solid red;
+  background-color: #fcc;
+}

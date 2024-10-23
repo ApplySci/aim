@@ -47,7 +47,7 @@ def add_user_post():
     )
     if not access:
         tournament = db.session.query(Tournament).get(current_user.live_tournament_id)
-        access = Access(user_email=email, tournament=tournament, role=Role[role])
+        access = Access(email, tournament=tournament, role=Role[role])
         db.session.add(access)
         db.session.commit()
         share_result = googlesheet.share_sheet(
@@ -277,7 +277,7 @@ def fix_access():
         if not user:
             user = User(email=email)
             db.session.add(user)
-        access = Access(user_email=email, tournament=tournament, role=Role.scorer)
+        access = Access(email, tournament=tournament, role=Role.scorer)
         db.session.add(access)
         try:
             db.session.commit()
@@ -366,7 +366,7 @@ def sync_access(tournament_id):
         if not user:
             user = User(email=email)
             db.session.add(user)
-        access = Access(user_email=email, tournament=tournament, role=Role.scorer)
+        access = Access(email, tournament=tournament, role=Role.scorer)
         db.session.add(access)
 
     # Remove extra users from the database

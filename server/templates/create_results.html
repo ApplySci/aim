@@ -26,7 +26,7 @@
         </p>
         <div class="form-group">
             {{ form.web_directory.label }}
-            {{ form.web_directory(class="form-control",  pattern="[-_a-z0-9]+",) }}
+            {{ form.web_directory(class="form-control",  pattern="[\-_a-z0-9]{3,20}",) }}
             <br>
             <small class="form-text text-muted">
                 This short name will be used in URLs, so it should be concise, meaningful,

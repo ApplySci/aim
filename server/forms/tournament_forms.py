@@ -159,13 +159,13 @@ class TournamentForm(FlaskForm):
         "Google Doc ID", validators=[Optional(), validate_google_doc_id]
     )
     web_directory = StringField(
-        "Short name (for URLs); use only -_a-z0-9",
+        "Short name (for URLs), 3-20 characters; use only -_a-z0-9",
         validators=[
             DataRequired(),
             validate_web_directory,
             Regexp(
                 r"^[-_a-z0-9]+$",
-                message="Only letters, numbers, hyphens, and underscores are allowed",
+                message="3-20 characters: only letters, numbers, hyphens, and underscores are allowed",
             ),
         ],
     )

@@ -90,7 +90,7 @@ def results_create():
 
         # Add access for the current user
         db.session.add(
-            Access(user=current_user, tournament=tournament, role=Role.admin)
+            Access(current_user.email, tournament=tournament, role=Role.admin)
         )
         db.session.commit()
         for email in form.scorer_emails.data:
@@ -100,10 +100,10 @@ def results_create():
                     scorer = User(email=email)
                     db.session.add(scorer)
                 db.session.add(
-                    Access(user=scorer, tournament=tournament, role=Role.scorer)
+                    Access(email, tournament=tournament, role=Role.scorer)
                 )
         db.session.commit()
-        base_dir = tournament.full_web_directory()
+        base_dir = tournament.full_web_directory
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(os.path.join(base_dir, "rounds"), exist_ok=True)
         os.makedirs(os.path.join(base_dir, "players"), exist_ok=True)

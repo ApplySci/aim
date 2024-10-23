@@ -14,7 +14,9 @@
 
 {% if current_user.live_tournament_role.value == 'admin' %}
 <form action="{{ url_for('user_management.sync_access_route') }}" method="POST">
-    <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">Sync Database with Google Sheet</button>
+    <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">
+        Sync access permissions between Database & Google Sheets
+    </button>
 </form>
 {% endif %}
 
