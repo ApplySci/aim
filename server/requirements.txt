@@ -30,3 +30,4 @@ openpyxl
 pycountry
 ## timezones are hard
 pytz
+tzdata

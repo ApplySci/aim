@@ -14,7 +14,7 @@
     <p><em>Instead, you must use "File" > "Make a copy"
     and copy the sheet to a new one that you do own.</em></p>
 
-    <form method="POST">
+    <form method="POST" id="tournamentForm">
     <fieldset>
         {{ form.hidden_tag() }}
         <p>
@@ -39,20 +39,6 @@
                 </div>
             {% endif %}
         </div>
-        <p>
-            {{ form.address.label }}<br>
-            {{ form.address(size=80) }}
-            {% for error in form.address.errors %}
-                <span class=error>[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.country.label }}<br>
-            {{ form.country() }}
-            {% for error in form.country.errors %}
-                <span class=error>[{{ error }}]</span>
-            {% endfor %}
-        </p>
         <fieldset>
             {{ form.rules.label }}<br>
             {% for subfield in form.rules %}
@@ -85,26 +71,49 @@
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
-        <div id="scorer-emails">
+        <fieldset id="scorer-emails">
             {% for email_field in form.scorer_emails %}
-            <div class="scorer-email-field">
-                {{ email_field.label }}
-                {{ email_field(class="form-control") }}
-                {% for error in email_field.errors %}
-                    <span class="error">{{ error }}</span>
-                {% endfor %}
-            </div>
+                <div class="scorer-email-field">
+                    {{ email_field.label }}
+                    {{ email_field(class="form-control", size=30) }}
+                    {% for error in email_field.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endfor %}
-        </div>
-        <button type="button" id="add-scorer">Add Another Scorer</button>
-
+            <small>(each must be a google account)</small>
+            <p>
+                <button type="button" id="add-scorer">Add Another Scorer</button>
+            </p>
+        </fieldset>
         <p>
-            {{ form.table_count.label }} {{ form.table_count(size=4) }} 
-            {% for error in form.table_count.errors %}
+            {{ form.address.label }}<br>
+            {{ form.address(size=80) }}
+            {% for error in form.address.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.country.label }}<br>
+            {{ form.country() }}
+            {% for error in form.country.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.timezone.label }}<br>
+            {{ form.timezone() }}
+            {% for error in form.timezone.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}
         </p>
         <fieldset>
+            <p>
+                {{ form.table_count.label }} {{ form.table_count(size=4) }} 
+                {% for error in form.table_count.errors %}
+                    <span class=error>[{{ error }}]</span>
+                {% endfor %}
+            </p>
             <p>
                 {{ form.hanchan_count.label }} {{ form.hanchan_count(size=4) }} 
                 {% for error in form.hanchan_count.errors %}
@@ -118,7 +127,6 @@
             {% for error in form.other_name.errors %}
                 <span class=error>[{{ error }}]</span>
             {% endfor %}    
-            <p>{{ form.timezone.label }} {{ form.timezone() }}</p>
             <label>Enter the start date/time for each round, in the local time for
             the tournament (ie in the above timezone). You can change these later.
             <div id="datetimeInputs">
@@ -218,23 +226,43 @@ function set_format_listener() {
     otherField.addEventListener('input', debounce(updateLabels, 300));
 }
 
-// Call these functions when the page loads
 document.addEventListener('DOMContentLoaded', function() {
+    const countrySelect = document.getElementById('country');
+    const timezoneSelect = document.getElementById('timezone');
+
+    countrySelect.addEventListener('change', function() {
+        const selectedCountry = this.value;
+        fetch(`/get_timezones/${selectedCountry}`)
+            .then(response => response.json())
+            .then(timezones => {
+                timezoneSelect.innerHTML = '';
+                timezones.forEach(timezone => {
+                    const option = new Option(timezone, timezone);
+                    timezoneSelect.add(option);
+                });
+                if (timezones.length > 0) {
+                    timezoneSelect.value = timezones[0];
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
     updateLabels();
     set_format_listener();
     hanchanCountField.addEventListener('change', set_datetime_fields);
+
+    document.getElementById('add-scorer').addEventListener('click', function() {
+        var emailFields = document.getElementById('scorer-emails');
+        var newField = emailFields.children[0].cloneNode(true);
+        var fieldCount = emailFields.children.length;
+        
+        newField.querySelector('input').name = 'scorer_emails-' + fieldCount;
+        newField.querySelector('input').id = 'scorer_emails-' + fieldCount;
+        newField.querySelector('input').value = '';
+        
+        emailFields.appendChild(newField);
+    });
+
 });
 
-document.getElementById('add-scorer').addEventListener('click', function() {
-    var emailFields = document.getElementById('scorer-emails');
-    var newField = emailFields.children[0].cloneNode(true);
-    var fieldCount = emailFields.children.length;
-    
-    newField.querySelector('input').name = 'scorer_emails-' + fieldCount;
-    newField.querySelector('input').id = 'scorer_emails-' + fieldCount;
-    newField.querySelector('input').value = '';
-    
-    emailFields.appendChild(newField);
-});
 </script>
 {% endblock %}

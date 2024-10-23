@@ -1,11 +1,9 @@
 from datetime import datetime
 import os
-import re
 
 from config import BASEDIR
 from flask_wtf import FlaskForm
 import pycountry
-import pytz
 import requests
 from wtforms import (
     BooleanField,
@@ -122,11 +120,18 @@ class TournamentForm(FlaskForm):
         "Address (this will be used as a lookup string for google maps)",
         validators=[Optional()],
     )
+
     countries = sorted(
         [(country.alpha_2, country.name) for country in pycountry.countries],
         key=lambda e: e[1],
     )
     country = SelectField("Country", choices=countries, default="DE")
+    timezone = SelectField(
+        "Timezone",
+        choices=[("Europe/Berlin", "Europe/Berlin")],
+        default="Europe/Dublin",
+    )
+
     status = RadioField(
         "Status",
         choices=[
@@ -179,11 +184,6 @@ class TournamentForm(FlaskForm):
         default=7,
         validators=[DataRequired(), NumberRange(min=2, max=15)],
     )
-    timezone = SelectField(
-        "Timezone",
-        choices=[(tz, tz) for tz in pytz.common_timezones],
-        default="Europe/Dublin",
-    )
     round_dates = FieldList(DateTimeLocalField("Round Date/Time"), min_entries=0)
 
     hanchan_name = SelectField(
@@ -206,7 +206,7 @@ class TournamentForm(FlaskForm):
     )
     scorer_emails = FieldList(
         StringField(
-            "Scorer Emails (each must be a google account)",
+            "Scorer Email",
             validators=[Optional(), Email()],
         ),
         min_entries=1,

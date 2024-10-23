@@ -24,7 +24,7 @@ from forms.tournament_forms import TournamentForm
 from models import Access, Tournament, User
 from oauth_setup import db, firestore_client, logging, Role
 from write_sheet import googlesheet
-
+from utils.timezones import get_timezones_for_country
 
 blueprint = Blueprint("create", __name__)
 messages_by_user = {}
@@ -33,7 +33,7 @@ messages_by_user = {}
 @blueprint.route("/create/")
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('run.select_tournament'))
+        return redirect(url_for("run.select_tournament"))
     else:
         return render_template("welcome_anon.html")
 
@@ -208,3 +208,8 @@ def select_sheet():
         OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
     )
 
+@blueprint.route("/get_timezones/<country>")
+@login_required
+def get_timezones(country):
+    timezones = get_timezones_for_country(country)
+    return jsonify(sorted(timezones))

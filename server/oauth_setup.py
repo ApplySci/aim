@@ -17,7 +17,7 @@ from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OUR_EMAILS
 
 logging.basicConfig(
     filename='/home/model/apps/tournaments/app.log',
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 )
 

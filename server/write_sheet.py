@@ -15,7 +15,7 @@ from googleapiclient.discovery import build
 import gspread
 from gspread.exceptions import APIError as GspreadAPIError
 from oauth2client.service_account import ServiceAccountCredentials
-import pytz
+from zoneinfo import ZoneInfo
 
 from config import TEMPLATE_ID, OUR_EMAILS
 from oauth_setup import KEYFILE, logging
@@ -46,12 +46,12 @@ class GSP:
         """
         vals: list = self.get_raw_schedule(live)
         timezone_string = vals[0][2]
-        tz = pytz.timezone(timezone_string)
+        tz = ZoneInfo(timezone_string)
         vals = vals[2:]  # throw away the headers
         schedule: dict = {"timezone": timezone_string, "rounds": []}
         for i in range(0, len(vals)):
             thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
-            utc_dt = tz.localize(thisDatetime).astimezone(pytz.UTC)
+            utc_dt = thisDatetime.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
             schedule["rounds"].append(
                 {
                     "id": vals[i][0],
@@ -342,7 +342,7 @@ class GSP:
         owner: str = "mj.apply.sci@gmail.com",
         scorers: list[str] = (),
         notify: bool = False,
-        timezone: str = "Dublin/Europe",
+        timezone: str = "Europe/Dublin",
         start_times: list[str] = [],
         round_name_template: str = "Round ?",
     ) -> str:
@@ -360,7 +360,7 @@ class GSP:
             scorers (list[str]): list of email addresses to be given write permission.
             notify (bool): if true, sends a notification email to the owner and scorers
             start_times (list[str]): list of datetime strings
-            timezone (str): timezone in pytz format eg Europe/Dublin
+            timezone (str): timezone in zoneinfo format eg Europe/Dublin
 
         Returns:
             gspread.spreadsheet.Spreadsheet: the new spreadsheet.
@@ -494,6 +494,7 @@ if __name__ == "__main__":
     )
 
     print(out)
+
 
 
 
