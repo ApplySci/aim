@@ -3,7 +3,7 @@
 {% block title %}Manage Users{% endblock %}
 
 {% block content %}
-<h2>Manage Users for {{ current_user.live_tournament.title }}</h2>
+<h1>Manage Users</h1>
 {% if current_user.live_tournament_role.value == 'admin' %}
 <form action="{{ url_for('user_management.sync_access_route') }}" method="POST">
     <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">
