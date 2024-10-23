@@ -424,6 +424,10 @@ class GSP:
             return f"Error sharing sheet: {str(e)}"
 
     def revoke_sheet_access(self, sheet_id: str, email: str):
+        # Never revoke access to ourselves
+        our_email = self.creds.service_account_email
+        if email.lower() == our_email.lower() or email.lower() in OUR_EMAILS:
+            return "Cannot revoke access of the service account"
         email = email.lower()
         """
         Revoke a user's access to a Google Sheet.
@@ -481,7 +485,8 @@ class GSP:
                 if "emailAddress" in p
             ]
         except Exception as e:
-            return f"Error getting sheet users: {str(e)}"
+            logging.error(f"Error getting sheet users: {str(e)}", exc_info=True)
+            raise e
 
 
 googlesheet = GSP()

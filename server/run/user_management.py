@@ -345,6 +345,10 @@ def sync_access_route():
         flash("Access synchronized successfully", "success")
     except Exception as e:
         flash(f"Failed to synchronize access: {str(e)}", "error")
+        logging.error(
+            f"Exception occurred while synchronizing access: {str(e)}",
+            exc_info=True,
+        )
 
     # Redirect back to the referring page
     return redirect(request.referrer or url_for("user_management.add_user_get"))
@@ -356,7 +360,6 @@ def sync_access(tournament_id):
     tournament = db.session.query(Tournament).get(tournament_id)
     sheet_users = googlesheet.get_sheet_users(tournament.google_doc_id)
     db_users = db.session.query(Access).filter_by(tournament_id=tournament_id).all()
-
     sheet_emails = {user["email"].lower() for user in sheet_users}
     db_emails = {access.user_email.lower() for access in db_users}
 

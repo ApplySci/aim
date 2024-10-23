@@ -212,31 +212,6 @@ function updateUserRole(email, newRole) {
     });
 }
 
-{% if current_user.live_tournament_role.value == 'admin' %}
-document.getElementById('syncAccessBtn').addEventListener('click', function() {
-    fetch("{{ url_for('user_management.sync_access_route') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            tournament_id: {{ current_user.live_tournament_id }}
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Access synchronized successfully');
-            location.reload();
-        } else {
-            alert('Failed to synchronize access: ' + data.error);
-        }
-    })
-    .catch((error) => {
-        console.error('Error:', error);
-        alert('An error occurred while synchronizing access');
-    });
-});
 {% endif %}
 </script>
 {% endblock %}
