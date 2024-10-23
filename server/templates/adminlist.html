@@ -3,13 +3,6 @@
 {% block title %}Let's clean up some old spreadsheets{% endblock %}
 
 {% block content %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ category }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
 <h2>Admin Tools</h2>
 
 {% if current_user.live_tournament_role.value == 'admin' %}

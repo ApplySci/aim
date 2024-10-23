@@ -11,9 +11,9 @@
 <body>
     <nav>
         {% if current_user.is_authenticated %}
+            <p class="wrap">Hi,<br>{{ current_user.email }}</p>
             {% if current_user.email == "mj.apply.sci@gmail.com" %}
                 <a href="{{ url_for('admin.superadmin') }}">Superuser admin</a>
-                <br>
             {% endif %}
             <a href="{{ url_for('create.results_create') }}">Create New Tournament</a>
             <a href="{{ url_for('run.select_tournament') }}">Select Tournament</a>
@@ -32,10 +32,7 @@
     </nav>
     <div id=main>
         {% if current_user.is_authenticated %}
-            <h1>Currently managing {{ current_user.live_tournament.title }}</h1>
-            <p>Logged in as: {{ current_user.email }}</p>
-        {% else %}
-            <p>Not logged in</p>
+            <h2>Currently managing {{ current_user.live_tournament.title }}</h2>
         {% endif %}
 
         {% with messages = get_flashed_messages(with_categories=true) %}

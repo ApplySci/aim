@@ -56,6 +56,11 @@ def results_create():
 
         form.set_round_dates(round_dates)
 
+        # Update the choices for the timezone field based on the selected country
+        selected_country = request.form.get('country')
+        timezones = get_timezones_for_country(selected_country)
+        form.timezone.choices = [(tz, tz) for tz in timezones]
+
     if form.validate_on_submit():
         short_name = form.web_directory.data
         tournament: Tournament = Tournament(
@@ -155,6 +160,11 @@ def results_create():
         round_labels.append(template.replace("?", str(i + 1)))
 
     # If the form is not valid or it's a GET request, render the template with the form
+    if request.method == "GET" or not form.validate_on_submit():
+        initial_country = form.country.data or form.country.default
+        initial_timezones = get_timezones_for_country(initial_country)
+        form.timezone.choices = [(tz, tz) for tz in initial_timezones]
+
     return render_template(
         "create_results.html", form=form, round_labels=round_labels, zip=zip_longest
     )

@@ -128,8 +128,8 @@ class TournamentForm(FlaskForm):
     country = SelectField("Country", choices=countries, default="DE")
     timezone = SelectField(
         "Timezone",
-        choices=[("Europe/Berlin", "Europe/Berlin")],
-        default="Europe/Dublin",
+        choices=[],  # Remove default choices
+        validators=[DataRequired()]
     )
 
     status = RadioField(
