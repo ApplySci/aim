@@ -45,12 +45,12 @@ def create_solution(
 
 def score_solution(
     seats: list[list[list[int]]],
-    players_to_ignore: list[int],
+    players_to_ignore: list[int] = [0],
 ) -> int:
     """
     get the stats for a given solution, and return the penalty for it
     """
-    stats = make_stats(seats, [0]) # players_to_ignore)
+    stats = make_stats(seats, players_to_ignore)
     score = stats["repeat3"] * 10 + stats["repeat4"] * 100
     for i in range(2, len(stats["meets"])):
         score += stats["meets"][i] * (i - 1) ** 2
@@ -131,7 +131,7 @@ def fill_table_gaps(
     if direct_subs > len(substitutes):
         raise Exception("Not enough substitutes to fill the gaps")
     round_count = len(seats)
-    print(f"initial score is {score_solution(seats, [])}")
+    print(f"initial score is {score_solution(seats)}")
 
     # first remove all omit_players
     gaps = [[] for _ in range(round_count)]
@@ -146,7 +146,7 @@ def fill_table_gaps(
                         seats[r][t][s] = 0
                         gaps[r].append((t, s))
 
-    players_to_ignore = list(set(omit_players + substitutes[:direct_subs]))
+    players_to_ignore = list(set([0] + omit_players + substitutes[:direct_subs]))
 
     best_score = sys.maxsize
     best_solution = None
@@ -163,7 +163,7 @@ def fill_table_gaps(
         )
         score = score_solution(
             solution,
-            players_to_ignore,
+            # players_to_ignore,
         )
         if score < best_score:
             best_score = score

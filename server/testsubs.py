@@ -12,7 +12,4 @@ seats_out = fill_table_gaps(
     time_limit_seconds=100,
     verbose=True,
 )
-for rnd in seats_out:
-    print('=====')
-    for tbl in rnd:
-        print(tbl)
+print(make_stats(seats_out, [0]))
