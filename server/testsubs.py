@@ -9,7 +9,11 @@ seats_out = fill_table_gaps(
     fixed_rounds=5,
     omit_players=[1, 2, 3, 4],
     substitutes=[p for p in range(nTables * 4 + 1, nTables * 4 + 4)],
-    time_limit_seconds=100,
+    time_limit_seconds=20,
     verbose=True,
 )
 print(make_stats(seats_out, [0]))
+for rnd in seats_out:
+    print("======")
+    for tbl in rnd:
+        print(tbl)

@@ -82,6 +82,39 @@ def random_genome(
     return genome
 
 
+def crossover(genome1, genome2):
+    """Perform crossover between two genomes"""
+    child = []
+    for r in range(len(genome1)):
+        if random.random() < 0.5:
+            child.append(genome1[r].copy())
+        else:
+            child.append(genome2[r].copy())
+    return child
+
+
+def mutate(
+    genome,
+    seats: list[list[list[int]]],
+    mutation_rate=0.1,
+):
+    """Mutate a genome"""
+    for r in range(len(genome)):
+        if random.random() < mutation_rate:
+            # Mutate order
+            random.shuffle(genome[r]["order"])
+        if random.random() < mutation_rate:
+            # Mutate breakups
+            if len(genome[r]["breakups"]) > 0:
+                if random.random() < 0.5:
+                    genome[r]["breakups"].pop(
+                        random.randint(0, len(genome[r]["breakups"]) - 1)
+                    )
+                else:
+                    genome[r]["breakups"].append(random.randint(0, len(seats[r]) - 1))
+    return genome
+
+
 def fill_table_gaps(
     seats: list[list[list[int]]],
     fixed_rounds: int,
@@ -146,29 +179,54 @@ def fill_table_gaps(
                         seats[r][t][s] = 0
                         gaps[r].append((t, s))
 
-    players_to_ignore = list(set([0] + omit_players + substitutes[:direct_subs]))
+    # players_to_ignore = list(set([0] + omit_players + substitutes[:direct_subs]))
 
-    best_score = sys.maxsize
-    best_solution = None
-    # main optimisation loop will start here
+    # ===================================
+    # optimisation starts here
+    # ===================================
+
+    population_size = 50
+    population = [random_genome(seats, gaps) for _ in range(population_size)]
+
     while time.time() < end_time:
-        genome = random_genome(
-            seats,
-            gaps,
-        )
-        solution = create_solution(
-            [[t.copy() for t in r] for r in seats],
-            [g.copy() for g in gaps],
-            genome,
-        )
-        score = score_solution(
-            solution,
-            # players_to_ignore,
-        )
-        if score < best_score:
-            best_score = score
-            best_solution = solution
-            if verbose:
-                print(f"New best score: {best_score}")
+        # Evaluate fitness
+        fitness = []
+        for genome in population:
+            solution = create_solution(
+                [[t.copy() for t in r] for r in seats],
+                [g.copy() for g in gaps],
+                genome,
+            )
+            score = score_solution(solution)
+            fitness.append((score, genome))
 
+        # Sort by fitness
+        fitness.sort(key=lambda x: x[0])
+
+        # Select best individuals
+        elite = fitness[: population_size // 2]
+
+        # Create new population
+        new_population = [genome for _, genome in elite]
+
+        while len(new_population) < population_size:
+            parent1 = random.choice(elite)[1]
+            parent2 = random.choice(elite)[1]
+            child = crossover(parent1, parent2)
+            child = mutate(child, seats)
+            new_population.append(child)
+
+        population = new_population
+        best_score, best_genome = fitness[0]
+
+        if verbose:
+            print(f"New best score: {best_score}")
+        if best_score == 0:
+            break
+
+    best_solution = create_solution(
+        [[t.copy() for t in r] for r in seats],
+        [g.copy() for g in gaps],
+        best_genome,
+    )
     return best_solution
