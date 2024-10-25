@@ -50,7 +50,7 @@ def score_solution(
     """
     get the stats for a given solution, and return the penalty for it
     """
-    stats = make_stats(seats, players_to_ignore)
+    stats = make_stats(seats, [0]) # players_to_ignore)
     score = stats["repeat3"] * 10 + stats["repeat4"] * 100
     for i in range(2, len(stats["meets"])):
         score += stats["meets"][i] * (i - 1) ** 2
