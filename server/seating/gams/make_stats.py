@@ -20,14 +20,17 @@ is the total number of players, and that there are always 4 players per table.
 from typing import List, Dict, Tuple
 
 
-def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
+def make_stats(
+    seats: List[List[List[int]]], ignore_players: List[int] = []
+) -> Dict[str, List[int]]:
     """
-    Calculate statistics for a given seating arrangement.
+    Calculate statistics for a given seating arrangement, ignoring specified players.
 
     Args:
         seats (List[List[List[int]]]): A 3D list representing the seating
             arrangement. The dimensions represent:
             [hanchan][table][seat]
+        ignore_players (List[int]): List of player numbers to ignore in statistics
 
     Returns:
         Dict[str, List[int]]: A dictionary with the following keys:
@@ -42,14 +45,15 @@ def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
     player_count = table_count * 4
     hanchan_count = len(seats)
 
-    player_pairs = [[0 for _ in range(player_count + 1)]
-                    for _ in range(player_count + 1)]
-    indirect_meets = [[0 for _ in range(player_count + 1)]
-                      for _ in range(player_count + 1)]
-    player_tables = [[0 for _ in range(table_count)]
-                     for _ in range(player_count + 1)]
+    player_pairs = [
+        [0 for _ in range(player_count + 1)] for _ in range(player_count + 1)
+    ]
+    indirect_meets = [
+        [0 for _ in range(player_count + 1)] for _ in range(player_count + 1)
+    ]
+    player_tables = [[0 for _ in range(table_count)] for _ in range(player_count + 1)]
     player_winds = [[0 for _ in range(4)] for _ in range(player_count + 1)]
-    
+
     # Dictionaries to track 3-player and 4-player meets
     meets3: Dict[Tuple[int, int, int], int] = {}
     meets4: Dict[Tuple[int, int, int, int], int] = {}
@@ -59,30 +63,52 @@ def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
             players_at_table = seats[hanchan][table]
             for seat1 in range(4):
                 player1 = players_at_table[seat1]
+                if player1 in ignore_players:
+                    continue
                 player_tables[player1][table] += 1
                 player_winds[player1][seat1] += 1
                 for seat2 in range(seat1 + 1, 4):
                     player2 = players_at_table[seat2]
+                    if player2 in ignore_players:
+                        continue
                     player_pairs[min(player1, player2)][max(player1, player2)] += 1
-            
+
             # Track 3-player meets
             for i in range(4):
-                for j in range(i+1, 4):
-                    for k in range(j+1, 4):
-                        trio = tuple(sorted([players_at_table[i],
-                                             players_at_table[j],
-                                             players_at_table[k]]))
+                for j in range(i + 1, 4):
+                    for k in range(j + 1, 4):
+                        trio = tuple(
+                            sorted(
+                                [
+                                    players_at_table[i],
+                                    players_at_table[j],
+                                    players_at_table[k],
+                                ]
+                            )
+                        )
+                        if any(player in ignore_players for player in trio):
+                            continue
                         meets3[trio] = meets3.get(trio, 0) + 1
-            
+
             # Track 4-player meets
             quartet = tuple(sorted(players_at_table))
+            if any(player in ignore_players for player in quartet):
+                continue
             meets4[quartet] = meets4.get(quartet, 0) + 1
 
     for player1 in range(1, player_count + 1):
+        if player1 in ignore_players:
+            continue
         for player2 in range(player1 + 1, player_count + 1):
+            if player2 in ignore_players:
+                continue
             for player3 in range(1, player_count + 1):
-                if (player_pairs[min(player1, player3)][max(player1, player3)] > 0 and
-                        player_pairs[min(player2, player3)][max(player2, player3)] > 0):
+                if player3 in ignore_players:
+                    continue
+                if (
+                    player_pairs[min(player1, player3)][max(player1, player3)] > 0
+                    and player_pairs[min(player2, player3)][max(player2, player3)] > 0
+                ):
                     indirect_meets[player1][player2] += 1
 
     wind_hist = [0] * (hanchan_count + 1)
@@ -91,11 +117,15 @@ def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
     indirect_meet_hist = [0] * (player_count + 1)
 
     for player in range(1, player_count + 1):
+        if player in ignore_players:
+            continue
         for wind in range(4):
             wind_hist[player_winds[player][wind]] += 1
         for table in range(table_count):
             table_hist[player_tables[player][table]] += 1
         for other_player in range(player + 1, player_count + 1):
+            if other_player in ignore_players:
+                continue
             meet_hist[player_pairs[player][other_player]] += 1
             if not player_pairs[player][other_player]:
                 indirect_meet_hist[indirect_meets[player][other_player]] += 1
@@ -103,6 +133,7 @@ def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
     # Count repeat 3-player and 4-player meets
     repeat3 = sum(1 for count in meets3.values() if count > 1)
     repeat4 = sum(1 for count in meets4.values() if count > 1)
+
     def truncate_trailing_zeroes(lst):
         while lst and lst[-1] == 0:
             lst.pop()
@@ -114,5 +145,5 @@ def make_stats(seats: List[List[List[int]]]) -> Dict[str, List[int]]:
         "tables": truncate_trailing_zeroes(table_hist),
         "wind": truncate_trailing_zeroes(wind_hist),
         "repeat3": repeat3,
-        "repeat4": repeat4
+        "repeat4": repeat4,
     }
