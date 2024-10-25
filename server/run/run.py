@@ -163,20 +163,26 @@ def run_tournament():
         tournament = current_user.live_tournament
         sheet = _get_sheet()
         schedule = googlesheet.get_schedule(sheet)
-        
-        tournament_tz = ZoneInfo(schedule['timezone'])
+
+        tournament_tz = ZoneInfo(schedule["timezone"])
         now = datetime.now(tournament_tz)
-        first_hanchan = datetime.fromisoformat(schedule['rounds'][0]['start']).astimezone(tournament_tz)
-        last_hanchan = datetime.fromisoformat(schedule['rounds'][-1]['start']).astimezone(tournament_tz)
-        
-        expected_status = 'live'
+        first_hanchan = datetime.fromisoformat(
+            schedule["rounds"][0]["start"]
+        ).astimezone(tournament_tz)
+        last_hanchan = datetime.fromisoformat(
+            schedule["rounds"][-1]["start"]
+        ).astimezone(tournament_tz)
+
+        expected_status = "live"
         if now < first_hanchan - timedelta(hours=24):
-            expected_status = 'upcoming'
+            expected_status = "upcoming"
         elif now > last_hanchan + timedelta(hours=24):
-            expected_status = 'past'
-        
+            expected_status = "past"
+
         current_status = tournament.status
-        status_mismatch = current_status != expected_status # and current_status != 'test'
+        status_mismatch = (
+            current_status != expected_status
+        )  # and current_status != 'test'
 
         return render_template(
             "run_tournament.html",
@@ -187,7 +193,7 @@ def run_tournament():
             first_hanchan=first_hanchan,
             last_hanchan=last_hanchan,
             now=now,
-            tournament_timezone=schedule['timezone'],
+            tournament_timezone=schedule["timezone"],
         )
     return redirect(url_for("run.select_tournament"))
 
@@ -588,6 +594,3 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         ref.update(data)
     else:
         ref.set(data)
-
-
-

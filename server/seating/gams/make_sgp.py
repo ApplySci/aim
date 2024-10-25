@@ -1,12 +1,13 @@
 """
 Seating Generation Problem (SGP) Solver
 
-This module provides functionality to solve the Seating Generation Problem
-using GAMS (General Algebraic Modeling System). It generates optimal seating
-arrangements for a given number of players and rounds (hanchans).
+This module solve the Social Golfer Problem transposed to riichi seating for tournaments.
+It uses GAMS (General Algebraic Modeling System). It generates optimal seating
+arrangements for a given number of players and rounds (hanchans). We've used it to fill
+gaps in the dataset provided by Alice Miller's BoRAT website.
 
 The main function in this module is:
-- solve_sgp: Solve the Seating Generation Problem for given parameters
+- solve_sgp: Solve for given parameters
 
 This module requires GAMS to be installed and accessible from the command line.
 
@@ -28,7 +29,7 @@ from typing import List, Optional
 
 def solve_sgp(hanchan_count: int, player_count: int) -> Optional[List[List[List[int]]]]:
     """
-    Solve the Seating Generation Problem (SGP) using GAMS.
+    Solve the Social Golfer Problem (SGP) using GAMS.
 
     Args:
         hanchan_count (int): Number of rounds (hanchans)
@@ -75,7 +76,7 @@ def solve_sgp(hanchan_count: int, player_count: int) -> Optional[List[List[List[
 
 
 def _generate_gams_model(hanchan_count: int, N: int, table_count: int) -> str:
-    """Generate the GAMS model for the Seating Generation Problem."""
+    """Generate the GAMS model for the Social Golfer Problem."""
     return f"""
 Sets
     h hanchan / 1*{hanchan_count} /
@@ -183,7 +184,7 @@ def _cleanup_temp_files(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Solve the Seating Generation Problem (SGP) using GAMS."
+        description="Assign players to tables avoiding repeat meets between any pair of players"
     )
     
     # Positional arguments
@@ -192,7 +193,7 @@ if __name__ == "__main__":
         type=int,
         nargs="?",
         default=100,
-        help="Number of players. Default is 100."
+        help="Number of players (multiple of 4). Default is 100."
     )
     parser.add_argument(
         "hanchan_count",

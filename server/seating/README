@@ -71,5 +71,23 @@ Warnings are generated if pairs of players meet more than necessary across all h
 Indirect Meets:
 Warnings are generated if pairs of players never play each other, and there are too few other players who they each play (indirect meets), and there are more than four hanchan. The lowest acceptable number of indirect meets in such cases, is equal to the square root of the number of players. e.g for 36 players, each pair of players must have at least 6 indirect meets.
 
+More on indirect meets:
+
+For any two players A and B who don't meet directly (i.e. who never play against each other in a game), count the number of players who play both A and B. That's indirect meets. In general, more is better. And a little more specifically, if we take the minimum value of indirect_meets for all pairs of players who do not meet directly, then the higher that minimum value is, the better; and zero is very bad.
+
+To take an extreme case to indicate why indirect meets might be informative, let's consider a 5 hanchan, 32 player tournament. Now, we know it's possible to schedule a 5 hanchan 16 player tournament with no repeats: a perfect fit, everyone plays everyone. So we could combine two of those arrangements, and have a situation where there were two separate groups of 16 players, and players in group A played everyone else in group A, but played no one in group B. (and vice-versa).
+
+Obviously, that would be deeply unsatisfactory. So that's the extreme worst case, and one way to quantify why that's so bad, so that we can optimize *away* from it, is to measure indirect meets. Because, in this extreme case, there are 256 (16x16) pairs of players who have zero indirect meets between them.
+
+More conceptually, we can frame it like this:
+
+when A and B play each other, they have a chance to take points off each other directly, so we get some indication of how good A is, relative to B.
+
+If they don't play each other directly, but both play quite a few other players, then we can judge how good A is relative to B, by looking at how well they perform in each case: 
+
+if A always beats the shared third player, and B always loses to the shared third player, then we can expect that were A and B to finally meet, A would beat B, more often than B would beat A.
+
+NB I didn't work this out for myself. Martin Lester did the hard thinking, and published it in a paper (see reference above)
+
 
 Created by Andrew ZP Smith (ZAPS) https://github.com/ApplySci/aim/
