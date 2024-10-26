@@ -100,21 +100,16 @@ def mutate(
 ):
     """Mutate a genome"""
     for r in range(len(genome)):
+        if len(genome[r]["breakups"]) == 0:
+            continue
         if random.random() < mutation_rate:
-            # Mutate order
             random.shuffle(genome[r]["order"])
-
-        """  commented out, because this is currently broken
         if random.random() < mutation_rate:
-            # Mutate breakups
-            if len(genome[r]["breakups"]) > 0:
-                if random.random() < 0.5:
-                    genome[r]["breakups"].pop(
-                        random.randint(0, len(genome[r]["breakups"]) - 1)
-                    )
-                else:
-                    genome[r]["breakups"].append(random.randint(0, len(seats[r]) - 1))
-        """
+            location = random.randint(0, len(genome[r]["breakups"]) - 1)
+            allele = genome[r]["breakups"][location]
+            while allele in genome[r]["breakups"]:
+                allele = random.randint(0, len(seats[r]) - 1)
+            genome[r]["breakups"][location] = allele
     return genome
 
 
@@ -167,7 +162,7 @@ def fill_table_gaps(
     if direct_subs > len(substitutes):
         raise Exception("Not enough substitutes to fill the gaps")
     round_count = len(seats)
-    print(f"initial score is {score_solution(seats)}")
+    print(f"score pre-dropouts is {score_solution(seats)}")
 
     # first remove all omit_players
     gaps = [[] for _ in range(round_count)]
@@ -231,7 +226,7 @@ def fill_table_gaps(
             best_genome = fitness[0][1]
 
             if verbose:
-                print(f"New best score: {best_score}")
+                print(f"\nNew best score: {best_score}")
         print(".", end="", flush=True)
         sys.stdout.flush()
         if best_score == 0:
@@ -242,4 +237,5 @@ def fill_table_gaps(
         [g.copy() for g in gaps],
         best_genome,
     )
+    print('')
     return best_solution
