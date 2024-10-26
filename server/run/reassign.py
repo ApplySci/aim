@@ -82,7 +82,6 @@ def random_genome(
     """
     Create a random genome of re-seating
     """
-    # TODO add a 2-table-swap gene, and a 1-table-wind-shuffle gene
     hanchan_count = len(seats)
     genome = [{} for _ in range(hanchan_count)]
     for r in range(hanchan_count):

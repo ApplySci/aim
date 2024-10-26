@@ -27,6 +27,7 @@ from flask_login import login_required, current_user
 from models import Access, User, Tournament
 from oauth_setup import db, firestore_client, logging
 from write_sheet import googlesheet
+from . import substitutes
 
 blueprint = Blueprint("run", __name__)
 
@@ -594,3 +595,34 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         ref.update(data)
     else:
         ref.set(data)
+
+
+# Add these routes inside the existing blueprint
+@blueprint.route("/sub/player_substitution")
+@login_required
+def sub_player_substitution():
+    return substitutes.player_substitution()
+
+
+@blueprint.route("/sub/get_players_data")
+@login_required
+def sub_get_players_data():
+    return substitutes.get_players_data()
+
+
+@blueprint.route("/sub/calculate_substitutions", methods=["POST"])
+@login_required
+def sub_calculate_substitutions():
+    return substitutes.calculate_substitutions()
+
+
+@blueprint.route("/sub/confirm_substitutions", methods=["POST"])
+@login_required
+def sub_confirm_substitutions():
+    return substitutes.confirm_substitutions()
+
+
+@blueprint.route("/sub/undo_substitution", methods=["POST"])
+@login_required
+def sub_undo_substitution():
+    return substitutes.undo_substitution()

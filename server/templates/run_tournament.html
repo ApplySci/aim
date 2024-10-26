@@ -66,6 +66,9 @@
       url_for('run.update_players')
       }}">Update list of players & seat-number assignments</button>
 
+    <!-- Add this button after the existing buttons in the form -->
+    <button class="action" onclick="window.location.href='{{ url_for('run.player_substitution') }}'">Manage Player Substitutions</button>
+
 </form>
 
 <div><button id="clearButton">Clear log</button></div>
