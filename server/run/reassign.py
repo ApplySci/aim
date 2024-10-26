@@ -103,6 +103,8 @@ def mutate(
         if random.random() < mutation_rate:
             # Mutate order
             random.shuffle(genome[r]["order"])
+
+        """  commented out, because this is currently broken
         if random.random() < mutation_rate:
             # Mutate breakups
             if len(genome[r]["breakups"]) > 0:
@@ -112,6 +114,7 @@ def mutate(
                     )
                 else:
                     genome[r]["breakups"].append(random.randint(0, len(seats[r]) - 1))
+        """
     return genome
 
 
@@ -187,6 +190,8 @@ def fill_table_gaps(
 
     population_size = 50
     population = [random_genome(seats, gaps) for _ in range(population_size)]
+    best_score = sys.maxsize
+    best_genome = None
 
     while time.time() < end_time:
         # Evaluate fitness
@@ -209,6 +214,9 @@ def fill_table_gaps(
         # Create new population
         new_population = [genome for _, genome in elite]
 
+        # introduce some genetic diversity
+        for _ in range(population_size // 8):
+            new_population.append(random_genome(seats, gaps))
         while len(new_population) < population_size:
             parent1 = random.choice(elite)[1]
             parent2 = random.choice(elite)[1]
@@ -217,10 +225,15 @@ def fill_table_gaps(
             new_population.append(child)
 
         population = new_population
-        best_score, best_genome = fitness[0]
 
-        if verbose:
-            print(f"New best score: {best_score}")
+        if fitness[0][0] < best_score:
+            best_score = fitness[0][0]
+            best_genome = fitness[0][1]
+
+            if verbose:
+                print(f"New best score: {best_score}")
+        print(".", end="", flush=True)
+        sys.stdout.flush()
         if best_score == 0:
             break
 
