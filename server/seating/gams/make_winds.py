@@ -1,18 +1,18 @@
 import os
 import subprocess
-from typing import List, Optional
+from typing import Optional
 
 
-def optimize_winds(seats: List[List[List[int]]]) -> Optional[List[List[List[int]]]]:
+def optimize_winds(seats: list[list[list[int]]]) -> Optional[list[list[list[int]]]]:
     """
     Optimize wind assignments for a given seating arrangement using GAMS.
 
     Args:
-        seats (List[List[List[int]]]): A 3D list representing the seating
+        seats (list[list[list[int]]]): A 3D list representing the seating
             arrangement. The dimensions represent: [hanchan][table][seat]
 
     Returns:
-        Optional[List[List[List[int]]]]: Optimized seating arrangement with
+        Optional[list[list[list[int]]]]: Optimized seating arrangement with
         wind assignments, or None if optimization fails.
     """
     hanchan_count = len(seats)
@@ -139,7 +139,7 @@ putclose;
 """
 
 
-def _write_seats_to_gdx(seats: List[List[List[int]]], N: int, hanchan_count: int, table_count: int) -> None:
+def _write_seats_to_gdx(seats: list[list[list[int]]], N: int, hanchan_count: int, table_count: int) -> None:
     """Write seats data to GDX file."""
     with open(f"seats_{N}.gms", "w") as f:
         f.write(f"""
@@ -161,7 +161,7 @@ execute_unload "seats_{N}.gdx" seats;
 """)
 
 
-def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[List[int]]]:
+def _process_results(N: int, hanchan_count: int, table_count: int) -> list[list[list[int]]]:
     """Process optimization results and create new seating arrangement."""
     new_seats = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
     with open(f"results_{N}.txt", "r") as f:
@@ -181,7 +181,7 @@ def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[
     return new_seats
 
 
-def _write_seats_to_file(N: int, hanchan_count: int, new_seats: List[List[List[int]]]) -> None:
+def _write_seats_to_file(N: int, hanchan_count: int, new_seats: list[list[list[int]]]) -> None:
     """Write optimized seating arrangement to a Python file."""
     filename = f"final/{N}x{hanchan_count}.py"
     with open(filename, "w") as f:

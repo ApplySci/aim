@@ -14,9 +14,9 @@ def create_solution(
     """
     Create a solution from a genome
     """
-    round_count = len(seats)
+    hanchan_count = len(seats)
     # now pick which players to re-seat, to fill the gaps
-    for r in range(round_count):
+    for r in range(hanchan_count):
         if len(genome[r]["breakups"]) == 0:
             continue
         reseat = []
@@ -45,15 +45,33 @@ def create_solution(
 
 def score_solution(
     seats: list[list[list[int]]],
-    players_to_ignore: list[int] = [0],
+    players_to_ignore: list[int] = [],
 ) -> int:
     """
-    get the stats for a given solution, and return the penalty for it
+    Get the stats for a given solution, and return the penalty for it
     """
-    stats = make_stats(seats, players_to_ignore)
-    score = stats["repeat3"] * 10 + stats["repeat4"] * 100
-    for i in range(2, len(stats["meets"])):
-        score += stats["meets"][i] * (i - 1) ** 2
+    hanchan_count = len(seats)
+    table_count = len(seats[0])
+    stats = make_stats(seats, [0, *players_to_ignore])
+
+    # repeat penalties
+    score = stats["repeat3"] * 30 + stats["repeat4"] * 300
+    for i in range(3, len(stats["meets"])):
+        score += 2 * stats["meets"][i] * (i - 1) ** 2
+
+    # wind penalties
+    winds_min = hanchan_count // 4
+    winds_max = (hanchan_count + 3) // 4
+    for i in range(winds_min - 1):
+        score += stats["wind"][i] * 2 ** (winds_min - i)
+    for i in range(winds_max + 1, len(stats["wind"])):
+        score += stats["wind"][i] * 2 ** (i - winds_max)
+
+    # Calculate table penalties
+    table_max = (table_count + hanchan_count - 1) // table_count
+    for i in range(table_max + 1, len(stats["tables"])):
+        score += stats["tables"][i] * 2 ** (i - table_max)
+
     return score
 
 
@@ -64,9 +82,10 @@ def random_genome(
     """
     Create a random genome of re-seating
     """
-    round_count = len(seats)
-    genome = [{} for _ in range(round_count)]
-    for r in range(round_count):
+    # TODO add a 2-table-swap gene, and a 1-table-wind-shuffle gene
+    hanchan_count = len(seats)
+    genome = [{} for _ in range(hanchan_count)]
+    for r in range(hanchan_count):
         gaps_to_fill = len(gaps[r])
         order = list(range(gaps_to_fill))
         random.shuffle(order)
@@ -161,12 +180,12 @@ def fill_table_gaps(
     direct_subs = len(omit_players) % 4
     if direct_subs > len(substitutes):
         raise Exception("Not enough substitutes to fill the gaps")
-    round_count = len(seats)
+    hanchan_count = len(seats)
     print(f"score pre-dropouts is {score_solution(seats)}")
 
     # first remove all omit_players
-    gaps = [[] for _ in range(round_count)]
-    for r in range(fixed_rounds, round_count):
+    gaps = [[] for _ in range(hanchan_count)]
+    for r in range(fixed_rounds, hanchan_count):
         for t in range(len(seats[r])):
             for p in range(len(omit_players)):
                 if omit_players[p] in seats[r][t]:
@@ -197,7 +216,7 @@ def fill_table_gaps(
                 [g.copy() for g in gaps],
                 genome,
             )
-            score = score_solution(solution)
+            score = score_solution(solution, substitutes[:direct_subs])
             fitness.append((score, genome))
 
         # Sort by fitness
@@ -237,5 +256,5 @@ def fill_table_gaps(
         [g.copy() for g in gaps],
         best_genome,
     )
-    print('')
+    print("")
     return best_solution

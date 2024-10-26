@@ -21,19 +21,19 @@ GAMS commands. Ensure proper permissions and GAMS installation before use.
 import os
 import subprocess
 import importlib
-from typing import List, Optional, Dict
+from typing import Optional
 
 
-def optimize_tables(seats: List[List[List[int]]]) -> Optional[List[List[List[int]]]]:
+def optimize_tables(seats: list[list[list[int]]]) -> Optional[list[list[list[int]]]]:
     """
     Optimize table assignments for a given seating arrangement using GAMS.
 
     Args:
-        seats (List[List[List[int]]]): A 3D list representing the seating
+        seats (list[list[list[int]]]): A 3D list representing the seating
             arrangement. The dimensions represent: [hanchan][table][seat]
 
     Returns:
-        Optional[List[List[List[int]]]]: Optimized seating arrangement with
+        Optional[list[list[list[int]]]]: Optimized seating arrangement with
         table assignments, or None if optimization fails.
     """
     table_count = len(seats[0])
@@ -159,7 +159,7 @@ putclose;
 """
 
 
-def _write_seats_to_gdx(seats: List[List[List[int]]], N: int, hanchan_count: int, table_count: int) -> None:
+def _write_seats_to_gdx(seats: list[list[list[int]]], N: int, hanchan_count: int, table_count: int) -> None:
     """Write seats data to GDX file."""
     with open(f"seats_{N}.gms", "w") as f:
         f.write(f"""
@@ -189,7 +189,7 @@ def _process_gams_output(process: subprocess.Popen) -> None:
     process.poll()
 
 
-def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[List[int]]]:
+def _process_results(N: int, hanchan_count: int, table_count: int) -> list[list[list[int]]]:
     """Process optimization results and create new seating arrangement."""
     new_seats = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
     with open(f"results_{N}.txt", "r") as f:
@@ -199,7 +199,7 @@ def _process_results(N: int, hanchan_count: int, table_count: int) -> List[List[
     return new_seats
 
 
-def _write_seats_to_file(N: int, hanchan_count: int, new_seats: List[List[List[int]]]) -> None:
+def _write_seats_to_file(N: int, hanchan_count: int, new_seats: list[list[list[int]]]) -> None:
     """Write optimized seating arrangement to a Python file."""
     with open(f"tables/{N}x{hanchan_count}.py", "w") as f:
         out = f"{new_seats}\n".replace("],", "],\n")
@@ -214,7 +214,7 @@ def _cleanup_temp_files(N: int, gams_file: str) -> None:
             os.remove(file)
 
 
-def _make_stats(seats: List[List[List[int]]]) -> Dict[str, str]:
+def _make_stats(seats: list[list[list[int]]]) -> dict[str, str]:
     """Calculate statistics for a seating arrangement."""
     from stats import make_stats
     stats = make_stats(seats)

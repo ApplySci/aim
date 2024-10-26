@@ -42,7 +42,7 @@ def make_stats(
         - repeat4: Count of repeat 4-player meets
     """
     table_count = len(seats[0])
-    player_count = table_count * 4
+    player_count = max(table_count * 4, *ignore_players)
     hanchan_count = len(seats)
 
     player_pairs = [
@@ -61,16 +61,14 @@ def make_stats(
     for hanchan in range(hanchan_count):
         for table in range(table_count):
             players_at_table = seats[hanchan][table]
+            if players_at_table.count(0) == 4:
+                continue
             for seat1 in range(4):
                 player1 = players_at_table[seat1]
-                if player1 in ignore_players:
-                    continue
                 player_tables[player1][table] += 1
                 player_winds[player1][seat1] += 1
                 for seat2 in range(seat1 + 1, 4):
                     player2 = players_at_table[seat2]
-                    if player2 in ignore_players:
-                        continue
                     player_pairs[min(player1, player2)][max(player1, player2)] += 1
 
             # Track 3-player meets
@@ -86,25 +84,15 @@ def make_stats(
                                 ]
                             )
                         )
-                        if any(player in ignore_players for player in trio):
-                            continue
                         meets3[trio] = meets3.get(trio, 0) + 1
 
             # Track 4-player meets
             quartet = tuple(sorted(players_at_table))
-            if any(player in ignore_players for player in quartet):
-                continue
             meets4[quartet] = meets4.get(quartet, 0) + 1
 
     for player1 in range(1, player_count + 1):
-        if player1 in ignore_players:
-            continue
         for player2 in range(player1 + 1, player_count + 1):
-            if player2 in ignore_players:
-                continue
             for player3 in range(1, player_count + 1):
-                if player3 in ignore_players:
-                    continue
                 if (
                     player_pairs[min(player1, player3)][max(player1, player3)] > 0
                     and player_pairs[min(player2, player3)][max(player2, player3)] > 0
@@ -117,18 +105,22 @@ def make_stats(
     indirect_meet_hist = [0] * (player_count + 1)
 
     for player in range(1, player_count + 1):
+        for other_player in range(player + 1, player_count + 1):
+            meet_hist[player_pairs[player][other_player]] += 1
+            if (
+                player in ignore_players
+                or other_player in ignore_players
+                or player_pairs[player][other_player]
+            ): # then we don't care about indirect meets for this pair
+                continue
+            indirect_meet_hist[indirect_meets[player][other_player]] += 1
         if player in ignore_players:
+            # we don't care about winds and tables for substitutes
             continue
         for wind in range(4):
             wind_hist[player_winds[player][wind]] += 1
         for table in range(table_count):
             table_hist[player_tables[player][table]] += 1
-        for other_player in range(player + 1, player_count + 1):
-            if other_player in ignore_players:
-                continue
-            meet_hist[player_pairs[player][other_player]] += 1
-            if not player_pairs[player][other_player]:
-                indirect_meet_hist[indirect_meets[player][other_player]] += 1
 
     # Count repeat 3-player and 4-player meets
     repeat3 = sum(1 for count in meets3.values() if count > 1)
