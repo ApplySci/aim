@@ -5,6 +5,7 @@ import time
 
 from seating.gams.make_stats import make_stats
 
+from oauth_setup import logging # DELET DIS
 
 def create_solution(
     seats: list[list[list[int]]],
@@ -138,6 +139,7 @@ def fill_table_gaps(
     substitutes: list[int],
     time_limit_seconds: int,
     verbose: bool = False,
+    log_callback = lambda x, end="\n": None,
 ) -> list[list[list[int]]]:
     """
     Optimise the seating arrangements for all hanchan, keeping the first few
@@ -169,7 +171,7 @@ def fill_table_gaps(
             players.
         time_limit_seconds (int): The time limit for the optimisation.
         verbose (bool): Whether to print progress updates.
-
+        log_callback (callable): A callback function to log messages.
 
     Returns:
         (List[List[List[int]]]): The optimised seating arrangement.
@@ -180,7 +182,7 @@ def fill_table_gaps(
     if direct_subs > len(substitutes):
         raise Exception("Not enough substitutes to fill the gaps")
     hanchan_count = len(seats)
-    print(f"score pre-dropouts is {score_solution(seats)}")
+    log_callback(f"score pre-dropouts is {score_solution(seats)}")
 
     # first remove all omit_players
     gaps = [[] for _ in range(hanchan_count)]
@@ -243,17 +245,9 @@ def fill_table_gaps(
             best_score = fitness[0][0]
             best_genome = fitness[0][1]
 
-            if verbose:
-                print(f"\nNew best score: {best_score}")
-        print(".", end="", flush=True)
-        sys.stdout.flush()
+            log_callback(f"\nNew best score: {best_score}", end="\n")
+        log_callback(".", end="")
         if best_score == 0:
             break
 
-    best_solution = create_solution(
-        [[t.copy() for t in r] for r in seats],
-        [g.copy() for g in gaps],
-        best_genome,
-    )
-    print("")
-    return best_solution
+    return create_solution(seats, gaps, best_genome)

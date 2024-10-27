@@ -5,6 +5,8 @@
 {% block content %}
 <h2>Manage Player Substitutions</h2>
 
+<p>{{ completed_rounds}} hanchan completed. Substitutions will be made for all hanchan from {{ completed_rounds + 1 }} onwards</p>
+
 <div id="playerManagement" style="display: flex; justify-content: flex-start; gap: 100px;">
     <div id="currentPlayersSection" style="position: relative; width: 300px;">
         <h3>Current Players</h3>
@@ -18,10 +20,6 @@
     </div>
 </div>
 
-<div id="substitutesSection">
-    <h3>Substitutes</h3>
-    <ul id="substitutesList"></ul>
-</div>
 <p>
     <button id="calculateSubstitutions">Calculate Substitutions</button>
     <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
@@ -38,7 +36,6 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const currentPlayerSelect = document.getElementById('currentPlayerSelect');
@@ -52,21 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const substitutionPreview = document.getElementById('substitutionPreview');
     const previewContent = document.getElementById('previewContent');
 
-    let allPlayers = [];
-    let currentPlayers = [];
-    let droppedPlayers = [];
-    let substitutes = [];
-
-    // Fetch players data
-    fetch('{{ url_for("run.sub.get_players_data") }}')
-        .then(response => response.json())
-        .then(data => {
-            allPlayers = data.players;
-            currentPlayers = allPlayers.filter(p => p.is_current);
-            droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
-            substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
-            renderPlayers();
-        });
+    // Initialize players data from server-provided data
+    let allPlayers = {{ players|tojson }};
+    let currentPlayers = allPlayers.filter(p => p.is_current);
+    let droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
+    let substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
+    
+    // Render players immediately
+    renderPlayers();
 
     function renderPlayers() {
         // Sort players alphabetically by name
@@ -90,15 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adjust the size of droppedPlayerSelect
         const maxSize = parseInt(currentPlayerSelect.getAttribute('size'));
         droppedPlayerSelect.size = Math.min(Math.max(droppedPlayers.length, 1), maxSize);
-
-        // Render substitutes
-        const substitutesList = document.getElementById('substitutesList');
-        substitutesList.innerHTML = '';
-        substitutes.forEach(player => {
-            const li = document.createElement('li');
-            li.textContent = `${player.name} (ID: ${player.registration_id})`;
-            substitutesList.appendChild(li);
-        });
     }
 
     moveToDroppedButton.addEventListener('click', function() {
@@ -125,34 +106,51 @@ document.addEventListener('DOMContentLoaded', function() {
         renderPlayers();
     });
 
-    function movePlayerBack(player) {
-        player.is_current = true;
-        droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
-        currentPlayers.push(player);
-        renderPlayers();
+    function getDroppedOutPlayers() {
+        return droppedPlayers.map(player => parseInt(player.seating_id));
     }
 
-    function removeSubstitute(player) {
-        substitutes = substitutes.filter(p => p.registration_id !== player.registration_id);
-        renderPlayers();
-    }
-
-    calculateButton.addEventListener('click', function() {
-        fetch('/run/sub/calculate_substitutions', {
+    calculateButton.addEventListener('click', async function() {
+        // First make the POST request
+        const response = await fetch('/run/sub/calculate_substitutions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                dropped_out: droppedPlayers.map(p => p.seating_id),
-                substitutes: substitutes.map(p => p.registration_id),
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            previewContent.textContent = JSON.stringify(data.preview, null, 2);
-            substitutionPreview.style.display = 'block';
+                dropped_out: getDroppedOutPlayers(),
+                fixed_rounds: {{ completed_rounds }},
+            })
         });
+
+        if (!response.ok) {
+            alert('Error starting calculation');
+            return;
+        }
+
+        // Then start the EventSource to get progress
+        const source = new EventSource('/run/sub/stream_progress');
+        previewContent.textContent = "Calculating...\n";
+        
+        source.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.log) {
+                previewContent.textContent += data.log;
+            }
+            
+            if (data.preview) {
+                previewContent.textContent = JSON.stringify(data.preview, null, 2);
+                substitutionPreview.style.display = 'block';
+                source.close();
+            }
+        };
+
+        source.onerror = function(error) {
+            console.error('EventSource failed:', error);
+            source.close();
+            alert('Error calculating substitutions');
+        };
     });
 
     confirmButton.addEventListener('click', function() {

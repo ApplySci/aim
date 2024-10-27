@@ -130,7 +130,7 @@ class GSP:
                 # get the list of all the sheets that the user has access to
                 sheet_dict: list = self.client.list_spreadsheet_files()
                 # get creation date of each sheet
-                sheet_dict.sort(key=lambda x: x['createdTime'], reverse=True)
+                sheet_dict.sort(key=lambda x: x["createdTime"], reverse=True)
 
                 out = []
                 for one in sheet_dict:
@@ -151,7 +151,9 @@ class GSP:
                                 if perm["role"] == "owner":
                                     ours = perm["emailAddress"] in OUR_EMAILS
                         except (GspreadAPIError, HttpError) as e:
-                            logging.error(f"Error listing permissions for sheet {one['id']}: {str(e)}")
+                            logging.error(
+                                f"Error listing permissions for sheet {one['id']}: {str(e)}"
+                            )
                             ours = False
                         if this_user_can_see_this_sheet:
                             details["ours"] = ours
@@ -164,7 +166,9 @@ class GSP:
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
-                    logging.error(f"Max retries reached. Unable to list sheets: {str(e)}")
+                    logging.error(
+                        f"Max retries reached. Unable to list sheets: {str(e)}"
+                    )
                     return []
 
     def _reduce_hanchan_count(self, results, hanchan_count: int) -> None:
@@ -447,10 +451,11 @@ class GSP:
         try:
             drive_service = build("drive", "v3", credentials=self.creds)
 
-            permissions = drive_service.permissions().list(
-                fileId=sheet_id,
-                fields="permissions(id,emailAddress,role)"
-            ).execute()
+            permissions = (
+                drive_service.permissions()
+                .list(fileId=sheet_id, fields="permissions(id,emailAddress,role)")
+                .execute()
+            )
 
             permission_id = None
             for permission in permissions.get("permissions", []):
@@ -460,8 +465,7 @@ class GSP:
 
             if permission_id:
                 drive_service.permissions().delete(
-                    fileId=sheet_id,
-                    permissionId=permission_id
+                    fileId=sheet_id, permissionId=permission_id
                 ).execute()
                 return True
             else:
@@ -493,6 +497,9 @@ class GSP:
             logging.error(f"Error getting sheet users: {str(e)}", exc_info=True)
             raise e
 
+    def get_completed_rounds(self, live: gspread.spreadsheet.Spreadsheet) -> int:
+        return self.count_completed_hanchan(live)
+
 
 googlesheet = GSP()
 
@@ -504,10 +511,3 @@ if __name__ == "__main__":
     )
 
     print(out)
-
-
-
-
-
-
-

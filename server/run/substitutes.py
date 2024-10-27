@@ -1,7 +1,22 @@
-from flask import Blueprint, jsonify, request, render_template, session
+from flask import (
+    Blueprint,
+    jsonify,
+    request,
+    render_template,
+    session,
+    Response,
+    stream_with_context,
+)
 from flask_login import current_user
+import json
+import time
 
-from oauth_setup import admin_or_editor_required, login_required, tournament_required
+from oauth_setup import (
+    admin_or_editor_required,
+    logging,
+    login_required,
+    tournament_required,
+)
 from .reassign import fill_table_gaps
 from write_sheet import googlesheet
 
@@ -13,20 +28,13 @@ blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 @tournament_required
 @login_required
 def player_substitution():
-    return render_template("player_substitution.html")
-
-
-@blueprint.route("/get_players_data")
-@admin_or_editor_required
-@tournament_required
-@login_required
-def get_players_data():
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    completed_rounds = googlesheet.get_completed_rounds(sheet)
+
+    # Get players data
     raw_players = googlesheet.get_players(sheet)
-
     players = []
-
     for p in raw_players:
         player = {
             "registration_id": str(p[1]),
@@ -36,7 +44,20 @@ def get_players_data():
         }
         players.append(player)
 
-    return jsonify({"players": players})
+    return render_template(
+        "player_substitution.html", completed_rounds=completed_rounds, players=players
+    )
+
+
+@blueprint.route("/get_completed_rounds")
+@admin_or_editor_required
+@tournament_required
+@login_required
+def get_completed_rounds():
+    tournament = current_user.live_tournament
+    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    completed_rounds = googlesheet.get_completed_rounds(sheet)
+    return jsonify({"completed_rounds": completed_rounds})
 
 
 @blueprint.route("/calculate_substitutions", methods=["POST"])
@@ -45,27 +66,60 @@ def get_players_data():
 @login_required
 def calculate_substitutions():
     data = request.json
+    # Store the calculation data in session
+    session["calculation_data"] = data
+    return jsonify({"status": "success"})
+
+
+@blueprint.route("/stream_progress")
+@admin_or_editor_required
+@tournament_required
+@login_required
+def stream_progress():
+    # Get the data from session that was stored in calculate_substitutions
+    data = session.get("calculation_data")
+    if not data:
+        return Response("No calculation in progress", status=400)
+
     dropped_out = data["dropped_out"]
-    substitutes = data["substitutes"]
+    fixed_rounds = data["fixed_rounds"]
 
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    seating = googlesheet.get_seating(sheet)
+    seatlist = googlesheet.get_seating(sheet)
+    seating = seatlist_to_seating(seatlist)
+    first_sub = 1 + max(max(t) for t in seating[0])
 
-    new_seating = fill_table_gaps(
-        seats=seating,
-        fixed_rounds=4,  # Adjust this value as needed
-        omit_players=dropped_out,
-        substitutes=substitutes,
-        time_limit_seconds=30,
-        verbose=True,
+    def generate():
+        progress_queue = []
+
+        def log_callback(message, end="\n"):
+            progress_queue.append(message + end)
+            while progress_queue:
+                yield f"data: {json.dumps({'log': progress_queue.pop(0)})}\n\n"
+
+        new_seating = fill_table_gaps(
+            seats=seating,
+            fixed_rounds=fixed_rounds,
+            omit_players=dropped_out,
+            substitutes=range(first_sub, first_sub + 4),
+            time_limit_seconds=30,
+            verbose=True,
+            log_callback=log_callback,
+        )
+
+        preview = generate_substitution_preview(seating, new_seating)
+        session["new_seating"] = new_seating
+        yield f"data: {json.dumps({'preview': preview})}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
     )
-
-    preview = generate_substitution_preview(seating, new_seating)
-
-    session["new_seating"] = new_seating
-
-    return jsonify({"preview": preview})
 
 
 @blueprint.route("/confirm_substitutions", methods=["POST"])
@@ -128,3 +182,27 @@ def generate_substitution_preview(old_seating, new_seating):
         if round_changes:
             preview.append(f"Round {round_num}: {'; '.join(round_changes)}")
     return preview
+
+
+def seatlist_to_seating(seatlist):
+    hanchan_count = max([p[0] for p in seatlist])
+    table_count = max([p[1] for p in seatlist])
+    seating = [[[] for _ in range(table_count)] for _ in range(hanchan_count)]
+    for p in seatlist:
+        seating[p[0] - 1][p[1] - 1] = p[2:]
+    return seating
+
+
+def seating_to_seatlist(seating):
+    return [
+        (
+            h + 1,
+            t + 1,
+            seating[h][t][0],
+            seating[h][t][1],
+            seating[h][t][2],
+            seating[h][t][3],
+        )
+        for h in range(len(seating))
+        for t in range(len(seating[h]))
+    ]
