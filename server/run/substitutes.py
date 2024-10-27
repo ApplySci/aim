@@ -5,11 +5,10 @@ from oauth_setup import admin_or_editor_required, login_required, tournament_req
 from .reassign import fill_table_gaps
 from write_sheet import googlesheet
 
-# Remove the blueprint creation from here
-# blueprint = Blueprint("sub", __name__)
+blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 
 
-# Remove the '/sub' prefix from all routes
+@blueprint.route("/player_substitution")
 @admin_or_editor_required
 @tournament_required
 @login_required
@@ -17,26 +16,30 @@ def player_substitution():
     return render_template("player_substitution.html")
 
 
+@blueprint.route("/get_players_data")
 @admin_or_editor_required
 @tournament_required
 @login_required
 def get_players_data():
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    players = googlesheet.get_players(sheet)
+    raw_players = googlesheet.get_players(sheet)
 
-    current_players = [p for p in players if p["status"] == "active"]
-    substitutes = [p for p in players if p["status"] == "substitute"]
+    players = []
 
-    return jsonify(
-        {
-            "players": players,
-            "current_players": current_players,
-            "substitutes": substitutes,
+    for p in raw_players:
+        player = {
+            "registration_id": str(p[1]),
+            "seating_id": p[0] if p[0] != "" else None,
+            "name": p[2],
+            "is_current": p[0] != "",  # True if the player has a seating_id
         }
-    )
+        players.append(player)
+
+    return jsonify({"players": players})
 
 
+@blueprint.route("/calculate_substitutions", methods=["POST"])
 @admin_or_editor_required
 @tournament_required
 @login_required
@@ -65,6 +68,7 @@ def calculate_substitutions():
     return jsonify({"preview": preview})
 
 
+@blueprint.route("/confirm_substitutions", methods=["POST"])
 @admin_or_editor_required
 @tournament_required
 @login_required
@@ -83,6 +87,7 @@ def confirm_substitutions():
     return jsonify({"status": "success"})
 
 
+@blueprint.route("/undo_substitution", methods=["POST"])
 @admin_or_editor_required
 @tournament_required
 @login_required

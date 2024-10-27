@@ -7,7 +7,7 @@ import os
 from urllib.parse import quote_plus
 
 from authlib.integrations.flask_client import OAuth
-from flask import abort
+from flask import abort, redirect, url_for
 from flask_login import current_user, LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from firebase_admin import credentials, initialize_app as initialize_firebase
@@ -16,9 +16,9 @@ from firebase_admin import firestore
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OUR_EMAILS
 
 logging.basicConfig(
-    filename='/home/model/apps/tournaments/app.log',
+    filename="/home/model/apps/tournaments/app.log",
     level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    format="%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]",
 )
 
 oauth = OAuth()
@@ -93,29 +93,42 @@ def config_oauth(app):
         },
     )
 
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return login_manager.unauthorized()
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.live_tournament_role != Role.admin:
+        if (
+            not current_user.is_authenticated
+            or current_user.live_tournament_role != Role.admin
+        ):
             abort(403)
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def admin_or_editor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.live_tournament_role not in [Role.admin, Role.editor]:
+        if (
+            not current_user.is_authenticated
+            or current_user.live_tournament_role not in [Role.admin, Role.editor]
+        ):
             abort(403)
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def superadmin_required(f):
     @wraps(f)
@@ -123,4 +136,16 @@ def superadmin_required(f):
         if not current_user.is_authenticated or current_user.email not in OUR_EMAILS:
             abort(404)  # or 403 for Forbidden
         return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def tournament_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.live_tournament:
+            # Redirect to the tournament selection page if no tournament is selected
+            return redirect(url_for("run.select_tournament"))
+        return f(*args, **kwargs)
+
     return decorated_function

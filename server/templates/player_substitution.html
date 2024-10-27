@@ -5,43 +5,46 @@
 {% block content %}
 <h2>Manage Player Substitutions</h2>
 
-<div id="searchContainer">
-    <input type="text" id="playerSearch" placeholder="Search players...">
-</div>
-
-<div id="playerLists">
-    <div id="currentPlayers">
+<div id="playerManagement" style="display: flex; justify-content: space-between;">
+    <div id="currentPlayersSection" style="position: relative;">
         <h3>Current Players</h3>
-        <ul id="currentPlayersList"></ul>
+        <select id="currentPlayerSelect" multiple size="16" style="width: 300px;"></select>
+        <button id="moveToDropped" style="position: absolute; top: 30px; right: -30px;">→</button>
     </div>
-    <div id="substitutes">
-        <h3>Substitutes</h3>
-        <ul id="substitutesList"></ul>
+    <div id="droppedPlayersSection" style="position: relative;">
+        <h3>Dropped Out Players</h3>
+        <button id="moveToActive" style="position: absolute; top: 30px; left: -30px;">←</button>
+        <select id="droppedPlayerSelect" multiple size="16" style="width: 300px;"></select>
     </div>
 </div>
 
-<button id="calculateSubstitutions">Calculate Substitutions</button>
-
-<div id="substitutionPreview" style="display: none;">
+<div id="substitutesSection"></div>
+    <h3>Substitutes</h3>
+    <ul id="substitutesList"></ul>
+</div>
+<p>
+    <button id="calculateSubstitutions">Calculate Substitutions</button>
+    <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
+</p>
+<div id="substitutionPreview" style="display: none;"></div>
     <h3>Substitution Preview</h3>
     <pre id="previewContent"></pre>
     <button id="confirmSubstitutions">Confirm Substitutions</button>
     <button id="cancelSubstitutions">Cancel</button>
 </div>
-
-<button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
-
-<a href="{{ url_for('run.tournament') }}">Back to Tournament Management</a>
+<p><a href="/run/">Back to main Run Tournament page</a></p>
 
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const playerSearch = document.getElementById('playerSearch');
-    const currentPlayersList = document.getElementById('currentPlayersList');
-    const substitutesList = document.getElementById('substitutesList');
+    const currentPlayerSelect = document.getElementById('currentPlayerSelect');
+    const droppedPlayerSelect = document.getElementById('droppedPlayerSelect');
+    const moveToDroppedButton = document.getElementById('moveToDropped');
+    const moveToActiveButton = document.getElementById('moveToActive');
     const calculateButton = document.getElementById('calculateSubstitutions');
     const confirmButton = document.getElementById('confirmSubstitutions');
     const cancelButton = document.getElementById('cancelSubstitutions');
@@ -51,73 +54,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allPlayers = [];
     let currentPlayers = [];
+    let droppedPlayers = [];
     let substitutes = [];
-    let droppedOutPlayers = [];
 
     // Fetch players data
-    fetch('{{ url_for("run.get_players_data") }}')
+    fetch('{{ url_for("run.sub.get_players_data") }}')
         .then(response => response.json())
         .then(data => {
             allPlayers = data.players;
-            currentPlayers = data.current_players;
-            substitutes = data.substitutes;
+            currentPlayers = allPlayers.filter(p => p.is_current);
+            droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
+            substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
             renderPlayers();
         });
 
     function renderPlayers() {
-        currentPlayersList.innerHTML = '';
-        substitutesList.innerHTML = '';
-
+        // Render current players
+        currentPlayerSelect.innerHTML = '';
         currentPlayers.forEach(player => {
-            const li = createPlayerListItem(player, 'current');
-            currentPlayersList.appendChild(li);
+            const option = new Option(`${player.name} (ID: ${player.registration_id})`, player.registration_id);
+            currentPlayerSelect.add(option);
         });
 
+        // Render dropped players
+        droppedPlayerSelect.innerHTML = '';
+        droppedPlayers.forEach(player => {
+            const option = new Option(`${player.name} (ID: ${player.registration_id})`, player.registration_id);
+            droppedPlayerSelect.add(option);
+        });
+
+        // Render substitutes
+        const substitutesList = document.getElementById('substitutesList');
+        substitutesList.innerHTML = '';
         substitutes.forEach(player => {
-            const li = createPlayerListItem(player, 'substitute');
+            const li = document.createElement('li');
+            li.textContent = `${player.name} (ID: ${player.registration_id})`;
             substitutesList.appendChild(li);
         });
     }
 
-    function createPlayerListItem(player, type) {
-        const li = document.createElement('li');
-        li.textContent = `${player.name} (ID: ${player.id})`;
-        const button = document.createElement('button');
-        button.textContent = type === 'current' ? 'Drop Out' : 'Remove';
-        button.onclick = () => togglePlayerStatus(player, type);
-        li.appendChild(button);
-        return li;
-    }
+    moveToDroppedButton.addEventListener('click', function() {
+        Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
+            const player = currentPlayers.find(p => p.registration_id === option.value);
+            if (player) {
+                player.is_current = false;
+                currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
+                droppedPlayers.push(player);
+            }
+        });
+        renderPlayers();
+    });
 
-    function togglePlayerStatus(player, type) {
-        if (type === 'current') {
-            currentPlayers = currentPlayers.filter(p => p.id !== player.id);
-            droppedOutPlayers.push(player);
-        } else {
-            substitutes = substitutes.filter(p => p.id !== player.id);
-        }
+    moveToActiveButton.addEventListener('click', function() {
+        Array.from(droppedPlayerSelect.selectedOptions).forEach(option => {
+            const player = droppedPlayers.find(p => p.registration_id === option.value);
+            if (player) {
+                player.is_current = true;
+                droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
+                currentPlayers.push(player);
+            }
+        });
+        renderPlayers();
+    });
+
+    function movePlayerBack(player) {
+        player.is_current = true;
+        droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
+        currentPlayers.push(player);
         renderPlayers();
     }
 
-    playerSearch.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const filteredPlayers = allPlayers.filter(player => 
-            player.name.toLowerCase().includes(searchTerm) ||
-            player.id.toString().includes(searchTerm)
-        );
-        // Update the lists with filtered players
-        // (You may want to create a separate function for this)
-    });
+    function removeSubstitute(player) {
+        substitutes = substitutes.filter(p => p.registration_id !== player.registration_id);
+        renderPlayers();
+    }
 
     calculateButton.addEventListener('click', function() {
-        fetch('{{ url_for("run.calculate_substitutions") }}', {
+        fetch('/run/sub/calculate_substitutions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                dropped_out: droppedOutPlayers.map(p => p.id),
-                substitutes: substitutes.map(p => p.id),
+                dropped_out: droppedPlayers.map(p => p.seating_id),
+                substitutes: substitutes.map(p => p.registration_id),
             }),
         })
         .then(response => response.json())
@@ -128,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     confirmButton.addEventListener('click', function() {
-        fetch('{{ url_for("run.confirm_substitutions") }}', {
+        fetch('/run/sub/confirm_substitutions', {
             method: 'POST',
         })
         .then(response => response.json())
@@ -150,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     undoButton.addEventListener('click', function() {
-        fetch('{{ url_for("run.undo_substitution") }}', {
+        fetch('/run/sub/undo_substitution', {
             method: 'POST',
         })
         .then(response => response.json())

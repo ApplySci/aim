@@ -29,7 +29,7 @@ from oauth_setup import db, firestore_client, logging
 from write_sheet import googlesheet
 from . import substitutes
 
-blueprint = Blueprint("run", __name__)
+blueprint = Blueprint("run", __name__, url_prefix="/run")
 
 
 def wrap_and_catch(myfunc):
@@ -52,13 +52,7 @@ def wrap_and_catch(myfunc):
     return wrapper
 
 
-@blueprint.route(
-    "/run/select_tournament",
-    methods=[
-        "GET",
-        "POST",
-    ],
-)
+@blueprint.route("/select_tournament", methods=["GET", "POST"])
 @login_required
 def select_tournament():
     new_id = request.form.get("id")
@@ -157,7 +151,7 @@ def _send_topic_fcm(topic: str, title: str, body: str):
     messaging.send(message)
 
 
-@blueprint.route("/run/")
+@blueprint.route("/")
 @login_required
 def run_tournament():
     if current_user.live_tournament:
@@ -199,7 +193,7 @@ def run_tournament():
     return redirect(url_for("run.select_tournament"))
 
 
-@blueprint.route("/run/update_status", methods=["POST"])
+@blueprint.route("/update_status", methods=["POST"])
 @login_required
 def update_tournament_status():
     new_status = request.form.get("new_status")
@@ -216,7 +210,7 @@ def _get_sheet():
     return googlesheet.get_sheet(sheet_id)
 
 
-@blueprint.route("/run/update_schedule")
+@blueprint.route("/update_schedule")
 @wrap_and_catch
 @login_required
 def update_schedule():
@@ -267,7 +261,7 @@ def _seating_to_web(sheet, seating):
     return "Seating published on web", 200
 
 
-@blueprint.route("/run/update_players")
+@blueprint.route("/update_players")
 @wrap_and_catch
 @login_required
 def update_players():
@@ -418,7 +412,7 @@ def _games_to_web(games, schedule, players):
     return f"{games}", 200
 
 
-@blueprint.route("/run/get_results")
+@blueprint.route("/get_results")
 @login_required
 def update_ranking_and_scores():
     send_notifications = request.args.get("sendNotifications", "true") == "true"
@@ -451,7 +445,7 @@ def update_ranking_and_scores():
     return jsonify({"status": "processing", "job_id": job_id}), 202
 
 
-@blueprint.route("/run/job_status/<job_id>")
+@blueprint.route("/job_status/<job_id>")
 @login_required
 def get_job_status(job_id):
     status = _get_job_status(job_id)
@@ -534,7 +528,7 @@ def _ranking_to_cloud(sheet, done: int) -> dict:
 
 @login_required
 def _get_players(sheet, to_cloud=True):
-    raw: list(list) = googlesheet.get_players(sheet)
+    raw: list[list] = googlesheet.get_players(sheet)
     players = []
     player_map = {}
     if len(raw) and len(raw[0]) > 2:
@@ -597,32 +591,5 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         ref.set(data)
 
 
-# Add these routes inside the existing blueprint
-@blueprint.route("/sub/player_substitution")
-@login_required
-def sub_player_substitution():
-    return substitutes.player_substitution()
-
-
-@blueprint.route("/sub/get_players_data")
-@login_required
-def sub_get_players_data():
-    return substitutes.get_players_data()
-
-
-@blueprint.route("/sub/calculate_substitutions", methods=["POST"])
-@login_required
-def sub_calculate_substitutions():
-    return substitutes.calculate_substitutions()
-
-
-@blueprint.route("/sub/confirm_substitutions", methods=["POST"])
-@login_required
-def sub_confirm_substitutions():
-    return substitutes.confirm_substitutions()
-
-
-@blueprint.route("/sub/undo_substitution", methods=["POST"])
-@login_required
-def sub_undo_substitution():
-    return substitutes.undo_substitution()
+# Register the substitutes blueprint
+blueprint.register_blueprint(substitutes.blueprint)

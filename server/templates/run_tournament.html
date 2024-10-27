@@ -30,16 +30,20 @@
 {% endif %}
 
 <h3>Available actions:</h3>
-<p><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
-  Open the google score sheet
-</a></p>
-<p>View public pages:
-  <a href='{{ webroot }}projector.html' target='blank'>Live ranking for data projector</a>
-  |
-  <a href='{{ webroot }}ranking.html' target='blank'>Main score page</a>
-  |
-  <a href='{{ webroot }}seating.html' target='blank'>Seating</a>
-</p>
+<ul>
+  <li><a href="{{ url_for('run.sub.player_substitution') }}">Manage Player Substitutions</a></li>
+  <li><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
+    Open the google score sheet
+  </a></li>
+  
+  <li>View public pages:
+    <ul>
+      <li><a href='{{ webroot }}projector.html' target='blank'>Live ranking for data projector</a></li>
+      <li><a href='{{ webroot }}ranking.html' target='blank'>Main score page</a></li>
+      <li><a href="{{ webroot }}seating.html" target="blank">Seating</a></li>
+    </ul>
+  </li>
+</ul>
 <hr>
 <form>
   <div>
@@ -65,9 +69,6 @@
     <button class="action" data-url="{{
       url_for('run.update_players')
       }}">Update list of players & seat-number assignments</button>
-
-    <!-- Add this button after the existing buttons in the form -->
-    <button class="action" onclick="window.location.href='{{ url_for('run.player_substitution') }}'">Manage Player Substitutions</button>
 
 </form>
 
