@@ -178,11 +178,18 @@ def fill_table_gaps(
 
     """
     end_time = time.time() + time_limit_seconds
+    
+    # Add more logging for debugging
+    log_callback(f"Starting optimization with {len(omit_players)} players to omit")
+    log_callback(f"Time limit: {time_limit_seconds} seconds")
+    
     direct_subs = len(omit_players) % 4
     if direct_subs > len(substitutes):
         raise Exception("Not enough substitutes to fill the gaps")
+    
     hanchan_count = len(seats)
-    log_callback(f"score pre-dropouts is {score_solution(seats)}")
+    initial_score = score_solution(seats)
+    log_callback(f"Initial score: {initial_score}")
 
     # first remove all omit_players
     gaps = [[] for _ in range(hanchan_count)]
@@ -208,7 +215,10 @@ def fill_table_gaps(
     best_score = sys.maxsize
     best_genome = None
 
+    generation = 0
     while time.time() < end_time:
+        generation += 1
+        
         # Evaluate fitness
         fitness = []
         for genome in population:
@@ -223,31 +233,17 @@ def fill_table_gaps(
         # Sort by fitness
         fitness.sort(key=lambda x: x[0])
 
-        # Select best individuals
-        elite = fitness[: population_size // 2]
-
-        # Create new population
-        new_population = [genome for _, genome in elite]
-
-        # introduce some genetic diversity
-        for _ in range(population_size // 8):
-            new_population.append(random_genome(seats, gaps))
-        while len(new_population) < population_size:
-            parent1 = random.choice(elite)[1]
-            parent2 = random.choice(elite)[1]
-            child = crossover(parent1, parent2)
-            child = mutate(child, seats)
-            new_population.append(child)
-
-        population = new_population
-
         if fitness[0][0] < best_score:
             best_score = fitness[0][0]
             best_genome = fitness[0][1]
-
-            log_callback(f"\nNew best score: {best_score}", end="\n")
-        log_callback(".", end="")
+            log_callback(f"Generation {generation}: New best score {best_score}")
+        
+        if generation % 10 == 0:
+            log_callback(".", end="")
+        
         if best_score == 0:
+            log_callback("Found perfect solution!")
             break
 
+    log_callback(f"\nOptimization complete. Final score: {best_score}")
     return create_solution(seats, gaps, best_genome)

@@ -76,7 +76,6 @@ def calculate_substitutions():
 @tournament_required
 @login_required
 def stream_progress():
-    # Get the data from session that was stored in calculate_substitutions
     data = session.get("calculation_data")
     if not data:
         return Response("No calculation in progress", status=400)
@@ -91,26 +90,42 @@ def stream_progress():
     first_sub = 1 + max(max(t) for t in seating[0])
 
     def generate():
-        progress_queue = []
-
+        progress_messages = []
+        
         def log_callback(message, end="\n"):
-            progress_queue.append(message + end)
-            while progress_queue:
-                yield f"data: {json.dumps({'log': progress_queue.pop(0)})}\n\n"
+            # Add message to our queue
+            progress_messages.append(message + end)
+            print(f"Progress message queued: {message}")  # Server-side debug
+        
+        try:
+            yield f"data: {json.dumps({'log': 'Starting calculation...\n'})}\n\n"
+            time.sleep(0.1)  # Small delay to ensure client receives initial message
 
-        new_seating = fill_table_gaps(
-            seats=seating,
-            fixed_rounds=fixed_rounds,
-            omit_players=dropped_out,
-            substitutes=range(first_sub, first_sub + 4),
-            time_limit_seconds=30,
-            verbose=True,
-            log_callback=log_callback,
-        )
+            new_seating = fill_table_gaps(
+                seats=seating,
+                fixed_rounds=fixed_rounds,
+                omit_players=dropped_out,
+                substitutes=range(first_sub, first_sub + 4),
+                time_limit_seconds=300,
+                verbose=True,
+                log_callback=log_callback,
+            )
 
-        preview = generate_substitution_preview(seating, new_seating)
-        session["new_seating"] = new_seating
-        yield f"data: {json.dumps({'preview': preview})}\n\n"
+            # Send any queued messages
+            for message in progress_messages:
+                yield f"data: {json.dumps({'log': message})}\n\n"
+                time.sleep(0.05)  # Small delay between messages
+
+            yield f"data: {json.dumps({'log': 'Calculation complete, generating preview...\n'})}\n\n"
+            time.sleep(0.1)
+
+            preview = generate_substitution_preview(seating, new_seating)
+            session["new_seating"] = new_seating
+            yield f"data: {json.dumps({'preview': preview})}\n\n"
+
+        except Exception as e:
+            print(f"Error in stream_progress: {str(e)}")
+            yield f"data: {json.dumps({'log': f'Error: {str(e)}\n'})}\n\n"
 
     return Response(
         stream_with_context(generate()),
@@ -118,6 +133,7 @@ def stream_progress():
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
         },
     )
 

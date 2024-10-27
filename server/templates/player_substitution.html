@@ -30,7 +30,7 @@
     <button id="confirmSubstitutions">Confirm Substitutions</button>
     <button id="cancelSubstitutions">Cancel</button>
 </div>
-<p><a href="/run/">Back to main Run Tournament page</a></p>
+<p><a href="{{ url_for('run.run_tournament') }}">Back to main Run Tournament page</a></p>
 
 {% endblock %}
 
@@ -111,8 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     calculateButton.addEventListener('click', async function() {
-        // First make the POST request
-        const response = await fetch('/run/sub/calculate_substitutions', {
+        const response = await fetch('{{ url_for("run.sub.calculate_substitutions") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -129,32 +128,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Then start the EventSource to get progress
-        const source = new EventSource('/run/sub/stream_progress');
-        previewContent.textContent = "Calculating...\n";
+        const source = new EventSource('{{ url_for("run.sub.stream_progress") }}');
+        previewContent.textContent = "Connecting...\n";
+        
+        source.onopen = function() {
+            console.log('SSE connection opened');
+            previewContent.textContent += "Connected to server.\n";
+        };
         
         source.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            
-            if (data.log) {
-                previewContent.textContent += data.log;
-            }
-            
-            if (data.preview) {
-                previewContent.textContent = JSON.stringify(data.preview, null, 2);
-                substitutionPreview.style.display = 'block';
-                source.close();
+            console.log('Received SSE message:', event.data);
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.log) {
+                    previewContent.textContent += data.log;
+                    previewContent.scrollTop = previewContent.scrollHeight;
+                }
+                
+                if (data.preview) {
+                    previewContent.textContent = JSON.stringify(data.preview, null, 2);
+                    substitutionPreview.style.display = 'block';
+                    source.close();
+                }
+            } catch (error) {
+                console.error('Error processing message:', error, event.data);
+                previewContent.textContent += "Error processing message\n";
             }
         };
 
         source.onerror = function(error) {
             console.error('EventSource failed:', error);
+            console.error('ReadyState:', source.readyState);
+            previewContent.textContent += "Connection error!\n";
             source.close();
-            alert('Error calculating substitutions');
+            alert('Error calculating substitutions. Check console for details.');
         };
     });
 
     confirmButton.addEventListener('click', function() {
-        fetch('/run/sub/confirm_substitutions', {
+        fetch('{{ url_for("run.sub.confirm_substitutions") }}', {
             method: 'POST',
         })
         .then(response => response.json())
@@ -163,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Substitutions applied successfully');
                 undoButton.style.display = 'block';
                 substitutionPreview.style.display = 'none';
-                // Refresh player lists
                 location.reload();
             } else {
                 alert('Error applying substitutions');
@@ -176,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     undoButton.addEventListener('click', function() {
-        fetch('/run/sub/undo_substitution', {
+        fetch('{{ url_for("run.sub.undo_substitution") }}', {
             method: 'POST',
         })
         .then(response => response.json())
