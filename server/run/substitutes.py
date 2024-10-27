@@ -44,8 +44,15 @@ def player_substitution():
         }
         players.append(player)
 
+    # Get current seating arrangement
+    seatlist = googlesheet.get_seating(sheet)
+    seating = seatlist_to_seating(seatlist)
+
     return render_template(
-        "player_substitution.html", completed_rounds=completed_rounds, players=players
+        "player_substitution.html",
+        completed_rounds=completed_rounds,
+        players=players,
+        seating=seating,
     )
 
 
@@ -91,12 +98,12 @@ def stream_progress():
 
     def generate():
         progress_messages = []
-        
+
         def log_callback(message, end="\n"):
             # Add message to our queue
             progress_messages.append(message + end)
             print(f"Progress message queued: {message}")  # Server-side debug
-        
+
         try:
             yield f"data: {json.dumps({'log': 'Starting calculation...\n'})}\n\n"
             time.sleep(0.1)  # Small delay to ensure client receives initial message
@@ -222,3 +229,48 @@ def seating_to_seatlist(seating):
         for h in range(len(seating))
         for t in range(len(seating[h]))
     ]
+
+
+@blueprint.route("/store_seating", methods=["POST"])
+@admin_or_editor_required
+@tournament_required
+@login_required
+def store_seating():
+    data = request.json
+    if not data or "seating" not in data:
+        return jsonify({"status": "error", "message": "No seating data provided"}), 400
+
+    session["new_seating"] = data["seating"]
+    return jsonify({"status": "success"})
+
+
+@blueprint.route("/analyze_seating", methods=["POST"])
+@admin_or_editor_required
+@tournament_required
+@login_required
+def analyze_seating():
+    data = request.json
+    if not data or "seating" not in data:
+        return jsonify({"status": "error", "message": "No seating data provided"}), 400
+
+    from seating.gams.make_stats import make_stats
+
+    # Get current seating for comparison
+    tournament = current_user.live_tournament
+    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    current_seatlist = googlesheet.get_seating(sheet)
+    current_seating = seatlist_to_seating(current_seatlist)
+
+    # Find the highest player ID in the current seating
+    max_id = max(
+        max(player for table in round for player in table) for round in current_seating
+    )
+
+    # Create list of substitute IDs (will be max_id + 1, max_id + 2, etc.)
+    substitute_ids = [0] + list(range(max_id + 1, max_id + 4))
+
+    # Calculate stats for both seating arrangements
+    current_stats = make_stats(current_seating, ignore_players=substitute_ids)
+    new_stats = make_stats(data["seating"], ignore_players=substitute_ids)
+
+    return jsonify({"status": "success", "current": current_stats, "new": new_stats})

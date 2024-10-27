@@ -26,16 +26,82 @@
 </p>
 <div id="substitutionPreview" style="display: none;">
     <h3>Substitution Preview</h3>
-    <pre id="previewContent"></pre>
+    <div class="optimization-container">
+        <pre id="optimizationProgress" class="monospace-output"></pre>
+        <div id="statisticsContainer" style="display: none;">
+            <h4>Statistics Comparison</h4>
+            <div class="stats-grid">
+                <div class="stats-column">
+                    <h5>Current Seating</h5>
+                    <pre id="currentStats" class="monospace-output"></pre>
+                </div>
+                <div class="stats-column">
+                    <h5>New Seating</h5>
+                    <pre id="newStats" class="monospace-output"></pre>
+                </div>
+            </div>
+        </div>
+        <pre id="previewContent" class="monospace-output"></pre>
+    </div>
     <button id="confirmSubstitutions">Confirm Substitutions</button>
     <button id="cancelSubstitutions">Cancel</button>
 </div>
 <p><a href="{{ url_for('run.run_tournament') }}">Back to main Run Tournament page</a></p>
 
+<style>
+.optimization-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.monospace-output {
+    font-family: monospace;
+    background-color: #f5f5f5;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#optimizationProgress {
+    border-left: 3px solid #4CAF50;  /* Green accent */
+}
+
+#previewContent {
+    border-left: 3px solid #2196F3;  /* Blue accent */
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 10px 0;
+}
+
+.stats-column {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.stats-column h5 {
+    margin-top: 0;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 5px;
+}
+</style>
+
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+<script src="{{ url_for('static', filename='js/seating/stats.js') }}"></script>
+<script src="{{ url_for('static', filename='js/seating/optimizer.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const currentPlayerSelect = document.getElementById('currentPlayerSelect');
@@ -49,11 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const substitutionPreview = document.getElementById('substitutionPreview');
     const previewContent = document.getElementById('previewContent');
 
-    // Initialize players data from server-provided data
+    // Initialize data from server
     let allPlayers = {{ players|tojson }};
     let currentPlayers = allPlayers.filter(p => p.is_current);
     let droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
     let substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
+    let seating = {{ seating|tojson }};
     
     // Render players immediately
     renderPlayers();
@@ -110,61 +177,136 @@ document.addEventListener('DOMContentLoaded', function() {
         return droppedPlayers.map(player => parseInt(player.seating_id));
     }
 
+    // Add this function to format the statistics nicely
+    function formatStats(stats) {
+        return [
+            'Direct Meetings:     ' + stats.meets.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
+            'Indirect Meetings:   ' + stats.indirects.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
+            'Table Distribution:  ' + stats.tables.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
+            'Wind Distribution:   ' + stats.wind.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
+            'Repeat 3p Groups:    ' + stats.repeat3,
+            'Repeat 4p Groups:    ' + stats.repeat4
+        ].join('\n');
+    }
+
+    // Update the calculate button handler
     calculateButton.addEventListener('click', async function() {
-        const response = await fetch('{{ url_for("run.sub.calculate_substitutions") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dropped_out: getDroppedOutPlayers(),
-                fixed_rounds: {{ completed_rounds }},
-            })
-        });
-
-        if (!response.ok) {
-            alert('Error starting calculation');
-            return;
-        }
-
-        // Then start the EventSource to get progress
-        const source = new EventSource('{{ url_for("run.sub.stream_progress") }}');
-        previewContent.textContent = "Connecting...\n";
-        
-        source.onopen = function() {
-            console.log('SSE connection opened');
-            previewContent.textContent += "Connected to server.\n";
-        };
-        
-        source.onmessage = function(event) {
-            console.log('Received SSE message:', event.data);
-            try {
-                const data = JSON.parse(event.data);
-                
-                if (data.log) {
-                    previewContent.textContent += data.log;
-                    previewContent.scrollTop = previewContent.scrollHeight;
-                }
-                
-                if (data.preview) {
-                    previewContent.textContent = JSON.stringify(data.preview, null, 2);
-                    substitutionPreview.style.display = 'block';
-                    source.close();
-                }
-            } catch (error) {
-                console.error('Error processing message:', error, event.data);
-                previewContent.textContent += "Error processing message\n";
+        try {
+            const droppedOut = getDroppedOutPlayers();
+            if (droppedOut.length === 0) {
+                alert('Please select players to substitute');
+                return;
             }
-        };
 
-        source.onerror = function(error) {
-            console.error('EventSource failed:', error);
-            console.error('ReadyState:', source.readyState);
-            previewContent.textContent += "Connection error!\n";
-            source.close();
-            alert('Error calculating substitutions. Check console for details.');
-        };
+            const optimizationProgress = document.getElementById('optimizationProgress');
+            optimizationProgress.textContent = "Starting calculation...\n";
+            previewContent.textContent = "";
+            substitutionPreview.style.display = 'block';
+            calculateButton.disabled = true;
+
+            const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
+            
+            const newSeating = await new Promise((resolve, reject) => {
+                worker.onmessage = function(e) {
+                    if (e.data.type === 'progress') {
+                        optimizationProgress.textContent += e.data.message;
+                        optimizationProgress.scrollTop = optimizationProgress.scrollHeight;
+                    } else if (e.data.type === 'result') {
+                        resolve(e.data.seating);
+                    }
+                };
+                
+                worker.onerror = reject;
+                
+                worker.postMessage({
+                    seats: seating,
+                    fixedRounds: {{ completed_rounds }},
+                    omitPlayers: droppedOut,
+                    substitutes: Array.from(
+                        {length: 4}, 
+                        (_, i) => Math.max(...seating[0].flat()) + 1 + i
+                    )
+                });
+            });
+
+            // Generate preview
+            const preview = generateSubstitutionPreview(seating, newSeating);
+            previewContent.textContent = "Substitution Changes:\n\n" + 
+                preview.join('\n');
+
+            // Store new seating for confirmation
+            const response = await fetch('{{ url_for("run.sub.store_seating") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    seating: newSeating
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to store seating arrangement');
+            }
+
+            // After optimization completes and preview is generated:
+            const statsResponse = await fetch('{{ url_for("run.sub.analyze_seating") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    seating: newSeating
+                })
+            });
+
+            if (!statsResponse.ok) {
+                throw new Error('Failed to analyze seating arrangement');
+            }
+
+            const statsData = await statsResponse.json();
+            if (statsData.status === 'success') {
+                const statsContainer = document.getElementById('statisticsContainer');
+                const currentStats = document.getElementById('currentStats');
+                const newStats = document.getElementById('newStats');
+
+                currentStats.textContent = formatStats(statsData.current);
+                newStats.textContent = formatStats(statsData.new);
+                statsContainer.style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            optimizationProgress.textContent += `\nError: ${error.message}\n`;
+            alert('Error during calculation. Check console for details.');
+        } finally {
+            calculateButton.disabled = false;
+        }
     });
+
+    function generateSubstitutionPreview(oldSeating, newSeating) {
+        const preview = [];
+        for (let roundNum = 0; roundNum < oldSeating.length; roundNum++) {
+            const roundChanges = [];
+            for (let tableNum = 0; tableNum < oldSeating[roundNum].length; tableNum++) {
+                const tableChanges = [];
+                for (let seatNum = 0; seatNum < 4; seatNum++) {
+                    const oldPlayer = oldSeating[roundNum][tableNum][seatNum];
+                    const newPlayer = newSeating[roundNum][tableNum][seatNum];
+                    if (oldPlayer !== newPlayer) {
+                        tableChanges.push(`Seat ${seatNum + 1}: ${oldPlayer} -> ${newPlayer}`);
+                    }
+                }
+                if (tableChanges.length > 0) {
+                    roundChanges.push(`Table ${tableNum + 1}: ${tableChanges.join(', ')}`);
+                }
+            }
+            if (roundChanges.length > 0) {
+                preview.push(`Round ${roundNum + 1}: ${roundChanges.join('; ')}`);
+            }
+        }
+        return preview;
+    }
 
     confirmButton.addEventListener('click', function() {
         fetch('{{ url_for("run.sub.confirm_substitutions") }}', {
