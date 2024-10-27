@@ -5,20 +5,20 @@
 {% block content %}
 <h2>Manage Player Substitutions</h2>
 
-<div id="playerManagement" style="display: flex; justify-content: space-between;">
-    <div id="currentPlayersSection" style="position: relative;">
+<div id="playerManagement" style="display: flex; justify-content: flex-start; gap: 100px;">
+    <div id="currentPlayersSection" style="position: relative; width: 300px;">
         <h3>Current Players</h3>
-        <select id="currentPlayerSelect" multiple size="16" style="width: 300px;"></select>
-        <button id="moveToDropped" style="position: absolute; top: 30px; right: -30px;">→</button>
+        <select id="currentPlayerSelect" multiple size="16" style="width: 100%;"></select>
+        <button id="moveToDropped" style="position: absolute; top: 55px; right: -40px;">→</button>
     </div>
-    <div id="droppedPlayersSection" style="position: relative;">
+    <div id="droppedPlayersSection" style="position: relative; width: 300px;">
         <h3>Dropped Out Players</h3>
-        <button id="moveToActive" style="position: absolute; top: 30px; left: -30px;">←</button>
-        <select id="droppedPlayerSelect" multiple size="16" style="width: 300px;"></select>
+        <button id="moveToActive" style="position: absolute; top: 55px; left: -40px;">←</button>
+        <select id="droppedPlayerSelect" multiple style="width: 100%;"></select>
     </div>
 </div>
 
-<div id="substitutesSection"></div>
+<div id="substitutesSection">
     <h3>Substitutes</h3>
     <ul id="substitutesList"></ul>
 </div>
@@ -26,7 +26,7 @@
     <button id="calculateSubstitutions">Calculate Substitutions</button>
     <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
 </p>
-<div id="substitutionPreview" style="display: none;"></div>
+<div id="substitutionPreview" style="display: none;">
     <h3>Substitution Preview</h3>
     <pre id="previewContent"></pre>
     <button id="confirmSubstitutions">Confirm Substitutions</button>
@@ -69,6 +69,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
     function renderPlayers() {
+        // Sort players alphabetically by name
+        currentPlayers.sort((a, b) => a.name.localeCompare(b.name));
+        droppedPlayers.sort((a, b) => a.name.localeCompare(b.name));
+
         // Render current players
         currentPlayerSelect.innerHTML = '';
         currentPlayers.forEach(player => {
@@ -82,6 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = new Option(`${player.name} (ID: ${player.registration_id})`, player.registration_id);
             droppedPlayerSelect.add(option);
         });
+
+        // Adjust the size of droppedPlayerSelect
+        const maxSize = parseInt(currentPlayerSelect.getAttribute('size'));
+        droppedPlayerSelect.size = Math.min(Math.max(droppedPlayers.length, 1), maxSize);
 
         // Render substitutes
         const substitutesList = document.getElementById('substitutesList');
