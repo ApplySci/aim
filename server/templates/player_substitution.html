@@ -204,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
             substitutionPreview.style.display = 'block';
             calculateButton.disabled = true;
             document.getElementById('newStats').textContent = "";
-            // TODO there is very little  to do if there are fewer than 3 substitutions: don't run the GA in such cases
 
             const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
             
@@ -300,7 +299,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 if (tableChanges.length > 0) {
-                    roundChanges.push(`Table ${tableNum + 1}: ${tableChanges.join(', ')}`);
+                    if (newSeating[roundNum][tableNum].every(player => player === 0)) {
+                        roundChanges.push(`Table ${tableNum + 1}: empty`);
+                    } else {
+                        roundChanges.push(`Table ${tableNum + 1}: ${tableChanges.join(', ')}`);
+                    }
                 }
             }
             if (roundChanges.length > 0) {
