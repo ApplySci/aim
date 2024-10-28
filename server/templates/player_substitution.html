@@ -21,6 +21,19 @@
 </div>
 
 <p>
+    <div id="optimizationSettings" style="display: none;">
+        <div class="info-box">
+            <p>⚡ Optimization will run in your browser. More calculation time might generate better results, (but will consume more power)</p>
+            <label for="timeLimit">Calculation time: </label>
+            <select id="timeLimit">
+                <option value="15">15 seconds</option>
+                <option value="30" selected>30 seconds</option>
+                <option value="60">1 minute</option>
+            </select>
+        </div>
+    </div>
+</p>
+<p>
     <button id="calculateSubstitutions">Calculate Substitutions</button>
     <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
 </p>
@@ -94,6 +107,25 @@
     border-bottom: 2px solid #dee2e6;
     padding-bottom: 5px;
 }
+
+.info-box {
+    background-color: #f8f9fa;
+    border-left: 4px solid #17a2b8;  /* Info blue color */
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.info-box p {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+#timeLimit {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+}
 </style>
 
 {% endblock %}
@@ -104,6 +136,9 @@
 <script src="{{ url_for('static', filename='js/seating/optimizer.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    //
+    // DOM Element References
+    //
     const currentPlayerSelect = document.getElementById('currentPlayerSelect');
     const droppedPlayerSelect = document.getElementById('droppedPlayerSelect');
     const moveToDroppedButton = document.getElementById('moveToDropped');
@@ -114,70 +149,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const undoButton = document.getElementById('undoSubstitution');
     const substitutionPreview = document.getElementById('substitutionPreview');
     const previewContent = document.getElementById('previewContent');
+    const optimizationSettings = document.getElementById('optimizationSettings');
+    const timeLimit = document.getElementById('timeLimit');
 
-    // Initialize data from server
+    //
+    // Data Initialization
+    //
     let allPlayers = {{ players|tojson }};
     let currentPlayers = allPlayers.filter(p => p.is_current);
     let droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
     let substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
     let seating = {{ seating|tojson }};
     
-    // Render players immediately
+    // Initial render
     renderPlayers();
 
+    //
+    // Player List Management Functions
+    //
     function renderPlayers() {
-        // Sort players alphabetically by name
         currentPlayers.sort((a, b) => a.name.localeCompare(b.name));
         droppedPlayers.sort((a, b) => a.name.localeCompare(b.name));
 
-        // Render current players
         currentPlayerSelect.innerHTML = '';
         currentPlayers.forEach(player => {
             const option = new Option(`${player.name} (ID: ${player.registration_id})`, player.registration_id);
             currentPlayerSelect.add(option);
         });
 
-        // Render dropped players
         droppedPlayerSelect.innerHTML = '';
         droppedPlayers.forEach(player => {
             const option = new Option(`${player.name} (ID: ${player.registration_id})`, player.registration_id);
             droppedPlayerSelect.add(option);
         });
 
-        // Adjust the size of droppedPlayerSelect
         const maxSize = parseInt(currentPlayerSelect.getAttribute('size'));
         droppedPlayerSelect.size = Math.min(Math.max(droppedPlayers.length, 1), maxSize);
+
+        updateOptimizationSettings();
     }
-
-    moveToDroppedButton.addEventListener('click', function() {
-        Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
-            const player = currentPlayers.find(p => p.registration_id === option.value);
-            if (player) {
-                player.is_current = false;
-                currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
-                droppedPlayers.push(player);
-            }
-        });
-        renderPlayers();
-    });
-
-    moveToActiveButton.addEventListener('click', function() {
-        Array.from(droppedPlayerSelect.selectedOptions).forEach(option => {
-            const player = droppedPlayers.find(p => p.registration_id === option.value);
-            if (player) {
-                player.is_current = true;
-                droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
-                currentPlayers.push(player);
-            }
-        });
-        renderPlayers();
-    });
 
     function getDroppedOutPlayers() {
         return droppedPlayers.map(player => parseInt(player.seating_id));
     }
 
-    // Add this function to format the statistics nicely
+    function updateOptimizationSettings() {
+        const droppedCount = droppedPlayers.length;
+        optimizationSettings.style.display = droppedCount >= 4 ? 'block' : 'none';
+    }
+
+    //
+    // Statistics and Preview Functions
+    //
     function formatStats(stats) {
         return [
             'Direct Meetings:     ' + stats.meets.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
@@ -188,102 +211,6 @@ document.addEventListener('DOMContentLoaded', function() {
             'Repeat 4p Groups:    ' + stats.repeat4
         ].join('\n');
     }
-
-    // Update the calculate button handler
-    calculateButton.addEventListener('click', async function() {
-        try {
-            const droppedOut = getDroppedOutPlayers();
-            if (droppedOut.length === 0) {
-                alert('Please select players to substitute');
-                return;
-            }
-
-            const optimizationProgress = document.getElementById('optimizationProgress');
-            optimizationProgress.textContent = "Starting calculation...\n";
-            previewContent.textContent = "";
-            substitutionPreview.style.display = 'block';
-            calculateButton.disabled = true;
-            document.getElementById('newStats').textContent = "";
-
-            const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
-            
-            const newSeating = await new Promise((resolve, reject) => {
-                worker.onmessage = function(e) {
-                    if (e.data.type === 'progress') {
-                        optimizationProgress.textContent += e.data.message;
-                        optimizationProgress.scrollTop = optimizationProgress.scrollHeight;
-                    } else if (e.data.type === 'result') {
-                        resolve(e.data.seating);
-                    }
-                };
-                
-                worker.onerror = reject;
-                
-                worker.postMessage({
-                    seats: seating,
-                    fixedRounds: {{ completed_rounds }},
-                    omitPlayers: droppedOut,
-                    substitutes: Array.from(
-                        {length: 4}, 
-                        (_, i) => Math.max(...seating[0].flat()) + 1 + i
-                    )
-                });
-            });
-
-            // Generate preview
-            const preview = generateSubstitutionPreview(seating, newSeating);
-            previewContent.textContent = "Substitution Changes:\n\n" + 
-                preview.join('\n');
-
-            // Store new seating for confirmation
-            const response = await fetch('{{ url_for("run.sub.store_seating") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    seating: newSeating
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to store seating arrangement');
-            }
-
-            // After optimization completes and preview is generated:
-            const statsResponse = await fetch('{{ url_for("run.sub.analyze_seating") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    seating: newSeating
-                })
-            });
-
-            if (!statsResponse.ok) {
-                throw new Error('Failed to analyze seating arrangement');
-            }
-
-            const statsData = await statsResponse.json();
-            if (statsData.status === 'success') {
-                const statsContainer = document.getElementById('statisticsContainer');
-                const currentStats = document.getElementById('currentStats');
-                const newStats = document.getElementById('newStats');
-
-                currentStats.textContent = formatStats(statsData.current);
-                newStats.textContent = formatStats(statsData.new);
-                statsContainer.style.display = 'block';
-            }
-
-        } catch (error) {
-            console.error('Error:', error);
-            optimizationProgress.textContent += `\nError: ${error.message}\n`;
-            alert('Error during calculation. Check console for details.');
-        } finally {
-            calculateButton.disabled = false;
-        }
-    });
 
     function generateSubstitutionPreview(oldSeating, newSeating) {
         const preview = [];
@@ -312,6 +239,126 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return preview;
     }
+
+    //
+    // Event Handlers
+    //
+    moveToDroppedButton.addEventListener('click', function() {
+        Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
+            const player = currentPlayers.find(p => p.registration_id === option.value);
+            if (player) {
+                player.is_current = false;
+                currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
+                droppedPlayers.push(player);
+            }
+        });
+        renderPlayers();
+    });
+
+    moveToActiveButton.addEventListener('click', function() {
+        Array.from(droppedPlayerSelect.selectedOptions).forEach(option => {
+            const player = droppedPlayers.find(p => p.registration_id === option.value);
+            if (player) {
+                player.is_current = true;
+                droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
+                currentPlayers.push(player);
+            }
+        });
+        renderPlayers();
+    });
+
+    calculateButton.addEventListener('click', async function() {
+        try {
+            const droppedOut = getDroppedOutPlayers();
+            if (droppedOut.length === 0) {
+                alert('Please select players to substitute');
+                return;
+            }
+
+            // Setup UI for calculation
+            const selectedTime = parseInt(timeLimit.value);
+            optimizationProgress.textContent = `Starting calculation (${selectedTime} seconds)...\n`;
+            previewContent.textContent = "";
+            substitutionPreview.style.display = 'block';
+            calculateButton.disabled = true;
+            
+            // Clear statistics
+            const statsContainer = document.getElementById('statisticsContainer');
+            const currentStats = document.getElementById('currentStats');
+            const newStats = document.getElementById('newStats');
+            currentStats.textContent = '';
+            newStats.textContent = '';
+            statsContainer.style.display = 'none';
+
+            // Run optimization
+            const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
+            const newSeating = await new Promise((resolve, reject) => {
+                worker.onmessage = function(e) {
+                    if (e.data.type === 'progress') {
+                        optimizationProgress.textContent += e.data.message;
+                        optimizationProgress.scrollTop = optimizationProgress.scrollHeight;
+                    } else if (e.data.type === 'result') {
+                        resolve(e.data.seating);
+                    }
+                };
+                worker.onerror = reject;
+                worker.postMessage({
+                    seats: seating,
+                    fixedRounds: {{ completed_rounds }},
+                    omitPlayers: droppedOut,
+                    substitutes: Array.from(
+                        {length: 4}, 
+                        (_, i) => Math.max(...seating[0].flat()) + 1 + i
+                    ),
+                    timeLimit: selectedTime  // Add this line
+                });
+            });
+
+            // Generate and display preview
+            const preview = generateSubstitutionPreview(seating, newSeating);
+            previewContent.textContent = "Substitution Changes:\n\n" + preview.join('\n');
+
+            // Store results
+            const response = await fetch('{{ url_for("run.sub.store_seating") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seating: newSeating })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to store seating arrangement');
+            }
+
+            // Analyze and display statistics
+            const statsResponse = await fetch('{{ url_for("run.sub.analyze_seating") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seating: newSeating })
+            });
+
+            if (!statsResponse.ok) {
+                throw new Error('Failed to analyze seating arrangement');
+            }
+
+            const statsData = await statsResponse.json();
+            if (statsData.status === 'success') {
+                const statsContainer = document.getElementById('statisticsContainer');
+                const currentStats = document.getElementById('currentStats');
+                const newStats = document.getElementById('newStats');
+
+                currentStats.textContent = formatStats(statsData.current);
+                newStats.textContent = formatStats(statsData.new);
+                statsContainer.style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            optimizationProgress.textContent += `\nError: ${error.message}\n`;
+            alert('Error during calculation. Check console for details.');
+        } finally {
+            calculateButton.disabled = false;
+        }
+    });
 
     confirmButton.addEventListener('click', function() {
         fetch('{{ url_for("run.sub.confirm_substitutions") }}', {

@@ -2,9 +2,19 @@
 importScripts('stats.js', 'optimizer.js');
 
 self.onmessage = function(e) {
-    const { seats, fixedRounds, omitPlayers, substitutes } = e.data;
+    const { seats, fixedRounds, omitPlayers, substitutes, timeLimit } = e.data;
     
-    const optimizer = new SeatingOptimizer(seats, fixedRounds, omitPlayers, substitutes);
+    // Use 1 second for simple substitutions, otherwise use selected time
+    const effectiveTimeLimit = omitPlayers.length < 4 ? 1 : (timeLimit || 30);
+    
+    const optimizer = new SeatingOptimizer(
+        seats, 
+        fixedRounds, 
+        omitPlayers, 
+        substitutes,
+        effectiveTimeLimit
+    );
+    
     optimizer.setProgressCallback(message => {
         self.postMessage({ type: 'progress', message });
     });

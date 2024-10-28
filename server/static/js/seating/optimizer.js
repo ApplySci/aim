@@ -1,19 +1,19 @@
 class SeatingOptimizer {
-    constructor(seats, fixedRounds, omitPlayers, substitutes) {
+    constructor(seats, fixedRounds, omitPlayers, substitutes, timeLimit = 30) {
         this.seats = seats;
         this.fixedRounds = fixedRounds;
         this.omitPlayers = omitPlayers;
         this.substitutes = substitutes;
         this.onProgress = null;
-        this.timeLimit = (omitPlayers.length > 3) ? 15 : 1 ; // seconds
+        this.timeLimit = timeLimit;  // Use passed timeLimit instead of calculating it
         this.populationSize = 50;
         this.statsCache = new Map();
         
         // Calculate baseline score from current seating
         this.baselineScore = this.scoreSolution(seats);
-        this.targetScore = 0; // this.baselineScore + 10;
+        this.targetScore = 0;
         
-        this.log(`Using population size: ${this.populationSize}`);
+        this.log(`Time limit: ${this.timeLimit} seconds`);
     }
 
     setProgressCallback(callback) {
@@ -171,7 +171,6 @@ class SeatingOptimizer {
         this.log("\nOptimization Status:");
         this.log(`• Current seating score: ${this.baselineScore}`);
         this.log(`• Players to substitute: ${this.omitPlayers.length}`);
-        this.log(`• Population size: ${this.populationSize}`);
         this.log(`• Time limit: ${this.timeLimit} seconds`);
         this.log("\nStarting optimization...\n");
 
@@ -273,7 +272,7 @@ class SeatingOptimizer {
             this.log(`• Terminated: Found perfect solution`);
         }
 
-        const timeSpent = ((Date.now() - startTime) / 1000).toFixed(1);
+        const timeSpent = ((Date.now() - startTime) / 1000).toFixed(0);
         this.log(`• Time spent: ${timeSpent} seconds`);
         this.log("\n-------------------\n");
         
