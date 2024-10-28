@@ -173,7 +173,6 @@ class SeatingOptimizer {
         // Initial status report
         this.log("\nOptimization Status:");
         this.log(`• Current seating score: ${this.baselineScore}`);
-        this.log(`• Target score: ${this.targetScore}`);
         this.log(`• Players to substitute: ${this.omitPlayers.length}`);
         this.log(`• Population size: ${this.populationSize}`);
         this.log(`• Time limit: ${this.timeLimit} seconds`);
@@ -232,9 +231,6 @@ class SeatingOptimizer {
                 bestScore = fitness[0].score;
                 bestGenome = fitness[0].genome;
                 
-                // Calculate improvement percentage
-                const improvement = ((this.baselineScore - bestScore) / this.baselineScore * 100).toFixed(1);
-                this.log(`\nGeneration ${generation}: New best score ${bestScore} (${improvement}% improvement)`);
                 
                 if (bestScore <= this.targetScore) {
                     this.log("\nSuccess! Found solution within acceptable range.");
@@ -266,10 +262,9 @@ class SeatingOptimizer {
 
         // Final status report
         this.log("\n\nOptimization Complete");
-        this.log("-------------------");
-        this.log(`• Initial score: ${this.baselineScore}`);
+        this.log("\n-------------------\n");
+        this.log(`• Score before substitutions: ${this.baselineScore}`);
         this.log(`• Final score: ${bestScore}`);
-        this.log(`• Improvement: ${(this.baselineScore - bestScore).toFixed(1)} points`);
         this.log(`• Generations: ${generation}`);
         
         // Report termination reason
@@ -283,7 +278,7 @@ class SeatingOptimizer {
 
         const timeSpent = ((Date.now() - startTime) / 1000).toFixed(1);
         this.log(`• Time spent: ${timeSpent} seconds`);
-        this.log("-------------------\n");
+        this.log("\n-------------------\n");
         
         return this.createSolution(workingSeats, gaps.map(g => [...g]), bestGenome);
     }

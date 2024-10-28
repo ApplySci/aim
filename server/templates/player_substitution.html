@@ -25,7 +25,6 @@
     <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
 </p>
 <div id="substitutionPreview" style="display: none;">
-    <h3>Substitution Preview</h3>
     <div class="optimization-container">
         <pre id="optimizationProgress" class="monospace-output"></pre>
         <div id="statisticsContainer" style="display: none;">
@@ -41,9 +40,10 @@
                 </div>
             </div>
         </div>
+        <h3>Substitution Preview</h3>
         <pre id="previewContent" class="monospace-output"></pre>
     </div>
-    <button id="confirmSubstitutions">Confirm Substitutions</button>
+    <button id="confirmSubstitutions">Do these Substitutions</button>
     <button id="cancelSubstitutions">Cancel</button>
 </div>
 <p><a href="{{ url_for('run.run_tournament') }}">Back to main Run Tournament page</a></p>
@@ -203,6 +203,8 @@ document.addEventListener('DOMContentLoaded', function() {
             previewContent.textContent = "";
             substitutionPreview.style.display = 'block';
             calculateButton.disabled = true;
+            document.getElementById('newStats').textContent = "";
+            // TODO there is very little  to do if there are fewer than 3 substitutions: don't run the GA in such cases
 
             const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
             

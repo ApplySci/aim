@@ -189,7 +189,7 @@ def fill_table_gaps(
     
     hanchan_count = len(seats)
     initial_score = score_solution(seats)
-    log_callback(f"Initial score: {initial_score}")
+    log_callback(f"\nScore before this round of substitutions: {initial_score}")
 
     # first remove all omit_players
     gaps = [[] for _ in range(hanchan_count)]
