@@ -5,16 +5,13 @@ class SeatingOptimizer {
         this.omitPlayers = omitPlayers;
         this.substitutes = substitutes;
         this.onProgress = null;
-        this.timeLimit = 15; // seconds
+        this.timeLimit = (omitPlayers.length > 3) ? 15 : 1 ; // seconds
         this.populationSize = 50;
         this.statsCache = new Map();
         
         // Calculate baseline score from current seating
         this.baselineScore = this.scoreSolution(seats);
         this.targetScore = 0; // this.baselineScore + 10;
-        
-        const roundsToOptimize = seats.length - fixedRounds;
-        const playersToReassign = omitPlayers.length - (omitPlayers.length % 4);
         
         this.log(`Using population size: ${this.populationSize}`);
     }
