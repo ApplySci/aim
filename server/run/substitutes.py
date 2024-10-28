@@ -17,7 +17,6 @@ from oauth_setup import (
     login_required,
     tournament_required,
 )
-from .reassign import fill_table_gaps
 from write_sheet import googlesheet
 
 blueprint = Blueprint("sub", __name__, url_prefix="/sub")
@@ -67,84 +66,6 @@ def get_completed_rounds():
     return jsonify({"completed_rounds": completed_rounds})
 
 
-@blueprint.route("/calculate_substitutions", methods=["POST"])
-@admin_or_editor_required
-@tournament_required
-@login_required
-def calculate_substitutions():
-    data = request.json
-    # Store the calculation data in session
-    session["calculation_data"] = data
-    return jsonify({"status": "success"})
-
-
-@blueprint.route("/stream_progress")
-@admin_or_editor_required
-@tournament_required
-@login_required
-def stream_progress():
-    data = session.get("calculation_data")
-    if not data:
-        return Response("No calculation in progress", status=400)
-
-    dropped_out = data["dropped_out"]
-    fixed_rounds = data["fixed_rounds"]
-
-    tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    seatlist = googlesheet.get_seating(sheet)
-    seating = seatlist_to_seating(seatlist)
-    first_sub = 1 + max(max(t) for t in seating[0])
-
-    def generate():
-        progress_messages = []
-
-        def log_callback(message, end="\n"):
-            # Add message to our queue
-            progress_messages.append(message + end)
-            print(f"Progress message queued: {message}")  # Server-side debug
-
-        try:
-            yield f"data: {json.dumps({'log': 'Starting calculation...\n'})}\n\n"
-            time.sleep(0.1)  # Small delay to ensure client receives initial message
-
-            new_seating = fill_table_gaps(
-                seats=seating,
-                fixed_rounds=fixed_rounds,
-                omit_players=dropped_out,
-                substitutes=range(first_sub, first_sub + 4),
-                time_limit_seconds=300,
-                verbose=True,
-                log_callback=log_callback,
-            )
-
-            # Send any queued messages
-            for message in progress_messages:
-                yield f"data: {json.dumps({'log': message})}\n\n"
-                time.sleep(0.05)  # Small delay between messages
-
-            yield f"data: {json.dumps({'log': 'Calculation complete, generating preview...\n'})}\n\n"
-            time.sleep(0.1)
-
-            preview = generate_substitution_preview(seating, new_seating)
-            session["new_seating"] = new_seating
-            yield f"data: {json.dumps({'preview': preview})}\n\n"
-
-        except Exception as e:
-            print(f"Error in stream_progress: {str(e)}")
-            yield f"data: {json.dumps({'log': f'Error: {str(e)}\n'})}\n\n"
-
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
 @blueprint.route("/confirm_substitutions", methods=["POST"])
 @admin_or_editor_required
 @tournament_required
@@ -179,32 +100,6 @@ def undo_substitution():
     googlesheet.update_seating(sheet, last_seating)
 
     return jsonify({"status": "success"})
-
-
-@admin_or_editor_required
-@login_required
-def generate_substitution_preview(old_seating, new_seating):
-    preview = []
-    for round_num, (old_round, new_round) in enumerate(
-        zip(old_seating, new_seating), 1
-    ):
-        round_changes = []
-        for table_num, (old_table, new_table) in enumerate(
-            zip(old_round, new_round), 1
-        ):
-            table_changes = []
-            for seat_num, (old_player, new_player) in enumerate(
-                zip(old_table, new_table), 1
-            ):
-                if old_player != new_player:
-                    table_changes.append(
-                        f"Seat {seat_num}: {old_player} -> {new_player}"
-                    )
-            if table_changes:
-                round_changes.append(f"Table {table_num}: {', '.join(table_changes)}")
-        if round_changes:
-            preview.append(f"Round {round_num}: {'; '.join(round_changes)}")
-    return preview
 
 
 def seatlist_to_seating(seatlist):
