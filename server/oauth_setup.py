@@ -51,7 +51,9 @@ def config_db(app):
 
 
 def config_jinja(app):
-    def prettyScore(score: int):
+    def prettyScore(score: int | None):
+        if score is None:
+            return "-"
         if score < 0:
             prefix = "-"
         elif score > 0:
@@ -60,7 +62,9 @@ def config_jinja(app):
             prefix = ""
         return f"{prefix}{(abs(round(score/10, 1)))}"
 
-    def scoreClass(score: int):
+    def scoreClass(score: int | None):
+        if score is None:
+            return "score0"
         return "scorePos" if score > 0 else "scoreNeg" if score < 0 else "score0"
 
     def urlsafe(x):

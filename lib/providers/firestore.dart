@@ -203,7 +203,7 @@ typedef PlayerScore = ({
   bool tied,
   int total,
   int penalty,
-  List<HanchanScore> scores,
+  List<HanchanScore?> scores,  // Make individual scores nullable
 });
 
 final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
@@ -217,19 +217,19 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
     yield [
       for (final ranking in rankings)
         (
-        id: seatMap[ranking.seat]!.id,
-        seat:ranking.seat,
-        name: seatMap[ranking.seat]!.name,
-        rank: ranking.rank,
-        tied: ranking.tied,
-        total: ranking.total,
-        penalty: ranking.penalty,
-        scores: [
-          for (final game in games)
-            for (final table in game.tables)
-              for (final scores in table.scores)
-                if (scores.seat == ranking.seat) scores,
-        ],
+          id: seatMap[ranking.seat]!.id,
+          seat: ranking.seat,
+          name: seatMap[ranking.seat]!.name,
+          rank: ranking.rank,
+          tied: ranking.tied,
+          total: ranking.total,
+          penalty: ranking.penalty,
+          scores: [
+            for (final game in games)
+              for (final table in game.tables)
+                for (final scores in table.scores)
+                  if (scores.seat == ranking.seat) scores,
+          ],
         ),
     ];
   }
@@ -270,9 +270,18 @@ final playerScoreProvider = StreamProvider.family
   // extract from rankingList just the rankings and totals for this player
   if (rankingList.containsKey('roundDone')) {
     int endRound = int.parse(rankingList['roundDone']);
-    for (int i=1; i <= endRound; i++) {
-      rankings.add(rankingList["$i"]["$seat"]['r']);
-      totalScores.add(rankingList["$i"]["$seat"]['total']);
+    for (int i = 1; i <= endRound; i++) {
+      // Check if the round and seat exist in rankings before accessing
+      if (rankingList.containsKey("$i") && 
+          rankingList["$i"].containsKey("$seat") &&
+          rankingList["$i"]["$seat"] != null) {
+        rankings.add(rankingList["$i"]["$seat"]['r']);
+        totalScores.add(rankingList["$i"]["$seat"]['total']);
+      } else {
+        // Add placeholder values for rounds where the substitute wasn't playing
+        rankings.add(0);  // or whatever default rank makes sense
+        totalScores.add(0);  // or whatever default score makes sense
+      }
     }
   }
 

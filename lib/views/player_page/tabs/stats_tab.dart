@@ -25,10 +25,18 @@ class PlayerStatsTab extends ConsumerWidget {
       );
     }
 
-    List<int> scores = [for (HanchanScore s in player.games.scores)
-      s.finalScore];
+    final nonNullScores = player.games.scores.whereType<HanchanScore>();
+    final List<int> scores = nonNullScores
+        .map((s) => s.finalScore)
+        .whereNotNull()
+        .toList();
     List<int> rankings = player.rankings;
     List<int> totals = player.totalScores;
+
+    final penalties = nonNullScores
+        .map((e) => e.penalties)
+        .whereNotNull()
+        .sum;
 
     return ListView(
       children: [
@@ -49,28 +57,28 @@ class PlayerStatsTab extends ConsumerWidget {
         ListTile(
           title: const Text('In-game penalties'),
           trailing: ScoreText(
-            player.games.scores.map((e) => e.penalties).sum,
+            penalties,
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
         ListTile(
           title: const Text('Average Score'),
           trailing: ScoreText(
-            player.games.scores.map((e) => e.finalScore).average,
+            scores.isEmpty ? null : scores.average,
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
         ListTile(
           title: const Text('Highest Score'),
           trailing: ScoreText(
-            player.games.scores.map((e) => e.finalScore).max,
+            scores.isEmpty ? null : scores.max,
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
         ListTile(
           title: const Text('Lowest Score'),
           trailing: ScoreText(
-            player.games.scores.map((e) => e.finalScore).min,
+            scores.isEmpty ? null : scores.min,
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),

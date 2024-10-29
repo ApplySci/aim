@@ -32,7 +32,7 @@ class PlayerScoreTab extends ConsumerWidget {
         for (final (index, score) in player.scores.indexed)
           DataRow2(cells: [
             DataCell(Text('Round ${index + 1}')),
-            DataCell(ScoreText(score.finalScore)),
+            DataCell(ScoreText(score?.finalScore)),
           ]),
       ],
     );

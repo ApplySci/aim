@@ -500,6 +500,16 @@ class GSP:
     def get_completed_rounds(self, live: gspread.spreadsheet.Spreadsheet) -> int:
         return self.count_completed_hanchan(live)
 
+    def update_seating(self, live: gspread.spreadsheet.Spreadsheet, seatlist: list[list[int]]) -> None:
+        live.worksheet("seating").batch_update(
+            [
+                {
+                    "range": f"A2:F{len(seatlist)+1}",
+                    "values": seatlist,
+                }
+            ]
+        )
+        
 
 googlesheet = GSP()
 

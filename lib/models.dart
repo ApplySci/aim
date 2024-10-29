@@ -284,30 +284,32 @@ extension HanchanList on List<GameData> {
 class HanchanScore extends Equatable {
   // detailed score for one player at one table in one round
   final int seat;
-  final int placement;
-  final int gameScore;
-  final int finalScore;
-  final int penalties;
+  final int? placement;
+  final int? gameScore;
+  final int? finalScore;
+  final int? penalties;
 
   const HanchanScore({
     required this.seat,
-    required this.placement,
-    required this.gameScore,
-    required this.finalScore,
-    required this.penalties,
+    this.placement,
+    this.gameScore,
+    this.finalScore,
+    this.penalties,
   });
 
-  factory HanchanScore.fromList(List<int> values) {
+  factory HanchanScore.fromList(List<dynamic> values) {
     return HanchanScore(
-      seat: values[0],
-      penalties: values[1],
-      gameScore: values[2],
-      placement: values[3],
-      finalScore: values[4],
+      seat: values[0] as int,
+      penalties: values[1] != null ? values[1] as int : null,
+      gameScore: values[2] != null ? values[2] as int : null,
+      placement: values[3] != null ? values[3] as int : null,
+      finalScore: values[4] != null ? values[4] as int : null,
     );
   }
 
-  int get uma => finalScore - gameScore - penalties;
+  int? get uma => finalScore != null && gameScore != null && penalties != null 
+      ? finalScore! - gameScore! - penalties!
+      : null;
 
   @override
   List<Object?> get props => [
@@ -343,8 +345,6 @@ class Hanchan extends Equatable {
 }
 
 class GameData extends Equatable {
-  // detailed scores for all hanchans in a round
-
   const GameData({
     required this.roundId,
     required this.tables,
@@ -355,17 +355,24 @@ class GameData extends Equatable {
 
   factory GameData.fromMap(key, Map value) {
     final roundId = key as RoundId;
-    final tables = value.entries.map((e) {
+    final tables = value.entries.where((e) => e.key != 'missing').map((e) {
       final tableId = e.key as TableId;
+      final tableData = e.value as Map;
       return Hanchan(
         roundId: roundId,
         tableId: tableId,
         scores: [
           for (final wind in Wind.values)
-            HanchanScore.fromList((e.value['${wind.index}'] as List).cast())
+            if (tableData['${wind.index}'] != null)
+              HanchanScore.fromList(
+                (tableData['${wind.index}'] as List).cast<dynamic>()
+              )
+            else
+              HanchanScore(seat: -1)  // or handle null case appropriately
         ],
       );
     }).toList();
+    
     return GameData(
       roundId: roundId,
       tables: tables,

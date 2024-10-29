@@ -77,11 +77,9 @@ def confirm_substitutions():
 
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-
-    googlesheet.update_seating(sheet, new_seating)
-
+    seatlist = seating_to_seatlist(new_seating)
     session["last_seating"] = googlesheet.get_seating(sheet)
-
+    googlesheet.update_seating(sheet, seatlist)
     return jsonify({"status": "success"})
 
 

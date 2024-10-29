@@ -316,12 +316,18 @@ def _get_one_round_results(sheet, rnd: int):
         # For each table, get the player ID & scores
         for i in range(4):
             player_id = vals[row + i][1]
+            # Handle potential None values in score calculations
+            chombo = vals[row + i][5]
+            game_score = vals[row + i][3]
+            placement = vals[row + i][4]
+            final_score = vals[row + i][6]
+
             tables[table][f"{i}"] = [
                 player_id,  # player_id: int
-                round(10 * vals[row + i][5] or 0),  # chombo: int
-                round(10 * vals[row + i][3]),  # game score: int
-                vals[row + i][4],  # placement: int
-                round(10 * vals[row + i][6]),  # final score: int
+                round(10 * (chombo or 0)),  # chombo: int
+                round(10 * (game_score or 0)),  # game score: int
+                placement or 0,  # placement: int
+                round(10 * (final_score or 0)),  # final score: int
             ]
 
         # Move to the next table
@@ -380,7 +386,8 @@ def _games_to_web(games, schedule, players):
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(html)
         except Exception as e:
-            logging.error(f"Error writing player page for {pid} ({name}): {e}")
+            logging.error(f"Error writing player page for {pid} ({name}): {e}", exc_info=True)
+
 
     # =======================================================
 
@@ -479,21 +486,23 @@ def _games_to_cloud(sheet, done: int, players):
         results.update(one)
     cleaned_scores = results.copy()
     for r in cleaned_scores:
-        # if any players didn't play in a round, we need to add a fake score for them
-        has_score = []
+        # Track which players played in this round
+        has_score = set()
         for t in cleaned_scores[r]:
             for s in cleaned_scores[r][t]:
-                has_score.append(cleaned_scores[r][t][s][0])
+                has_score.add(cleaned_scores[r][t][s][0])
+        
+        # Add null scores for players who didn't play
+        # (instead of fake scores with zeros)
+        missing = {}
         missed = 0
         for p in players:
             if not p in has_score:
-                if missed == 0:
-                    cleaned_scores[r]["missing"] = {}
-                cleaned_scores[r]["missing"][str(missed)] = [p, 0, 0, 0, 0, 0]
+                missing[str(missed)] = [p, None, None, None, None]
                 missed += 1
-        if missed > 0 and missed < 3:
-            for i in range(missed, 4):
-                cleaned_scores[r]["missing"][str(i)] = cleaned_scores[r]["missing"]["0"]
+        if missing:
+            cleaned_scores[r]["missing"] = missing
+            
     _save_to_cloud("scores", cleaned_scores, force_set=True)
     return results
 
@@ -532,18 +541,23 @@ def _get_players(sheet, to_cloud=True):
     players = []
     player_map = {}
     if len(raw) and len(raw[0]) > 2:
+        # Find the highest seating_id
+        max_seating_id = max((int(p[0]) for p in raw if p[0] != ""), default=0)
+        
         for p in raw:
             registration_id = p[1]
             seating_id = p[0] if p[0] != "" else None
             name = p[2]
+            is_substitute = seating_id and int(seating_id) > max_seating_id - 3
+            
             player_map[seating_id] = name
-            players.append(
-                {
-                    "registration_id": str(registration_id),
-                    "seating_id": seating_id,
-                    "name": name,
-                }
-            )
+            players.append({
+                "registration_id": str(registration_id),
+                "seating_id": seating_id,
+                "name": name,
+                "is_substitute": is_substitute,
+                "is_current": p[0] != "",  # True if the player has a seating_id
+            })
     if to_cloud:
         _save_to_cloud("players", {"players": players})
     return player_map

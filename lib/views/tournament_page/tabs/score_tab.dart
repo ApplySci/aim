@@ -21,7 +21,8 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final maxScoreWidth = playerScores
       .map((playerScore) => playerScore.scores)
       .flattened
-      .map((score) => scoreSize(score.finalScore, negSign).width);
+      .where((score) => score != null)  // Filter out null scores
+      .map((score) => scoreSize(score!.finalScore, negSign).width);
   final maxTotalWidth = playerScores
       .map((playerScore) => playerScore.total)
       .map((score) => scoreSize(score, negSign).width);
@@ -165,9 +166,11 @@ class ScoreRow extends DataRow2 {
           DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
-              ScoreText(score.scores[i].finalScore),
-              // TODO decide: do we want a user to tap on a single score to go to the whole hanchan score? Maybe in a modal popup?
-              // onTap: () => showHanchanModel(score.id, i),
+              i < score.scores.length 
+                  ? (score.scores[i]?.finalScore != null 
+                      ? ScoreText(score.scores[i]!.finalScore)
+                      : const Text('-'))
+                  : const Text('-'),
             ),
           DataCell(PenaltyText(score.penalty)),
         ]);
