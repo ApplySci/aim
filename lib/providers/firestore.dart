@@ -217,7 +217,7 @@ final playerScoreListProvider = StreamProvider<List<PlayerScore>>((ref) async* {
     yield [
       for (final ranking in rankings)
         (
-          id: seatMap[ranking.seat]!.id,
+          id: seatMap[ranking.seat]?.id ?? 'unknown',
           seat: ranking.seat,
           name: seatMap[ranking.seat]!.name,
           rank: ranking.rank,

@@ -16,13 +16,22 @@ class PlayerPage extends ConsumerWidget {
   });
 
   void abortBuild(BuildContext context, String msg) {
-
     Future.delayed(Durations.short1, () {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
       );
       Navigator.pop(context);
+    });
+  }
+
+  void initializePlayer(BuildContext context, WidgetRef ref, PlayerId? playerId, int? seat) {
+    Future(() {
+      if (!context.mounted) return;
+      ref.read(selectedSeatProvider.notifier).state = seat;
+      if (playerId != null) {
+        ref.read(selectedPlayerIdProvider.notifier).set(playerId);
+      }
     });
   }
 
@@ -59,6 +68,8 @@ class PlayerPage extends ConsumerWidget {
       }
     }
 
+    initializePlayer(context, ref, playerId, seat);
+
     try {
       playerScore = ref.watch(playerScoreProvider(seat!));
     } catch(e) {
@@ -67,57 +78,56 @@ class PlayerPage extends ConsumerWidget {
     }
 
     return playerScore.when(
-        skipLoadingOnReload: true,
-        loading: () => const LoadingScaffold(
-              title: Text('Player'),
-            ),
-        error: (error, stackTrace) => ErrorScaffold(
-              title: const Text('Player'),
-              error: error,
-              stackTrace: stackTrace,
-            ),
-        data: (player) {
+      skipLoadingOnReload: true,
+      loading: () => const LoadingScaffold(
+            title: Text('Player'),
+          ),
+      error: (error, stackTrace) => ErrorScaffold(
+            title: const Text('Player'),
+            error: error,
+            stackTrace: stackTrace,
+          ),
+      data: (player) {
+        final isSelected = ref.watch(
+          selectedPlayerIdProvider.select((id) => id == playerId),
+        );
 
-          final isSelected = ref.watch(
-            selectedPlayerIdProvider.select((id) => id == playerId),
-          );
-
-          return DefaultTabController(
-            length: 4,
-            child: Scaffold(
-              appBar: AppBar(
-                title: Text(playerData!.name, style: const TextStyle(fontSize: 16),),
-                actions: [
-                  IconButton(
-                    onPressed: () {
-                      final selectedPlayerIdNotifier =
-                          ref.read(selectedPlayerIdProvider.notifier);
-                      if (isSelected) {
-                        selectedPlayerIdNotifier.set(null);
-                      } else {
-                        selectedPlayerIdNotifier.set(playerId);
-                      }
-                    },
-                    icon: isSelected
-                        ? const Icon(Icons.favorite)
-                        : const Icon(Icons.favorite_border),
-                  ),
-                ],
-                bottom: const TabBar(tabs: [
-                  Tab(text: 'Stats'),
-                  Tab(text: 'Schedule'),
-                  Tab(text: 'Scores'),
-                  Tab(text: 'Games'),
-                ]),
-              ),
-              body: TabBarView(children: [
-                PlayerStatsTab(player: player),
-                PlayerScheduleTab(player: player.games),
-                PlayerScoreTab(player: player.games),
-                PlayerGameTab(player: player.games),
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(playerData!.name, style: const TextStyle(fontSize: 16),),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    final selectedPlayerIdNotifier =
+                        ref.read(selectedPlayerIdProvider.notifier);
+                    if (isSelected) {
+                      selectedPlayerIdNotifier.set(null);
+                    } else {
+                      selectedPlayerIdNotifier.set(playerId);
+                    }
+                  },
+                  icon: isSelected
+                      ? const Icon(Icons.favorite)
+                      : const Icon(Icons.favorite_border),
+                ),
+              ],
+              bottom: const TabBar(tabs: [
+                Tab(text: 'Stats'),
+                Tab(text: 'Schedule'),
+                Tab(text: 'Scores'),
+                Tab(text: 'Games'),
               ]),
             ),
-          );
-        });
+            body: TabBarView(children: [
+              PlayerStatsTab(player: player),
+              PlayerScheduleTab(player: player.games),
+              PlayerScoreTab(player: player.games),
+              PlayerGameTab(player: player.games),
+            ]),
+          ),
+        );
+      });
   }
 }

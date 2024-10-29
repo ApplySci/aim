@@ -32,11 +32,26 @@ final filterByPlayerIdProvider = Provider((ref) {
 
 final filterByPlayerProvider = Provider((ref) {
   final playerId = ref.watch(filterByPlayerIdProvider);
+  if (playerId == null) return null;
+
+  // Check player list first
   final playerList = ref.watch(playerListProvider);
-  return playerList.value?.firstWhereOrNull((e) => e.id == playerId);
+  final regularPlayer = playerList.value?.firstWhereOrNull((e) => e.id == playerId);
+  if (regularPlayer != null) return regularPlayer;
+
+  // If not found and we have a seat number, look up by seat
+  final selectedSeat = ref.watch(selectedSeatProvider);
+  if (selectedSeat != null) {
+    final seatMap = ref.watch(seatMapProvider);
+    return seatMap.value?[selectedSeat];
+  }
+
+  return null;
 }, dependencies: [
   filterByPlayerIdProvider,
   playerListProvider,
+  seatMapProvider,
+  selectedSeatProvider,
 ]);
 
 final roundListProvider = StreamProvider((ref) async* {
@@ -223,7 +238,13 @@ class AssignedTable extends ConsumerWidget {
   final Map<Wind, PlayerData> players;
 
   void onTap(BuildContext context, PlayerData player) =>
-      Navigator.of(context).pushNamed(ROUTES.player, arguments: {'playerId': player.id});
+      Navigator.of(context).pushNamed(
+        ROUTES.player, 
+        arguments: {
+          'playerId': player.id,
+          'seat': player.seat,
+        }
+      );
 
   @override
   Widget build(context, ref) {

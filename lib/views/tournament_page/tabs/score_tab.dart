@@ -83,6 +83,9 @@ class ScoreTable extends ConsumerWidget {
           indexSelected = playerScores.playerScores.indexWhere(
                 (e) => e.seat == selectedSeat,
           );
+          if (indexSelected == -1) {
+            indexSelected = null;
+          }
         }
         final int rounds = playerScores.playerScores.isEmpty
             ? 0
