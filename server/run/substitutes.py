@@ -29,17 +29,34 @@ blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 def player_substitution():
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    completed_rounds = googlesheet.get_completed_rounds(sheet)
+    completed_rounds = googlesheet.count_completed_hanchan(sheet)
 
     # Get players data
     raw_players = googlesheet.get_players(sheet)
     players = []
+
+    # Initialize counters
+    players_with_seating = 0
+    subs_with_seating = 0
+    subs_without_seating = 0
+
     for p in raw_players:
+        has_seating = p[0] != ""
+        is_sub = "sub" in str(p[1]).lower()  # Check registration ID for "sub"
+
+        # Update counters
+        if has_seating:
+            players_with_seating += 1
+            if is_sub:
+                subs_with_seating += 1
+        elif is_sub:
+            subs_without_seating += 1
+
         player = {
             "registration_id": str(p[1]),
-            "seating_id": p[0] if p[0] != "" else None,
+            "seating_id": p[0] if has_seating else None,
             "name": p[2],
-            "is_current": p[0] != "",  # True if the player has a seating_id
+            "is_current": has_seating,
         }
         players.append(player)
 
@@ -52,18 +69,10 @@ def player_substitution():
         completed_rounds=completed_rounds,
         players=players,
         seating=seating,
+        players_with_seating=players_with_seating,
+        subs_with_seating=subs_with_seating,
+        subs_without_seating=subs_without_seating,
     )
-
-
-@blueprint.route("/get_completed_rounds")
-@admin_or_editor_required
-@tournament_required
-@login_required
-def get_completed_rounds():
-    tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    completed_rounds = googlesheet.get_completed_rounds(sheet)
-    return jsonify({"completed_rounds": completed_rounds})
 
 
 @blueprint.route("/confirm_substitutions", methods=["POST"])

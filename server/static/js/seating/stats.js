@@ -8,6 +8,7 @@ function makeStats(seats, ignorePlayers = []) {
     const tableCount = seats[0].length;
     const playerCount = Math.max(
         tableCount * 4,
+        ...seats.flat(2).filter(p => p !== 0),
         ...ignorePlayers
     );
     const hanchanCount = seats.length;
@@ -38,32 +39,37 @@ function makeStats(seats, ignorePlayers = []) {
 
             for (let seat1 = 0; seat1 < 4; seat1++) {
                 const player1 = playersAtTable[seat1];
+                if (player1 === 0) continue;
+
                 playerTables[player1][table]++;
                 playerWinds[player1][seat1]++;
                 
                 for (let seat2 = seat1 + 1; seat2 < 4; seat2++) {
                     const player2 = playersAtTable[seat2];
+                    if (player2 === 0) continue;
                     playerPairs[Math.min(player1, player2)][Math.max(player1, player2)]++;
                 }
             }
 
-            // Track 3-player meets
-            for (let i = 0; i < 4; i++) {
-                for (let j = i + 1; j < 4; j++) {
-                    for (let k = j + 1; k < 4; k++) {
-                        const trio = [
-                            playersAtTable[i],
-                            playersAtTable[j],
-                            playersAtTable[k]
-                        ].sort((a, b) => a - b).join(',');
-                        meets3.set(trio, (meets3.get(trio) || 0) + 1);
+            // Track 3-player meets (skip if any seat is empty)
+            if (!playersAtTable.includes(0)) {
+                for (let i = 0; i < 4; i++) {
+                    for (let j = i + 1; j < 4; j++) {
+                        for (let k = j + 1; k < 4; k++) {
+                            const trio = [
+                                playersAtTable[i],
+                                playersAtTable[j],
+                                playersAtTable[k]
+                            ].sort((a, b) => a - b).join(',');
+                            meets3.set(trio, (meets3.get(trio) || 0) + 1);
+                        }
                     }
                 }
-            }
 
-            // Track 4-player meets
-            const quartet = [...playersAtTable].sort((a, b) => a - b).join(',');
-            meets4.set(quartet, (meets4.get(quartet) || 0) + 1);
+                // Track 4-player meets (only if all seats are filled)
+                const quartet = [...playersAtTable].sort((a, b) => a - b).join(',');
+                meets4.set(quartet, (meets4.get(quartet) || 0) + 1);
+            }
         }
     }
 

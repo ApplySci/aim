@@ -31,7 +31,15 @@
 
 <h3>Available actions:</h3>
 <ul>
-  <li><a href="{{ url_for('run.sub.player_substitution') }}">Manage Player Substitutions</a></li>
+  {% if current_user.live_tournament_role.value in ['admin', 'editor'] %}
+    <li><a href="{{ url_for('run.sub.player_substitution') }}">
+      {% if hanchan_count >= 1 %}
+        Manage Player Substitutions
+      {% else %}
+        Change the number of tables before the tournament starts
+      {% endif %}
+    </a></li>
+  {% endif %}
   <li><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
     Open the google score sheet
   </a></li>
