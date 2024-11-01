@@ -28,7 +28,7 @@ class PlayerPage extends ConsumerWidget {
   void initializePlayer(BuildContext context, WidgetRef ref, PlayerId? playerId, int? seat) {
     Future(() {
       if (!context.mounted) return;
-      ref.read(selectedSeatProvider.notifier).state = seat;
+      ref.read(selectedSeatProvider.notifier).set(seat);
       if (playerId != null) {
         ref.read(selectedPlayerIdProvider.notifier).set(playerId);
       }

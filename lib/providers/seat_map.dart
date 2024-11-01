@@ -28,4 +28,8 @@ class SelectedSeatNotifier extends Notifier<int?> {
       error: (_, __) => null,
     );
   }
+
+  void set(int? seat) {
+    state = seat;
+  }
 }
