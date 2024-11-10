@@ -1,6 +1,6 @@
 {% extends "runbase.html" %}
 
-{% block title %}Let's clean up some old spreadsheets{% endblock %}
+{% block title %}Let's clean up{% endblock %}
 
 {% block content %}
 <h2>Admin Tools</h2>
@@ -13,21 +13,23 @@
 </form>
 {% endif %}
 
-<section>
-<h2>List of spreadsheets we own:</h2>
-    <ul>
-    {% for doc in docs %}
-      <li id="buttonli{{ loop.index }}">
-          <button onclick="delet_dis({{ loop.index }}, '{{ doc['id'] }}')">
-          delete {{ doc['title'] }} </button> (
-          <a href='https://docs.google.com/spreadsheets/d/{{ doc['id'] }}'>
-          {{ doc['id'] }} )
-          </a>
-      </li>
-    {% endfor %}
-    </ul>
-<hr>
-</section>
+{% if docs %}
+    <section>
+    <h2>List of spreadsheets we own:</h2>
+        <ul>
+        {% for doc in docs %}
+        <li id="buttonli{{ loop.index }}">
+            <button onclick="delet_dis({{ loop.index }}, '{{ doc['id'] }}')">
+            delete {{ doc['title'] }} </button> (
+            <a href='https://docs.google.com/spreadsheets/d/{{ doc['id'] }}'>
+            {{ doc['id'] }} )
+            </a>
+        </li>
+        {% endfor %}
+        </ul>
+    <hr>
+    </section>
+{% endif %}
 
 <section>
     <h2>List of tournaments in database</h2>
@@ -50,29 +52,29 @@ href='https://console.firebase.google.com/u/0/project/ie-mahjong-tournament/fire
 >Firebase - opens in new window</a>
 </section>
 
-<!-- Add this section after the existing sections -->
-<section>
-    <h2>Users without access to any tournament</h2>
-    <table id="usersWithoutAccess">
-        <thead>
-            <tr>
-                <th>Email</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users_without_access %}
-            <tr id="user-row-{{ user.email }}">
-                <td>{{ user.email }}</td>
-                <td>
-                    <button onclick="deleteUser('{{ user.email }}')" class="btn btn-danger">🗑️</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
-
+{% if users_without_access %}
+    <section>
+        <h2>Users without access to any tournament</h2>
+        <table id="usersWithoutAccess">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users_without_access %}
+                <tr id="user-row-{{ user.email }}">
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <button onclick="deleteUser('{{ user.email }}')" class="btn btn-danger">🗑️</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
