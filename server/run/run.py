@@ -339,7 +339,7 @@ def _get_one_round_results(sheet, rnd: int):
 
 
 def webroot():
-    return "/static/" + current_user.live_tournament.web_directory
+    return f"/static/{current_user.live_tournament.web_directory}/"
 
 
 def _round_names(schedule):
