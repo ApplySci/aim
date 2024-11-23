@@ -4,14 +4,23 @@
 
 {% block content %}
 <h1>Select a Tournament</h1>
-<ul>
-{% for tournament in tournaments %}
-<li>
-<form method="POST" action="">
-    <input type="hidden" name="id" value="{{ tournament.id }}">
-    <button type="submit">{{ tournament.title }}</button>
-</form>
-</li>
+
+{% for status, tournaments in [('live', grouped_tournaments.live), 
+                             ('test', grouped_tournaments.test),
+                             ('upcoming', grouped_tournaments.upcoming),
+                             ('past', grouped_tournaments.past)] %}
+    {% if tournaments %}
+        <h2>{{ status|title }} Tournaments</h2>
+        <ul>
+        {% for tournament in tournaments %}
+            <li>
+                <form method="POST" action="">
+                    <input type="hidden" name="id" value="{{ tournament.id }}">
+                    <button type="submit">{{ tournament.title }}</button>
+                </form>
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 {% endfor %}
-</ul>
 {% endblock %}
