@@ -75,10 +75,21 @@ def select_tournament():
 
     # Query the Access table for all records where the user_email is the current user's email
     accesses = db.session.query(Access).filter_by(user_email=current_user.email).all()
-    tournaments = [access.tournament for access in accesses]
+    
+    # Group tournaments by status
+    grouped_tournaments = {
+        'live': [],
+        'test': [],
+        'upcoming': [],
+        'past': []
+    }
+    
+    for access in accesses:
+        status = access.tournament.status
+        grouped_tournaments[status].append(access.tournament)
 
     db.session.commit()
-    return render_template("select_tournament.html", tournaments=tournaments)
+    return render_template("select_tournament.html", grouped_tournaments=grouped_tournaments)
 
 
 @login_required
@@ -336,7 +347,7 @@ def _get_one_round_results(sheet, rnd: int):
 
 
 def webroot():
-    return "/static/" + current_user.live_tournament.web_directory
+    return f"/static/{current_user.live_tournament.web_directory}/"
 
 
 def _round_names(schedule):
@@ -594,15 +605,18 @@ def _seating_to_map(sheet, schedule):
 @login_required
 def _save_to_cloud(document: str, data: dict, force_set=False):
     firebase_id: str = current_user.live_tournament.firebase_doc
-    ref = firestore_client.collection("tournaments").document(
-        f"{firebase_id}/v3/{document}"
-    )
-
-    doc = ref.get()
-    if doc.exists and not force_set:
-        ref.update(data)
-    else:
-        ref.set(data)
+    for version in ("v3", "v2"):
+        ref = firestore_client.collection("tournaments").document(
+            f"{firebase_id}/{version}/{document}"
+        )
+        if version == "v2" and document == "players":
+            for p in data['players']:
+                p["id"] = p["seating_id"] or int(p["registration_id"])
+        doc = ref.get()
+        if doc.exists and not force_set:
+            ref.update(data)
+        else:
+            ref.set(data)
 
 
 # Register the substitutes blueprint
