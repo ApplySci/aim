@@ -597,15 +597,18 @@ def _seating_to_map(sheet, schedule):
 @login_required
 def _save_to_cloud(document: str, data: dict, force_set=False):
     firebase_id: str = current_user.live_tournament.firebase_doc
-    ref = firestore_client.collection("tournaments").document(
-        f"{firebase_id}/v3/{document}"
-    )
-
-    doc = ref.get()
-    if doc.exists and not force_set:
-        ref.update(data)
-    else:
-        ref.set(data)
+    for version in ("v3", "v2"):
+        ref = firestore_client.collection("tournaments").document(
+            f"{firebase_id}/{version}/{document}"
+        )
+        if version == "v2" and document == "players":
+            for p in data['players']:
+                p["id"] = p["seating_id"] or int(p["registration_id"])
+        doc = ref.get()
+        if doc.exists and not force_set:
+            ref.update(data)
+        else:
+            ref.set(data)
 
 
 # Register the substitutes blueprint
