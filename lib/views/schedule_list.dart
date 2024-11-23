@@ -76,17 +76,18 @@ final roundListProvider = StreamProvider((ref) async* {
                   name: table.name,
                   players: {
                     for (final wind in Wind.values)
-                        wind: seatMap.putIfAbsent(
+                      wind: seatMap.putIfAbsent(
                         table.seats[wind.index],
                         () => PlayerData({
                           'seating_id': table.seats[wind.index],
                           'registration_id': '',
                           'name': 'seat ${table.seats[wind.index]}',
                         }),
-                        )
-                    },
+                      )
+                  },
                 )
-          ],
+          ]..sort((a, b) => int.parse(a.name.replaceAll(RegExp(r'[^\d]'), ''))
+              .compareTo(int.parse(b.name.replaceAll(RegExp(r'[^\d]'), '')))),
         ),
       )
       .sortedBy<DateTime>((round) => round.start.toLocal());

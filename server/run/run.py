@@ -169,6 +169,7 @@ def run_tournament():
         tournament = current_user.live_tournament
         sheet = _get_sheet()
         schedule = googlesheet.get_schedule(sheet)
+        hanchan_count = googlesheet.count_completed_hanchan(sheet)
 
         tournament_tz = ZoneInfo(schedule["timezone"])
         now = datetime.now(tournament_tz)
@@ -200,6 +201,8 @@ def run_tournament():
             last_hanchan=last_hanchan,
             now=now,
             tournament_timezone=schedule["timezone"],
+            hanchan_count=hanchan_count,
+            is_past=(current_status == "past"),
         )
     return redirect(url_for("run.select_tournament"))
 

@@ -57,7 +57,7 @@ final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
 });
 
 extension SelectAsyncValue<State> on StreamProvider<State> {
-  AlwaysAliveProviderListenable<AsyncValue<Selected>> selectAsyncData<Selected>(
+  ProviderListenable<AsyncValue<Selected>> selectAsyncData<Selected>(
     Selected Function(State value) selector,
   ) {
     return select((e) => e.whenData(selector));
@@ -95,7 +95,7 @@ extension WidgetRefListen on WidgetRef {
 
 extension RefListen on Ref {
   ProviderSubscription<AsyncValue<T>> listenAsyncData<T>(
-    AlwaysAliveProviderListenable<AsyncValue<T>> provider,
+    ProviderListenable<AsyncValue<T>> provider,
     void Function(T? previous, T next) listener, {
     void Function(Object error, StackTrace stackTrace)? onError,
     bool fireImmediately = false,
@@ -108,7 +108,7 @@ extension RefListen on Ref {
       );
 }
 
-extension AutoDisposeRefListen on AutoDisposeRef {
+extension AutoDisposeRefListen on Ref {
   ProviderSubscription<AsyncValue<T>> listenAsyncData<T>(
     ProviderListenable<AsyncValue<T>> provider,
     void Function(T? previous, T next) listener, {
