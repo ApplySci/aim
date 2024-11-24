@@ -611,4 +611,4 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
 
 
 # Register the substitutes blueprint
-blueprint.register_blueprint(substitutes.blueprint)
+# blueprint.register_blueprint(substitutes.blueprint)
