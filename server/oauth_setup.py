@@ -10,8 +10,7 @@ from authlib.integrations.flask_client import OAuth
 from flask import abort, redirect, url_for
 from flask_login import current_user, LoginManager
 from flask_sqlalchemy import SQLAlchemy
-from firebase_admin import credentials, initialize_app as initialize_firebase
-from firebase_admin import firestore
+from firebase_admin import credentials, initialize_app as initialize_firebase, firestore
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OUR_EMAILS
 
@@ -147,9 +146,9 @@ def superadmin_required(f):
 def tournament_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.live_tournament:
-            # Redirect to the tournament selection page if no tournament is selected
-            return redirect(url_for("run.select_tournament"))
-        return f(*args, **kwargs)
+        if current_user.live_tournament:
+            return f(*args, **kwargs)
+        # else Redirect to the tournament selection page if no tournament is selected
+        return redirect(url_for("run.select_tournament"))
 
     return decorated_function

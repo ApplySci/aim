@@ -25,7 +25,7 @@ from flask import (
 from flask_login import login_required, current_user
 
 from models import Access, User, Tournament
-from oauth_setup import db, firestore_client, logging
+from oauth_setup import db, firestore_client, logging, tournament_required
 from write_sheet import googlesheet
 from . import substitutes
 
@@ -75,21 +75,18 @@ def select_tournament():
 
     # Query the Access table for all records where the user_email is the current user's email
     accesses = db.session.query(Access).filter_by(user_email=current_user.email).all()
-    
+
     # Group tournaments by status
-    grouped_tournaments = {
-        'live': [],
-        'test': [],
-        'upcoming': [],
-        'past': []
-    }
-    
+    grouped_tournaments = {"live": [], "test": [], "upcoming": [], "past": []}
+
     for access in accesses:
         status = access.tournament.status
         grouped_tournaments[status].append(access.tournament)
 
     db.session.commit()
-    return render_template("select_tournament.html", grouped_tournaments=grouped_tournaments)
+    return render_template(
+        "select_tournament.html", grouped_tournaments=grouped_tournaments
+    )
 
 
 @login_required
@@ -147,8 +144,6 @@ def _ranking_to_web(scores, games, players, done, schedule):
     with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
 
-    return "ranking pages updated, notifications sent", 200
-
 
 @login_required
 def _send_topic_fcm(topic: str, title: str, body: str):
@@ -163,57 +158,58 @@ def _send_topic_fcm(topic: str, title: str, body: str):
 
 
 @blueprint.route("/")
+@tournament_required
 @login_required
 def run_tournament():
-    if current_user.live_tournament:
-        tournament = current_user.live_tournament
-        sheet = _get_sheet()
-        schedule = googlesheet.get_schedule(sheet)
-        hanchan_count = googlesheet.count_completed_hanchan(sheet)
+    # TODO add a timer and a way to catch it, to tell the manager to change the schedule,
+    # and offer a button to do it quickly, if an alarm is due soon, but the previous
+    # hanchan hasn't been published yet
+    tournament = current_user.live_tournament
+    sheet = _get_sheet()
+    schedule = googlesheet.get_schedule(sheet)
+    hanchan_count = googlesheet.count_completed_hanchan(sheet)
 
-        tournament_tz = ZoneInfo(schedule["timezone"])
-        now = datetime.now(tournament_tz)
-        first_hanchan = datetime.fromisoformat(
-            schedule["rounds"][0]["start"]
-        ).astimezone(tournament_tz)
-        last_hanchan = datetime.fromisoformat(
-            schedule["rounds"][-1]["start"]
-        ).astimezone(tournament_tz)
+    tournament_tz = ZoneInfo(schedule["timezone"])
+    now = datetime.now(tournament_tz)
+    first_hanchan = datetime.fromisoformat(
+        schedule["rounds"][0]["start"]
+    ).astimezone(tournament_tz)
+    last_hanchan = datetime.fromisoformat(
+        schedule["rounds"][-1]["start"]
+    ).astimezone(tournament_tz)
 
-        expected_status = "live"
-        if now < first_hanchan - timedelta(hours=24):
-            expected_status = "upcoming"
-        elif now > last_hanchan + timedelta(hours=24):
-            expected_status = "past"
+    expected_status = "live"
+    if now < first_hanchan - timedelta(hours=24):
+        expected_status = "upcoming"
+    elif now > last_hanchan + timedelta(hours=24):
+        expected_status = "past"
 
-        current_status = tournament.status
-        status_mismatch = (
-            current_status != expected_status
-        )  # and current_status != 'test'
+    current_status = tournament.status
+    status_mismatch = (
+        current_status != expected_status
+    )  # and current_status != 'test'
 
-        return render_template(
-            "run_tournament.html",
-            webroot=webroot(),
-            current_status=current_status,
-            expected_status=expected_status,
-            status_mismatch=status_mismatch,
-            first_hanchan=first_hanchan,
-            last_hanchan=last_hanchan,
-            now=now,
-            tournament_timezone=schedule["timezone"],
-            hanchan_count=hanchan_count,
-            is_past=(current_status == "past"),
-        )
-    return redirect(url_for("run.select_tournament"))
+    return render_template(
+        "run_tournament.html",
+        webroot=webroot(),
+        current_status=current_status,
+        expected_status=expected_status,
+        status_mismatch=status_mismatch,
+        first_hanchan=first_hanchan,
+        last_hanchan=last_hanchan,
+        now=now,
+        tournament_timezone=schedule["timezone"],
+        hanchan_count=hanchan_count,
+        is_past=(current_status == "past"),
+    )
 
 
 @blueprint.route("/update_status", methods=["POST"])
 @login_required
 def update_tournament_status():
     new_status = request.form.get("new_status")
-    if new_status in ["upcoming", "live", "past"]:
+    if new_status in ["live", "past", "test", "upcoming"]:
         current_user.live_tournament.status = new_status
-        db.session.commit()
         return jsonify({"status": "success", "new_status": new_status})
     return jsonify({"status": "error", "message": "Invalid status"}), 400
 
@@ -249,7 +245,7 @@ def update_schedule():
         )
     else:
         return (
-            jsonify({"status": "SEATING & SCHEDULE updated, notifications not sent"}),
+            jsonify({"status": "SEATING & SCHEDULE updated, NO notifications"}),
             200,
         )
 
@@ -287,7 +283,7 @@ def update_players():
         _send_messages("player list updated")
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
-        return jsonify({"status": "PLAYERS updated, notifications not sent"}), 200
+        return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
 
 
 @login_required
@@ -400,8 +396,9 @@ def _games_to_web(games, schedule, players):
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(html)
         except Exception as e:
-            logging.error(f"Error writing player page for {pid} ({name}): {e}", exc_info=True)
-
+            logging.error(
+                f"Error writing player page for {pid} ({name}): {e}", exc_info=True
+            )
 
     # =======================================================
 
@@ -505,7 +502,7 @@ def _games_to_cloud(sheet, done: int, players):
         for t in cleaned_scores[r]:
             for s in cleaned_scores[r][t]:
                 has_score.add(cleaned_scores[r][t][s][0])
-        
+
         # Add null scores for players who didn't play
         # (instead of fake scores with zeros)
         missing = {}
@@ -516,7 +513,7 @@ def _games_to_cloud(sheet, done: int, players):
                 missed += 1
         if missing:
             cleaned_scores[r]["missing"] = missing
-            
+
     _save_to_cloud("scores", cleaned_scores, force_set=True)
     return results
 
@@ -557,21 +554,23 @@ def _get_players(sheet, to_cloud=True):
     if len(raw) and len(raw[0]) > 2:
         # Find the highest seating_id
         max_seating_id = max((int(p[0]) for p in raw if p[0] != ""), default=0)
-        
+
         for p in raw:
             registration_id = p[1]
             seating_id = p[0] if p[0] != "" else None
             name = p[2]
             is_substitute = seating_id and int(seating_id) > max_seating_id - 3
-            
+
             player_map[seating_id] = name
-            players.append({
-                "registration_id": str(registration_id),
-                "seating_id": seating_id,
-                "name": name,
-                "is_substitute": is_substitute,
-                "is_current": p[0] != "",  # True if the player has a seating_id
-            })
+            players.append(
+                {
+                    "registration_id": str(registration_id),
+                    "seating_id": seating_id,
+                    "name": name,
+                    "is_substitute": is_substitute,
+                    "is_current": p[0] != "",  # True if the player has a seating_id
+                }
+            )
     if to_cloud:
         _save_to_cloud("players", {"players": players})
     return player_map
@@ -613,7 +612,7 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
             f"{firebase_id}/{version}/{document}"
         )
         if version == "v2" and document == "players":
-            for p in data['players']:
+            for p in data["players"]:
                 p["id"] = p["seating_id"] or int(p["registration_id"])
         doc = ref.get()
         if doc.exists and not force_set:
