@@ -22,7 +22,7 @@
 
 <h3>Available actions:</h3>
 <ul>
-  <!--li><a href="{{ url_for('run.sub.player_substitution') }}">Manage Player Substitutions</a></li-->
+  <li><a href="{{ url_for('run.sub.player_substitution') }}">Manage Player Substitutions (TESTING! DANGER!)</a></li>
   <li><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
     Open the google score sheet
   </a></li>
@@ -34,37 +34,39 @@
       <li><a href="{{ webroot }}seating.html" target="blank">Seating</a></li>
     </ul>
   </li>
+  <li>Update the app:
+    <formset>
+      <div>
+        <label for="sendNotifications">
+          <input type="checkbox" id="sendNotifications" name="sendNotifications" {% if not is_past %}checked{% endif %}>
+          Send notifications to users on update 
+          {% if is_past %}
+            (tournament is marked as past, notifications off by default)
+          {% else %}
+            (you almost always want this ON)
+          {% endif %}
+        </label>
+      </div>
+
+        <button class="action" data-url="{{
+          url_for('run.update_ranking_and_scores')
+          }}">Update scores on web and app</button>
+
+        <button class="action" data-url="{{
+          url_for('run.update_schedule')
+          }}">Update schedule & seating</button>
+
+        <button class="action" data-url="{{
+          url_for('run.update_players')
+          }}">Update list of players & seat-number assignments</button>
+
+        <div><button id="clearButton">Clear log</button></div>
+        <div id="logMessageBox"></div>
+          
+    </formset>
+  </li>
 </ul>
-<hr>
-<form>
-  <div>
-    <label for="sendNotifications">
-      <input type="checkbox" id="sendNotifications" name="sendNotifications" {% if not is_past %}checked{% endif %}>
-      Send notifications to users on update 
-      {% if is_past %}
-        (tournament is marked as past, notifications off by default)
-      {% else %}
-        (you almost always want this ON)
-      {% endif %}
-    </label>
-  </div>
 
-    <button class="action" data-url="{{
-      url_for('run.update_ranking_and_scores')
-      }}">Update scores on web and app</button>
-
-    <button class="action" data-url="{{
-      url_for('run.update_schedule')
-      }}">Update schedule & seating</button>
-
-    <button class="action" data-url="{{
-      url_for('run.update_players')
-      }}">Update list of players & seat-number assignments</button>
-
-</form>
-
-<div><button id="clearButton">Clear log</button></div>
-<div id="logMessageBox"></div>
 
 
 {% endblock %}
