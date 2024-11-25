@@ -3,15 +3,6 @@
 {% block title %}Run {{ current_user.live_tournament.title }}{% endblock %}
 
 {% block content %}
-<!-- Add this section to display flash messages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ category }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
-
 <h3>Tournament Status: {{ current_status }}</h3>
 {% if status_mismatch %}
 <div class="alert alert-warning">

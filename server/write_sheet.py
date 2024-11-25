@@ -8,7 +8,6 @@ import importlib
 import random
 import re
 import time
-from typing import List, Dict
 
 from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
@@ -33,11 +32,37 @@ class GSP:
     def __init__(self) -> None:
         self.creds = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, SCOPE)
         self.client = gspread.authorize(self.creds)
+        self.live_sheet = None  # Initialize to None
 
-    def get_sheet(self, id: str):
-        return self.client.open_by_key(id)
+    def get_sheet(self, id: str) -> gspread.spreadsheet.Spreadsheet:
+        """
+        Open a spreadsheet by ID.
+        
+        Args:
+            id: The spreadsheet ID
+        
+        Returns:
+            The opened spreadsheet
+        
+        Raises:
+            GspreadAPIError: If the sheet cannot be opened
+        """
+        try:
+            return self.client.open_by_key(id)
+        except GspreadAPIError as e:
+            logging.error(f"Failed to open sheet {id}: {str(e)}")
+            raise
 
     def get_raw_schedule(self, live: gspread.spreadsheet.Spreadsheet) -> list:
+        """
+        Get raw schedule data from the sheet.
+        
+        Args:
+            live: The spreadsheet to read from
+        
+        Returns:
+            list: Raw schedule data excluding header row
+        """
         return live.worksheet("schedule").get()[1:]
 
     def get_schedule(self, live: gspread.spreadsheet.Spreadsheet) -> list:
@@ -130,7 +155,7 @@ class GSP:
             try:
                 # get the list of all the sheets that the user has access to
                 sheet_dict: list = self.client.list_spreadsheet_files()
-                # get creation date of each sheet
+                # sort them with the most recently created, first
                 sheet_dict.sort(key=lambda x: x["createdTime"], reverse=True)
 
                 out = []
@@ -182,11 +207,13 @@ class GSP:
         # delete unnecessary columns in the results sheet
         results.delete_columns(hanchan_count + 6, MAX_HANCHAN + 5)
 
-    def _reduce_players(self, live: gspread.spreadsheet.Spreadsheet, table_count: int) -> None:
+    def _reduce_players(
+        self, live: gspread.spreadsheet.Spreadsheet, table_count: int
+    ) -> None:
         """
         Clear seating IDs for players with IDs greater than the new maximum.
         Also handles removing specific players if a list is provided.
-        
+
         Args:
             live: Tournament's Google Sheet
             table_count: New number of tables
@@ -194,15 +221,12 @@ class GSP:
         players_sheet = live.worksheet("players")
         players = self.get_players(live)
         max_id = table_count * 4
-        
+
         updates = []
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) > max_id:
-                updates.append({
-                    'range': f'A{row_idx}',
-                    'values': [['']]
-                })
-        
+                updates.append({"range": f"A{row_idx}", "values": [[""]]})
+
         if updates:
             players_sheet.batch_update(updates)
 
@@ -304,15 +328,53 @@ class GSP:
         #
         # self.live_sheet.transfer_ownership(permission.json()['id'])
 
-    def _set_seating(self, seating: list) -> None:
+    def _set_seating(self, table_count: int, hanchan_count: int) -> None:
+        """
+        Reads from file our pre-calculated seating plan for this size of tournament
+
+        Args:
+            table_count (int): number of tables (players divided by 4)
+            hanchan_count (int): number of rounds
+
+        Returns:
+            None
+
+        """
+        player_count = table_count * 4
+        seats = importlib.import_module(f"seating.seats_{hanchan_count}").seats[
+            player_count
+        ]
+        destcells = []
+        for round in range(0, hanchan_count):
+            for table in range(0, table_count):
+                destcells.append([round + 1, table + 1, *seats[round][table]])
+
+        self.live_sheet.worksheet("seating").batch_update(
+            [
+                {
+                    "range": f"A2:F{table_count*hanchan_count+1}",
+                    "values": destcells,
+                }
+            ]
+        )
+
+    def _set_seating_from_list(self, seating: list) -> None:
         """Set the seating arrangement in a new sheet."""
         seating_sheet = self.live_sheet.worksheet("seating")
         seating_data = []
         for round_num, round_seats in enumerate(seating, 1):
             for table_num, table_seats in enumerate(round_seats, 1):
                 seating_data.append([round_num, table_num, *table_seats])
-        
-        self._update_seating_worksheet(seating_sheet, seating_data)
+
+        self._update_seating_from_list(seating_sheet, seating_data)
+
+    def _update_seating_worksheet(self, worksheet: gspread.worksheet.Worksheet, seating_data: list) -> None:
+        """Update seating worksheet with new seating data."""
+        if seating_data:
+            worksheet.batch_update([{
+                "range": f"A2:F{len(seating_data)+1}",
+                "values": seating_data,
+            }])
 
     def _set_schedule(
         self,
@@ -348,6 +410,7 @@ class GSP:
         timezone: str = "Europe/Dublin",
         start_times: list[str] = [],
         round_name_template: str = "Round ?",
+        chombo: int = None,
     ) -> str:
         """
 
@@ -376,6 +439,9 @@ class GSP:
         if hanchan_count < 1 or hanchan_count > MAX_HANCHAN:
             raise ValueError(f"hanchan_count must be between 1 and {MAX_HANCHAN}")
 
+        if len(start_times) < hanchan_count:
+            raise ValueError(f"start_times must contain {hanchan_count} datetime strings")
+
         self.live_sheet: gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID,
             title=title,
@@ -393,6 +459,10 @@ class GSP:
 
         if hanchan_count < MAX_HANCHAN:
             self._reduce_hanchan_count(results, hanchan_count)
+
+        # just before we make the score sheets, set the chombo in F1
+        if chombo is not None:
+            template.update_cell(1, 6, chombo)
 
         self._make_scoresheets(template, hanchan_count, table_count)
 
@@ -469,7 +539,7 @@ class GSP:
         except Exception as e:
             return f"Error revoking sheet access: {str(e)}"
 
-    def get_sheet_users(self, sheet_id: str):
+    def get_sheet_users(self, sheet_id: str) -> list[dict[str, str]]:
         """
         Get a list of users who have access to the specified Google Sheet.
 
@@ -491,7 +561,9 @@ class GSP:
             logging.error(f"Error getting sheet users: {str(e)}", exc_info=True)
             raise e
 
-    def update_seating(self, live: gspread.spreadsheet.Spreadsheet, seatlist: list[list[int]]) -> None:
+    def update_seating(
+        self, live: gspread.spreadsheet.Spreadsheet, seatlist: list[list[int]]
+    ) -> None:
         live.worksheet("seating").batch_update(
             [
                 {
@@ -500,11 +572,13 @@ class GSP:
                 }
             ]
         )
-        
-    def update_table_count(self, live: gspread.spreadsheet.Spreadsheet, table_count: int, seating: list) -> None:
+
+    def update_table_count(
+        self, live: gspread.spreadsheet.Spreadsheet, table_count: int, seating: list
+    ) -> None:
         """
         Update the sheet for a new table count.
-        
+
         Args:
             live: The tournament's Google Sheet
             table_count: New number of tables
@@ -515,66 +589,69 @@ class GSP:
         for round_num, round_seats in enumerate(seating, 1):
             for table_num, table_seats in enumerate(round_seats, 1):
                 seating_data.append([round_num, table_num, *table_seats])
-        
+
         # Update seating worksheet
         seating_sheet = live.worksheet("seating")
         self._update_seating_worksheet(seating_sheet, seating_data)
-        
+
         # Update template and results sheets for new table count
         self._reduce_table_count(
-            live.worksheet("results"),
-            live.worksheet("template"),
-            table_count
+            live.worksheet("results"), live.worksheet("template"), table_count
         )
-        
+
         # Update players worksheet
         self._reduce_players(live, table_count)
 
-    def remove_players(self, live: gspread.Spreadsheet, players_to_remove: List[int]) -> None:
+    def remove_players(
+        self, live: gspread.Spreadsheet, players_to_remove: list[int]
+    ) -> None:
         """
         Remove specific players by clearing their seating IDs.
-        
+
         Args:
             live: Tournament's Google Sheet
             players_to_remove: List of seating IDs to remove
         """
         players_sheet = live.worksheet("players")
         players = self.get_players(live)
-        
+
         updates = []
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in players_to_remove:
-                updates.append({
-                    'range': f'A{row_idx}',
-                    'values': [['']]
-                })
-        
+                updates.append({"range": f"A{row_idx}", "values": [[""]]})
+
         if updates:
             players_sheet.batch_update(updates)
 
-    def reassign_player_ids(self, live: gspread.Spreadsheet, reassignments: Dict[int, int]) -> None:
+    def reassign_player_ids(
+        self, live: gspread.Spreadsheet, reassignments: dict[int, int]
+    ) -> None:
         """
         Update player seating IDs according to reassignment map.
-        
+
         Args:
             live: Tournament's Google Sheet
             reassignments: Dict mapping old_id to new_id
         """
         players_sheet = live.worksheet("players")
         players = self.get_players(live)
-        
+
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in reassignments:
-                players_sheet.update_cell(row_idx, 1, str(reassignments[int(player[0])]))
+                players_sheet.update_cell(
+                    row_idx, 1, str(reassignments[int(player[0])])
+                )
 
-    def apply_table_count_change(self, live: gspread.Spreadsheet, new_table_count: int) -> None:
+    def apply_table_count_change(
+        self, live: gspread.Spreadsheet, new_table_count: int
+    ) -> None:
         """
         Apply a new table count to the tournament sheet.
-        
+
         Args:
             live: Tournament's Google Sheet
             new_table_count: New number of tables
-        
+
         Raises:
             Exception: If seating plan cannot be found or sheet update fails
         """
@@ -582,17 +659,21 @@ class GSP:
             # Get current tournament settings
             schedule = self.get_schedule(live)
             hanchan_count = len(schedule["rounds"])
-            
+
             # Import new seating plan
             try:
-                seating_module = importlib.import_module(f"seating.seats_{hanchan_count}")
+                seating_module = importlib.import_module(
+                    f"seating.seats_{hanchan_count}"
+                )
                 new_seating = seating_module.seats[new_table_count * 4]
             except (ImportError, KeyError) as e:
-                raise Exception(f"No seating plan available for {hanchan_count} rounds with {new_table_count} tables") from e
+                raise Exception(
+                    f"No seating plan available for {hanchan_count} rounds with {new_table_count} tables"
+                ) from e
 
             # Update the sheet with new seating plan
             self.update_table_count(live, new_table_count, new_seating)
-            
+
         except Exception as e:
             raise Exception(f"Failed to update tournament: {str(e)}") from e
 
@@ -604,6 +685,7 @@ class GSP:
         # Get unique table numbers from second column
         tables = {int(row[1]) for row in seating[1:] if row[1]}
         return max(tables) if tables else 0
+
 
 googlesheet = GSP()
 

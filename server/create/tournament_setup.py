@@ -57,7 +57,7 @@ def results_create():
         form.set_round_dates(round_dates)
 
         # Update the choices for the timezone field based on the selected country
-        selected_country = request.form.get('country')
+        selected_country = request.form.get("country")
         timezones = get_timezones_for_country(selected_country)
         form.timezone.choices = [(tz, tz) for tz in timezones]
 
@@ -104,9 +104,7 @@ def results_create():
                 if scorer is None:
                     scorer = User(email=email)
                     db.session.add(scorer)
-                db.session.add(
-                    Access(email, tournament=tournament, role=Role.scorer)
-                )
+                db.session.add(Access(email, tournament=tournament, role=Role.scorer))
         db.session.commit()
         base_dir = tournament.full_web_directory
         os.makedirs(base_dir, exist_ok=True)
@@ -122,6 +120,11 @@ def results_create():
         start_times = [
             request.form.get(f"round_dates-{i}") for i in range(0, hanchan_count)
         ]
+        chombo = (
+            -30 if form.rules.data == "WRC"
+            else -20 if form.rules.data == "EMA"
+            else None
+        )
 
         @copy_current_request_context
         def make_sheet():
@@ -135,6 +138,7 @@ def results_create():
                 timezone=form.timezone.data,
                 start_times=start_times,
                 round_name_template=round_name_template,
+                chombo=chombo,
             )
 
             # Update the tournament in the database with the (temporary) new sheet_id
@@ -145,10 +149,12 @@ def results_create():
         thread.start()
         return redirect(url_for("create.select_sheet"))
 
-    logging.error("*** failed validation")
+    logging.warning(
+        "*** exceptions arose during validation of submitted tournament creation form"
+    )
     for field, errors in form.errors.items():
         for error in errors:
-            logging.error(f"Field {field}: {error}")
+            logging.info(f"Field {field}: {error}")
     # Generate labels for the round dates
     round_labels = []
     template = (
@@ -217,6 +223,7 @@ def select_sheet():
         docs=docs,
         OUR_EMAIL=GOOGLE_CLIENT_EMAIL,
     )
+
 
 @blueprint.route("/get_timezones/<country>")
 @login_required

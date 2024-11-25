@@ -28,7 +28,8 @@ var maxPollCount = 40; // Stop polling after 10 minutes (40 * 15 seconds)
 var pollInterval = 15000; // 15 seconds
 
 function list_sheets(docs) {
-    out = '<ul id="doclist">';
+    let out = '<ul id="doclist">';
+    let sep = '<hr>';
     docs.forEach((doc) => {
         let createdDate = new Date(doc['created']);
         let localCreatedDate = createdDate.toLocaleString();
@@ -36,7 +37,8 @@ function list_sheets(docs) {
             `<li><form action='/create/select/${doc["id"]}' method=post>
             <input type=submit name=submit value="${doc['title']}">
             <em>Created: ${localCreatedDate}</em> (${doc['id']})
-            </form></li>`;
+            </form>$sep</li>`;
+        sep = '';
     });
     out += '</ul>';
     document.getElementById('doclist').innerHTML = out;

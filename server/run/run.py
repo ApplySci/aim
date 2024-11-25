@@ -317,7 +317,7 @@ def _message_player_topics(scores: dict, done: int, players):
 
 @login_required
 def _get_one_round_results(sheet, rnd: int):
-    vals = googlesheet.get_table_results(rnd, sheet)
+    vals = googlesheet.get_table_results(round=rnd, live=sheet)
     row: int = 4
     tables = {}
     while row + 3 < len(vals):
