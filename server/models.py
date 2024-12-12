@@ -94,6 +94,9 @@ class Tournament(Base):
     past_data: Mapped[list["PastTournamentData"]] = relationship(
         back_populates="tournament", uselist=False
     )
+    players: Mapped[list["TournamentPlayer"]] = relationship(
+        back_populates="tournament"
+    )
 
     @hybrid_property
     def full_web_directory(self):
@@ -168,3 +171,43 @@ class PastTournamentData(Base):
     archived_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     tournament: Mapped["Tournament"] = relationship(back_populates="past_data")
+
+
+class ArchivedPlayer(Base):
+    __tablename__ = "archived_player"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str]
+    # Additional fields that could help with matching:
+    country: Mapped[str | None]
+    ema_id: Mapped[str | None]
+    
+    tournament_appearances: Mapped[list["TournamentPlayer"]] = relationship(back_populates="player")
+
+
+class TournamentPlayer(Base):
+    __tablename__ = "tournament_player"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    player_id: Mapped[int] = mapped_column(ForeignKey("archived_player.id"))
+    seating_id: Mapped[str]
+    registration_id: Mapped[str]
+    
+    tournament: Mapped["Tournament"] = relationship(back_populates="players")
+    player: Mapped["ArchivedPlayer"] = relationship(back_populates="tournament_appearances")
+    results: Mapped[list["HanchanResult"]] = relationship(back_populates="player")
+
+
+class HanchanResult(Base):
+    __tablename__ = "hanchan_result"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    player_id: Mapped[int] = mapped_column(ForeignKey("tournament_player.id"))
+    hanchan_number: Mapped[int]
+    table_number: Mapped[str]
+    seat: Mapped[int]
+    points: Mapped[int]
+    placement: Mapped[int]
+    chombo: Mapped[int | None]
+    
+    tournament: Mapped["Tournament"] = relationship()
+    player: Mapped["TournamentPlayer"] = relationship(back_populates="results")

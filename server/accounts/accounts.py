@@ -31,28 +31,31 @@ def delete_account():
 @blueprint.route("/login")
 def login():
     redirect_uri = url_for("accounts.authorized", _external=True, _scheme="https")
-    return oauth.google.authorize_redirect(redirect_uri)
+    try:
+        return oauth.google.authorize_redirect(redirect_uri)
+    except Exception as e:
+        print(f"Error in login: {str(e)}")  # Debug
+        return redirect(url_for('root.index'))
 
 
 @blueprint.route("/logout")
 def logout():
     session.clear()
     logout_user()
-    return redirect(url_for("create.index"))
+    return redirect("/")
 
 
 @blueprint.route("/auth/")
 def authorized():
     try:
-        oauth.google.authorize_access_token()
+        token = oauth.google.authorize_access_token()
         resp = oauth.google.get("userinfo")
         user_info = resp.json()
         user = db.session.query(User).get(user_info["email"])
         if user and user.is_active:
             login_user(user)
-            # Clear flash messages
             session.pop("_flashes", None)
-            return redirect(url_for("create.index"))
-    except:
-        pass
+            return redirect("/run/")
+    except Exception as e:
+        print(f"Error in authorization: {str(e)}")  # Debug
     return logout()

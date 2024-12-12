@@ -146,9 +146,11 @@ def superadmin_required(f):
 def tournament_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.live_tournament:
-            return f(*args, **kwargs)
-        # else Redirect to the tournament selection page if no tournament is selected
-        return redirect(url_for("run.select_tournament"))
+        if current_user.is_authenticated:
+            if current_user.live_tournament:
+                return f(*args, **kwargs)
+            # else Redirect to the tournament selection page
+            return redirect(url_for("run.select_tournament"))
+        return redirect('/')
 
     return decorated_function

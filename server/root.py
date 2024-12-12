@@ -11,7 +11,7 @@ blueprint = Blueprint('root', __name__)
 
 @blueprint.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('runbase.html')
 
 @blueprint.route('/privacy')
 def privacy():
