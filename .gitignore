@@ -1,9 +1,13 @@
 # app-specific exclusions
-/google-services.json
 /server/fcm-admin.json
 /server/.spyproject/*
 /server/apikey.py
 /server/config.py
+google-services.json*
+GoogleService-Info.plist*
+firebase.cfg
+fcm-admin.json*
+*.sqlite3
 
 # Miscellaneous
 *.class
@@ -53,11 +57,6 @@ app.*.map.json
 /lib/firebase_options.dart
 /ios/firebase_app_id_file.json
 /macos/firebase_app_id_file.json
-/android/app/google-services.json
-/ios/Runner/GoogleService-Info.plist
-/macos/Runner/GoogleService-Info.plist
-/server/create/fcm-admin.json
-/server/tournaments.sqlite3
 
 /certs/
 /server/.server-admin/debug
@@ -65,4 +64,3 @@ app.*.map.json
 /server/seating/gams/cplex.opt
 /server/seating/gams/seats/*
 /server/seating/gams/225*
-/server/.server-admin/tournaments.sqlite3

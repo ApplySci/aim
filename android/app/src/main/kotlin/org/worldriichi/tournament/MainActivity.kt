@@ -1,4 +1,4 @@
-package ie.mahjong.tournament
+package org.worldriichi.tournament
 
 import io.flutter.embedding.android.FlutterActivity
 

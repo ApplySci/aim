@@ -33,31 +33,45 @@ class TournamentData extends Equatable {
     this.urlIcon,
   });
 
-  factory TournamentData.fromMap(Map<String, dynamic> data) => TournamentData(
-        id: data['id'] as TournamentId,
-        name: data['name'] as String,
-        address: data['address'] as String,
-        country: data['country'] as String,
-        startDate: data['start_date'] as Timestamp,
-        endDate: data['end_date'] as Timestamp,
-        status: data['status'] as String,
-        rules: data['rules'] as String,
-        htmlnotes: data['htmlnotes'] as String?,
-        url: data['url'] as String?,
-        urlIcon: data['url_icon'] as String?,
-      );
+  factory TournamentData.fromMap(Map<String, dynamic> data) {
+    // For past tournaments, we might get a null status
+    final status = data['status'] as String? ?? 'past';
+    
+    // Handle both Timestamp and String date formats
+    final startDate = data['start_date'] is Timestamp 
+        ? data['start_date'] as Timestamp
+        : Timestamp.fromDate(DateTime.parse(data['start_date'] as String));
+    
+    final endDate = data['end_date'] is Timestamp
+        ? data['end_date'] as Timestamp
+        : Timestamp.fromDate(DateTime.parse(data['end_date'] as String));
+
+    return TournamentData(
+      id: data['id'] as String,
+      name: data['name'] as String,
+      address: data['address'] as String? ?? '',  // Default to empty string if null
+      country: data['country'] as String? ?? '',  // Default to empty string if null
+      startDate: startDate,
+      endDate: endDate,
+      status: status,
+      rules: data['rules'] as String? ?? '',  // Default to empty string if null
+      htmlnotes: data['htmlnotes'] as String? ?? '',  // Default to empty string if null
+      url: data['url'] as String?,
+      urlIcon: data['url_icon'] as String?,
+    );
+  }
 
   final TournamentId id;
   final String name;
   final String address;
   final String country;
-  final String? htmlnotes; // may not be present, hence can be null
+  final String? htmlnotes;
   final Timestamp startDate;
   final Timestamp endDate;
   final String status;
   final String rules;
-  final String? url; // may not be present, hence can be null
-  final String? urlIcon; // may not be present, hence can be null
+  final String? url;
+  final String? urlIcon;
 
   String get when => dateRange(startDate, endDate);
 
@@ -384,4 +398,40 @@ class GameData extends Equatable {
         roundId,
         tables,
       ];
+}
+
+class PastTournamentSummary extends Equatable {
+  const PastTournamentSummary({
+    required this.id,
+    required this.name,
+    required this.startDate,
+    required this.endDate,
+    required this.venue,
+    required this.country,
+    required this.rules,
+    required this.playerCount,
+  });
+
+  final String id;
+  final String name;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String venue;
+  final String country;
+  final String rules;
+  final int playerCount;
+
+  factory PastTournamentSummary.fromMap(Map<String, dynamic> data) => PastTournamentSummary(
+    id: data['id'] as String,
+    name: data['name'] as String,
+    startDate: (data['start_date'] as Timestamp).toDate(),
+    endDate: (data['end_date'] as Timestamp).toDate(),
+    venue: data['venue'] as String,
+    country: data['country'] as String,
+    rules: data['rules'] as String,
+    playerCount: data['player_count'] as int,
+  );
+
+  @override
+  List<Object?> get props => [id, name, startDate, endDate, venue, country, rules, playerCount];
 }

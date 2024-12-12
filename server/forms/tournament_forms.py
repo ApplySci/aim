@@ -206,7 +206,7 @@ class TournamentForm(FlaskForm):
     )
     scorer_emails = FieldList(
         StringField(
-            "Scorer Email",
+            "Additional Scorer Emails",
             validators=[Optional(), Email()],
         ),
         min_entries=1,

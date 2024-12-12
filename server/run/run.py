@@ -3,6 +3,7 @@
 pages and backend for the user running the tournament
 """
 from functools import wraps
+import json
 import os
 import sys
 import threading
@@ -604,9 +605,38 @@ def _seating_to_map(sheet, schedule):
     return seating
 
 
+def _save_to_archive(document: str, data: dict, force_set=False):
+    # For past tournaments, save to local database
+    tournament = current_user.live_tournament
+    if not tournament.past_data:
+        return False
+        
+    try:
+        stored_data = json.loads(tournament.past_data.data)
+        if document not in stored_data:
+            stored_data[document] = {}
+        if force_set:
+            stored_data[document] = data
+        else:
+            stored_data[document].update(data)
+        tournament.past_data.data = json.dumps(stored_data)
+        db.session.commit()
+        return True
+    except Exception as e:
+        logging.error(f"Error saving past tournament data: {e}")
+        db.session.rollback()
+        return False
+
+
 @login_required
 def _save_to_cloud(document: str, data: dict, force_set=False):
-    firebase_id: str = current_user.live_tournament.firebase_doc
+    tournament = current_user.live_tournament
+    
+    if tournament.status == "past":
+        return _save_to_archive()
+    
+    # For live tournaments, continue using Firebase
+    firebase_id: str = tournament.firebase_doc
     for version in ("v3", "v2"):
         ref = firestore_client.collection("tournaments").document(
             f"{firebase_id}/{version}/{document}"
@@ -619,6 +649,7 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
             ref.update(data)
         else:
             ref.set(data)
+    return True
 
 
 # Register the substitutes blueprint

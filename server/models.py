@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from config import BASEDIR
 from oauth_setup import firestore_client, Role
 
-_missing = object()   # sentinel object for missing values
+_missing = object()  # sentinel object for missing values
 
 
 class cached_hybrid_property(hybrid_property):
@@ -31,7 +31,7 @@ class cached_hybrid_property(hybrid_property):
                 value = self.fget(instance)
                 instance.__dict__[name] = value
             return value
-        
+
 
 class Base(DeclarativeBase):
     pass
@@ -91,6 +91,9 @@ class Tournament(Base):
         "Hanchan",
         back_populates="tournament",
     )
+    past_data: Mapped[list["PastTournamentData"]] = relationship(
+        back_populates="tournament", uselist=False
+    )
 
     @hybrid_property
     def full_web_directory(self):
@@ -102,15 +105,21 @@ class Tournament(Base):
             self.firebase_doc
         )
         tournament_data = tournament_ref.get().to_dict()
-        status = tournament_data.get("status")
-        return status
+        if tournament_data is None:
+            return "past" if self.past_data else None
+        return tournament_data.get("status")
 
     @status.setter
     def status(self, value):
-        tournament_ref = firestore_client.collection("tournaments").document(
-            self.firebase_doc
-        )
-        tournament_ref.update({"status": value})
+        old_status = self.status
+        if old_status != "past" and value == "past":
+            # Import here to avoid circular imports
+            from operations.archive import archive_tournament
+            if not archive_tournament(self):
+                raise ValueError("Failed to archive tournament")
+        else:
+            tournament_ref = firestore_client.collection("tournaments").document(self.firebase_doc)
+            tournament_ref.update({"status": value})
 
 
 class User(Base, UserMixin):
@@ -149,3 +158,13 @@ class User(Base, UserMixin):
     def __init__(self, email, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.email = email.lower()
+
+
+class PastTournamentData(Base):
+    __tablename__ = "past_tournament_data"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    data: Mapped[str]  # JSON string containing all tournament data
+    archived_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    tournament: Mapped["Tournament"] = relationship(back_populates="past_data")

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '/providers.dart';
 import '/utils.dart';
@@ -63,7 +64,7 @@ class TournamentListPage extends ConsumerWidget {
                 child: TabBarView(children: [
                   const TournamentList(when: WhenTournament.live),
                   const TournamentList(when: WhenTournament.upcoming),
-                  const TournamentList(when: WhenTournament.past),
+                  const PastTournamentList(),
                   if (testMode) const TournamentList(when: WhenTournament.test),
                 ]),
               ),
@@ -131,6 +132,70 @@ class TournamentList extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class PastTournamentList extends ConsumerWidget {
+  const PastTournamentList({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaries = ref.watch(pastTournamentSummariesProvider);
+
+    return summaries.when(
+      loading: () => const LoadingView(),
+      error: (error, stack) => ErrorView(error: error, stackTrace: stack),
+      data: (summaries) => ListView.builder(
+        itemCount: summaries.length,
+        itemBuilder: (context, index) {
+          final summary = summaries[index];
+          return ListTile(
+            title: Text(summary.name),
+            subtitle: Text(
+              '${DateFormat.yMMMd().format(summary.startDate)} - '
+              '${DateFormat.yMMMd().format(summary.endDate)}\n'
+              '${summary.venue}, ${summary.country}\n'
+              '${summary.playerCount} players - ${summary.rules}',
+            ),
+            isThreeLine: true,
+            onTap: () async {
+              // Show loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const LoadingDialog(),
+              );
+              
+              // Load tournament details
+              await ref.read(pastTournamentDetailsProvider(summary.id).future);
+              
+              // Navigate to tournament page
+              if (context.mounted) {
+                Navigator.pop(context); // Dismiss loading dialog
+                Navigator.pushNamed(context, '/tournament/${summary.id}');
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class LoadingDialog extends StatelessWidget {
+  const LoadingDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const AlertDialog(
+      content: Row(
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 20),
+          Text('Loading tournament data...'),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,6 @@
 # AIM Tournaments
 
-This is the [All-Ireland Mahjong](https://mahjong.ie/) mobile app.
+This is the [World Riichi](https://worldriichi.org/) mobile app.
 This provides live information about tournaments.
 
 For tournament participants, it gives **live** info during tournament: current scores,
@@ -96,11 +96,18 @@ to bad behaviour among players.
 # Setting up the cloud stuff
 
 If you're creating your own version of this app, rather than running off my instance,
-you'll need to set up the cloud stuff.
+you'll need to set up the cloud stuff. I've tried to remember all the steps, but there are probably some missing.
 - First you'll need a google cloud project.
-- Then you'll need a google-services.json file from it
-- and an fcm-admin.json file from it
-- you'll need an account on the play store
+- Create a `(default)` firestore database, and give it a `tournaments` collection.
+- In the google console:
+  - Give third-party read-only permissions to the database.
+  - Enable the google drive API, and the Sheets API.
+  - Then you'll need a google-services.json and GoogleServices.plist file from it
+  - Configure the Google Auth Platform
+  - Create a Google OAuth Client - you'll need the client ID and client secret for the `server/config.py` file
+  - and generate a new private key to access the database - save this as `fcm-admin.json`
+-   There will be a google service account with an email of the form: `firebase-adminsdk-[A-Z]{4}@domain-name-backwards-with-dashes.iam.gserviceaccount.com`. Make sure this email address has editor permissions for the google sheet score template.
+- You'll need an account on the play store to distribute the app.
 
 ## APN - Apple Push Notifications
 Once you've got the google firebase cloud messaging working, you'll need to set up the APN to reach Apple devices.

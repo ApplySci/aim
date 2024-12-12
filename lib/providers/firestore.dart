@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '/models.dart';
 import '/utils.dart';
@@ -16,15 +18,23 @@ final allTournamentsListProvider = StreamProvider((ref) {
 
   return snapshots.map((query) => [
     for (final doc in query.docs)
-      TournamentData.fromMap({
-        'id': doc.id,
-        'address': '',
-        ...(doc.data() as Map).cast(),
-      }),
+      if (doc.exists && doc.data().isNotEmpty)
+        TournamentData.fromMap({
+          'id': doc.id,
+          'address': '',
+          'name': '',
+          'country': '',
+          'status': 'upcoming',
+          ...doc.data(),
+        })
   ]);
 });
 
 final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournament>((ref, when) {
+  if (when == WhenTournament.past) {
+    return ref.watch(pastTournamentsProvider).value ?? [];
+  }
+
   final allTournaments = ref.watch(allTournamentsListProvider).value ?? [];
   final testMode = ref.watch(testModePrefProvider);
 
@@ -33,8 +43,8 @@ final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournam
       WhenTournament.all => true,
       WhenTournament.live => tournament.status == 'live',
       WhenTournament.upcoming => tournament.status == 'upcoming',
-      WhenTournament.past => tournament.status == 'past',
       WhenTournament.test => testMode && tournament.status == 'test',
+      WhenTournament.past => false, // Past tournaments handled separately
     };
   }).toList();
 });
@@ -272,7 +282,7 @@ final playerScoreProvider = StreamProvider.family
     int endRound = int.parse(rankingList['roundDone']);
     for (int i = 1; i <= endRound; i++) {
       // Check if the round and seat exist in rankings before accessing
-      if (rankingList.containsKey("$i") && 
+      if (rankingList.containsKey("$i") &&
           rankingList["$i"].containsKey("$seat") &&
           rankingList["$i"]["$seat"] != null) {
         rankings.add(rankingList["$i"]["$seat"]['r']);
@@ -304,4 +314,89 @@ final tournamentStatusProvider = Provider<WhenTournament>((ref) {
     'test' => WhenTournament.test,
     _ => WhenTournament.upcoming,
   };
+});
+
+final pastTournamentsProvider = StreamProvider<List<TournamentData>>((ref) async* {
+  final db = ref.watch(firebaseProvider);
+  final metadata = await db.collection('metadata').doc('past_tournaments').get();
+
+  // If there's no metadata document or no last_updated field, there are no past tournaments
+  if (!metadata.exists || metadata.data()?['last_updated'] == null) {
+    yield [];
+    return;
+  }
+
+  final snapshots = db.collection('tournaments')
+      .where('status', isEqualTo: 'past')
+      .snapshots();
+
+  await for (final query in snapshots) {
+    final tournaments = <TournamentData>[];
+    for (final doc in query.docs) {
+      final data = doc.data();
+      if (data['api_url'] != null) {
+        // Fetch from API instead of Firestore
+        final response = await http.get(Uri.parse(data['api_url']));
+        if (response.statusCode == 200) {
+          tournaments.add(TournamentData.fromMap({
+            'id': doc.id,
+            ...jsonDecode(response.body),
+          }));
+        }
+      } else {
+        tournaments.add(TournamentData.fromMap({
+          'id': doc.id,
+          ...data,
+        }));
+      }
+    }
+    yield tournaments;
+  }
+});
+
+final pastTournamentsLastUpdatedProvider = StreamProvider<DateTime?>((ref) async* {
+  final db = ref.watch(firebaseProvider);
+  final doc = await db.collection('metadata').doc('past_tournaments').get();
+
+  // If document doesn't exist, yield null
+  if (!doc.exists) {
+    yield null;
+    return;
+  }
+
+  yield* db
+      .collection('metadata')
+      .doc('past_tournaments')
+      .snapshots()
+      .map((snapshot) => snapshot.data()?['last_updated'] as Timestamp?)
+      .map((timestamp) => timestamp?.toDate());
+});
+
+final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummary>>((ref) async {
+  final lastUpdated = await ref.watch(pastTournamentsLastUpdatedProvider.future);
+  // If there's no last_updated timestamp, return empty list
+  if (lastUpdated == null) {
+    return [];
+  }
+
+  try {
+    final response = await http.get(Uri.parse('/api/past_tournaments/summary'));
+    if (response.statusCode != 200) return [];
+
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((item) => PastTournamentSummary.fromMap(item)).toList();
+  } catch (e) {
+    // Handle network errors or other exceptions
+    return [];
+  }
+});
+
+final pastTournamentDetailsProvider = FutureProvider.family<TournamentData, String>((ref, tournamentId) async {
+  final response = await http.get(Uri.parse('/api/tournament/$tournamentId/details'));
+  if (response.statusCode != 200) throw Exception('Failed to load tournament details');
+
+  return TournamentData.fromMap({
+    'id': tournamentId,
+    ...jsonDecode(response.body),
+  });
 });

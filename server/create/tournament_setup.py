@@ -23,6 +23,7 @@ from config import GOOGLE_CLIENT_EMAIL, BASEDIR
 from forms.tournament_forms import TournamentForm
 from models import Access, Tournament, User
 from oauth_setup import db, firestore_client, logging, Role
+from run.run import update_schedule
 from write_sheet import googlesheet
 from utils.timezones import get_timezones_for_country
 
@@ -121,9 +122,9 @@ def results_create():
             request.form.get(f"round_dates-{i}") for i in range(0, hanchan_count)
         ]
         chombo = (
-            -30 if form.rules.data == "WRC"
-            else -20 if form.rules.data == "EMA"
-            else None
+            -30
+            if form.rules.data == "WRC"
+            else -20 if form.rules.data == "EMA" else None
         )
 
         @copy_current_request_context
@@ -211,6 +212,7 @@ def get_their_copy():
 def google_doc_selected(doc):
     current_user.live_tournament.google_doc_id = doc
     db.session.commit()
+    update_schedule()
     return redirect(url_for("run.run_tournament"))
 
 
