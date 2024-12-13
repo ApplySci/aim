@@ -25,11 +25,27 @@ def find_matching_player(name: str, threshold: float = 0.9) -> ArchivedPlayer | 
 
 def archive_tournament(tournament: Tournament) -> bool:
     """Archive a tournament's data and update its status"""
+    # Get main tournament document
     tournament_ref = firestore_client.collection("tournaments").document(tournament.firebase_doc)
     tournament_data = tournament_ref.get().to_dict()
     
     if not tournament_data:
         return False
+        
+    # Get additional data from v3 subcollection
+    v3_collection = tournament_ref.collection('v3')
+    players_doc = v3_collection.document('players').get().to_dict()
+    ranking_doc = v3_collection.document('ranking').get().to_dict()
+    scores_doc = v3_collection.document('scores').get().to_dict()
+    seating_doc = v3_collection.document('seating').get().to_dict()
+    
+    # Merge all data
+    tournament_data.update({
+        'players': players_doc,
+        'ranking': ranking_doc,
+        'scores': scores_doc,
+        'seating': seating_doc
+    })
         
     # Process and store structured data
     try:
@@ -49,14 +65,17 @@ def archive_tournament(tournament: Tournament) -> bool:
         db.session.add(past_data)
 
         # Archive players
-        player_map: dict[str, TournamentPlayer] = {}
+        player_map = {}
         for p in tournament_data.get("players", {}).get("players", []):
+            # TODO this realy isn't robust, and we must do better here
             # Try to find matching existing player
             player = find_matching_player(p["name"])
             if not player:
-                player = ArchivedPlayer(name=p["name"])
+                player = ArchivedPlayer(
+                    name=p["name"],
+                )
                 db.session.add(player)
-                
+            
             tournament_player = TournamentPlayer(
                 tournament=tournament,
                 player=player,
@@ -65,7 +84,8 @@ def archive_tournament(tournament: Tournament) -> bool:
             )
             db.session.add(tournament_player)
             if p["seating_id"]:
-                player_map[p["seating_id"]] = tournament_player
+                # Convert seating_id to int for matching with scores
+                player_map[int(p["seating_id"])] = tournament_player
                 
         # Archive game results
         scores = tournament_data.get("scores", {})
@@ -73,22 +93,23 @@ def archive_tournament(tournament: Tournament) -> bool:
             if hanchan_num == "roundDone":
                 continue
                 
+            logging.info(f"Hanchan {hanchan_num}:")
             for table_num, seats in tables.items():
                 if table_num == "missing":
                     continue
                     
                 for seat_num, result in seats.items():
                     player_id = result[0]
-                    if str(player_id) not in player_map:
+                    if player_id not in player_map:
+                        logging.warning(f"    No mapping found for player {player_id}")
                         continue
-                        
                     hanchan_result = HanchanResult(
                         tournament=tournament,
-                        player=player_map[str(player_id)],
+                        player=player_map[player_id],
                         hanchan_number=int(hanchan_num),
                         table_number=table_num,
                         seat=int(seat_num),
-                        points=result[2],
+                        points=result[2],  # Game score
                         placement=result[3],
                         chombo=result[1]
                     )
