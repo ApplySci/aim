@@ -33,7 +33,10 @@ from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client, admin_or_editor_required, logging, Role
 from write_sheet import googlesheet
-from operations.queries import get_past_tournament_summaries, get_past_tournament_details
+from operations.queries import (
+    get_past_tournament_summaries,
+    get_past_tournament_details,
+)
 from operations.transforms import tournaments_to_summaries
 
 blueprint = Blueprint("edit", __name__)
@@ -143,9 +146,7 @@ def edit_tournament():
             current_user.live_tournament.title = form.title.data
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = form.web_directory.data
-            current_user.live_tournament.status = (
-                form.status.data
-            )  # This will update Firestore and clear cache
+            current_user.live_tournament.status = form.status.data
             db.session.commit()
 
             # Create the web directory if it doesn't exist
@@ -205,9 +206,9 @@ def get_past_tournaments_summary():
 @blueprint.route("/api/tournament/<tournament_id>/details", methods=["GET"])
 def get_tournament_details(tournament_id):
     tournament = get_past_tournament_details(tournament_id)
-    
+
     if not tournament or not tournament.past_data:
         return jsonify({"error": "Tournament not found"}), 404
-        
+
     stored_data = json.loads(tournament.past_data.data)
     return jsonify(stored_data)

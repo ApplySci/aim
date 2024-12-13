@@ -67,7 +67,13 @@
   </li>
 </ul>
 
-
+{% if current_status == 'past' and not current_user.live_tournament.past_data %}
+<div class="alert alert-info">
+  <p>This tournament is marked as past and can be archived.</p>
+  <button id="archiveButton" class="btn btn-warning">Archive Tournament Data</button>
+  <div id="archiveStatus" style="display: none;"></div>
+</div>
+{% endif %}
 
 {% endblock %}
 
@@ -160,6 +166,59 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => {
         alert('Error: ' + error);
+      });
+    });
+  }
+
+  const archiveButton = document.getElementById('archiveButton');
+  if (archiveButton) {
+    archiveButton.addEventListener('click', function() {
+      if (!confirm('Are you sure you want to archive this tournament? This action cannot be undone.')) {
+        return;
+      }
+      
+      archiveButton.disabled = true;
+      archiveButton.textContent = 'Archiving...';
+      
+      fetch('{{ url_for("run.archive_tournament") }}', {
+        method: 'POST',
+      })
+      .then(response => response.json())
+      .then(data => {
+        const statusDiv = document.getElementById('archiveStatus');
+        statusDiv.style.display = 'block';
+        
+        if (data.status === 'success') {
+          let details = data.details;
+          let message = `<h4>Archive Complete:</h4>
+            <ul>
+              <li>New players created: ${details.new_players}</li>
+              <li>Exact name matches: ${details.exact_matches}</li>
+              <li>Fuzzy matches: ${details.fuzzy_matches.length}</li>
+            </ul>`;
+          
+          if (details.fuzzy_matches.length > 0) {
+            message += '<h5>Fuzzy Matches:</h5><ul>';
+            details.fuzzy_matches.forEach(match => {
+              message += `<li>"${match.tournament_name}" matched with "${match.matched_name}"</li>`;
+            });
+            message += '</ul>';
+          }
+          
+          statusDiv.innerHTML = message;
+          archiveButton.style.display = 'none';
+        } else {
+          statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+          archiveButton.disabled = false;
+          archiveButton.textContent = 'Archive Tournament Data';
+        }
+      })
+      .catch(error => {
+        const statusDiv = document.getElementById('archiveStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
+        archiveButton.disabled = false;
+        archiveButton.textContent = 'Archive Tournament Data';
       });
     });
   }

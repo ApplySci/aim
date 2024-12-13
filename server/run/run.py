@@ -172,12 +172,12 @@ def run_tournament():
 
     tournament_tz = ZoneInfo(schedule["timezone"])
     now = datetime.now(tournament_tz)
-    first_hanchan = datetime.fromisoformat(
-        schedule["rounds"][0]["start"]
-    ).astimezone(tournament_tz)
-    last_hanchan = datetime.fromisoformat(
-        schedule["rounds"][-1]["start"]
-    ).astimezone(tournament_tz)
+    first_hanchan = datetime.fromisoformat(schedule["rounds"][0]["start"]).astimezone(
+        tournament_tz
+    )
+    last_hanchan = datetime.fromisoformat(schedule["rounds"][-1]["start"]).astimezone(
+        tournament_tz
+    )
 
     expected_status = "live"
     if now < first_hanchan - timedelta(hours=24):
@@ -186,9 +186,7 @@ def run_tournament():
         expected_status = "past"
 
     current_status = tournament.status
-    status_mismatch = (
-        current_status != expected_status
-    )  # and current_status != 'test'
+    status_mismatch = current_status != expected_status  # and current_status != 'test'
 
     return render_template(
         "run_tournament.html",
@@ -210,7 +208,11 @@ def run_tournament():
 def update_tournament_status():
     new_status = request.form.get("new_status")
     if new_status in ["live", "past", "test", "upcoming"]:
-        current_user.live_tournament.status = new_status
+        tournament = current_user.live_tournament
+        tournament_ref = firestore_client.collection("tournaments").document(
+            tournament.firebase_doc
+        )
+        tournament_ref.update({"status": new_status})
         return jsonify({"status": "success", "new_status": new_status})
     return jsonify({"status": "error", "message": "Invalid status"}), 400
 
@@ -610,7 +612,7 @@ def _save_to_archive(document: str, data: dict, force_set=False):
     tournament = current_user.live_tournament
     if not tournament.past_data:
         return False
-        
+
     try:
         stored_data = json.loads(tournament.past_data.data)
         if document not in stored_data:
@@ -631,10 +633,10 @@ def _save_to_archive(document: str, data: dict, force_set=False):
 @login_required
 def _save_to_cloud(document: str, data: dict, force_set=False):
     tournament = current_user.live_tournament
-    
+
     if tournament.status == "past":
         return _save_to_archive()
-    
+
     # For live tournaments, continue using Firebase
     firebase_id: str = tournament.firebase_doc
     for version in ("v3", "v2"):
@@ -650,6 +652,38 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
         else:
             ref.set(data)
     return True
+
+
+@blueprint.route("/archive_tournament", methods=["POST"])
+@login_required
+def archive_tournament():
+    """Archive a tournament's data and update its status"""
+    tournament = current_user.live_tournament
+    if tournament.status != "past":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Can only archive tournaments with 'past' status",
+                }
+            ),
+            400,
+        )
+
+    # Import here to avoid circular imports
+    from operations.archive import archive_tournament
+
+    result = archive_tournament(tournament)
+    if isinstance(result, dict):
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Tournament archived successfully",
+                "details": result,
+            }
+        )
+
+    return jsonify({"status": "error", "message": "Failed to archive tournament"}), 500
 
 
 # Register the substitutes blueprint

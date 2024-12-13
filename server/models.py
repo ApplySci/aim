@@ -60,25 +60,6 @@ class Access(Base):
         self.user_email = user_email.lower()
 
 
-class Hanchan(Base):
-    # we store these so that we can spot when a scorer changes the hanchan
-    # times in the googlesheet
-    # and then we can notify the players accordingly
-    __tablename__ = "hanchan"
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
-    hanchan_number: Mapped[int] = mapped_column(Integer)
-    start_time: Mapped[datetime | None]
-    tournament: Mapped["Tournament"] = relationship(
-        back_populates="hanchans",
-        foreign_keys=[tournament_id],
-    )
-
-
 class Tournament(Base):
     __tablename__ = "tournament"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -87,10 +68,6 @@ class Tournament(Base):
     web_directory: Mapped[str]
     firebase_doc: Mapped[str | None]
     users: Mapped[list[Access]] = relationship(back_populates="tournament")
-    hanchans: Mapped[list[Hanchan]] = relationship(
-        "Hanchan",
-        back_populates="tournament",
-    )
     past_data: Mapped[list["PastTournamentData"]] = relationship(
         back_populates="tournament", uselist=False
     )
@@ -111,17 +88,6 @@ class Tournament(Base):
         if tournament_data is None:
             return "past" if self.past_data else None
         return tournament_data.get("status")
-
-    @status.setter
-    def status(self, value):
-        if value == "past":
-            # Import here to avoid circular imports
-            from operations.archive import archive_tournament
-            if not archive_tournament(self):
-                raise ValueError("Failed to archive tournament")
-        else:
-            tournament_ref = firestore_client.collection("tournaments").document(self.firebase_doc)
-            tournament_ref.update({"status": value})
 
 
 class User(Base, UserMixin):
@@ -179,8 +145,10 @@ class ArchivedPlayer(Base):
     # Additional fields that could help with matching:
     country: Mapped[str | None]
     ema_id: Mapped[str | None]
-    
-    tournament_appearances: Mapped[list["TournamentPlayer"]] = relationship(back_populates="player")
+
+    tournament_appearances: Mapped[list["TournamentPlayer"]] = relationship(
+        back_populates="player"
+    )
 
 
 class TournamentPlayer(Base):
@@ -190,14 +158,16 @@ class TournamentPlayer(Base):
     player_id: Mapped[int] = mapped_column(ForeignKey("archived_player.id"))
     seating_id: Mapped[str]
     registration_id: Mapped[str]
-    
+
     tournament: Mapped["Tournament"] = relationship(back_populates="players")
-    player: Mapped["ArchivedPlayer"] = relationship(back_populates="tournament_appearances")
-    results: Mapped[list["HanchanResult"]] = relationship(back_populates="player")
+    player: Mapped["ArchivedPlayer"] = relationship(
+        back_populates="tournament_appearances"
+    )
+    results: Mapped[list["Hanchan"]] = relationship(back_populates="player")
 
 
-class HanchanResult(Base):
-    __tablename__ = "hanchan_result"
+class Hanchan(Base):
+    __tablename__ = "hanchan"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
     player_id: Mapped[int] = mapped_column(ForeignKey("tournament_player.id"))
@@ -207,6 +177,6 @@ class HanchanResult(Base):
     points: Mapped[int]
     placement: Mapped[int]
     chombo: Mapped[int | None]
-    
+
     tournament: Mapped["Tournament"] = relationship()
     player: Mapped["TournamentPlayer"] = relationship(back_populates="results")
