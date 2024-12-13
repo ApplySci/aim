@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import jellyfish
 from firebase_admin import firestore
-from oauth_setup import db, firestore_client
+from oauth_setup import db, firestore_client, logging
 from models import (
     Tournament, PastTournamentData, ArchivedPlayer,
     TournamentPlayer, HanchanResult
@@ -31,16 +31,23 @@ def archive_tournament(tournament: Tournament) -> bool:
     if not tournament_data:
         return False
         
-    # Store raw data
-    past_data = PastTournamentData(
-        tournament_id=tournament.id,
-        data=json.dumps(tournament_data),
-        archived_at=datetime.utcnow(),
-    )
-    db.session.add(past_data)
-    
     # Process and store structured data
     try:
+        # Convert datetime objects to ISO format strings
+        if 'end_date' in tournament_data:
+            tournament_data['end_date'] = tournament_data['end_date'].isoformat()
+        if 'start_date' in tournament_data:
+            tournament_data['start_date'] = tournament_data['start_date'].isoformat()
+            
+        data = json.dumps(tournament_data)
+        # Store raw data
+        past_data = PastTournamentData(
+            tournament_id=tournament.id,
+            data=data,
+            archived_at=datetime.now(timezone.utc),
+        )
+        db.session.add(past_data)
+
         # Archive players
         player_map: dict[str, TournamentPlayer] = {}
         for p in tournament_data.get("players", {}).get("players", []):
@@ -89,7 +96,7 @@ def archive_tournament(tournament: Tournament) -> bool:
         
         # Remove data from Firestore and update metadata
         batch = firestore_client.batch()
-        batch.delete(tournament_ref)
+        # batch.delete(tournament_ref)
         
         metadata_ref = firestore_client.collection("metadata").document("past_tournaments")
         batch.set(metadata_ref, {"last_updated": firestore.SERVER_TIMESTAMP}, merge=True)
@@ -100,4 +107,5 @@ def archive_tournament(tournament: Tournament) -> bool:
         
     except Exception as e:
         db.session.rollback()
-        raise e
+        logging.error(e, exc_info=True)
+        return False

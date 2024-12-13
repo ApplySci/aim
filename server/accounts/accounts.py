@@ -6,7 +6,7 @@ user account self-management
 from flask import Blueprint, redirect, session, url_for, render_template, flash
 from flask_login import login_required, login_user, logout_user, current_user
 
-from oauth_setup import db, login_manager, oauth
+from oauth_setup import db, logging, login_manager, oauth
 from models import User
 
 blueprint = Blueprint("accounts", __name__)
@@ -34,7 +34,7 @@ def login():
     try:
         return oauth.google.authorize_redirect(redirect_uri)
     except Exception as e:
-        print(f"Error in login: {str(e)}")  # Debug
+        logging.warning(f"Error in login: {str(e)}")
         return redirect(url_for('root.index'))
 
 
@@ -57,5 +57,5 @@ def authorized():
             session.pop("_flashes", None)
             return redirect("/run/")
     except Exception as e:
-        print(f"Error in authorization: {str(e)}")  # Debug
+        logging.warning(f"Error in authorization: {str(e)}")
     return logout()

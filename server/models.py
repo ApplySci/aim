@@ -13,7 +13,7 @@ from sqlalchemy.types import String
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from config import BASEDIR
-from oauth_setup import firestore_client, Role
+from oauth_setup import firestore_client, logging, Role
 
 _missing = object()  # sentinel object for missing values
 
@@ -114,8 +114,7 @@ class Tournament(Base):
 
     @status.setter
     def status(self, value):
-        old_status = self.status
-        if old_status != "past" and value == "past":
+        if value == "past":
             # Import here to avoid circular imports
             from operations.archive import archive_tournament
             if not archive_tournament(self):
