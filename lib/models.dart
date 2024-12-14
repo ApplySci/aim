@@ -83,6 +83,26 @@ class TournamentData extends Equatable {
       ).toList();
     }
 
+    // Handle rankings data
+    Map<String, dynamic>? rankings;
+    if (data.containsKey('ranking') && data['ranking'] is Map) {
+      final rawRankings = data['ranking'] as Map;
+      rankings = {
+        'roundDone': rawRankings['roundDone']?.toString() ?? '0',
+        for (final MapEntry(:key, :value) in rawRankings.entries)
+          if (key != 'roundDone')
+            key.toString(): {
+              for (final MapEntry(key: seatKey, value: seatValue) in (value as Map).entries)
+                seatKey.toString(): {
+                  'r': seatValue['r'] as int,
+                  't': seatValue['t'] as int,
+                  'p': seatValue['p'] as int,
+                  'total': seatValue['total'] as int,
+                },
+            },
+      };
+    }
+
     return TournamentData(
       id: data['id'] as String,
       name: data['name'] as String,
@@ -98,7 +118,7 @@ class TournamentData extends Equatable {
       players: players,
       seating: seating,
       games: games,
-      rankings: data['rankings'] as Map<String, dynamic>?,
+      rankings: rankings,
     );
   }
 

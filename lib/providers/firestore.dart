@@ -149,8 +149,36 @@ final allRankingsProvider = StreamProvider<Map<String, dynamic>>((ref) async* {
 });
 
 final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
-  final allRankings = ref.watch(allRankingsProvider);
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) return;
 
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    if (tournament.rankings != null) {
+      final roundDone = tournament.rankings!['roundDone'];
+      if (roundDone != null) {
+        final roundScores = tournament.rankings![roundDone.toString()];
+        if (roundScores != null) {
+          yield [
+            for (final MapEntry(:key, :value) in (roundScores as Map<String, dynamic>).entries)
+              PlayerRankData(
+                seat: int.parse(key),
+                rank: value['r'] as int,
+                tied: value['t'] == 1,
+                total: value['total'] as int,
+                penalty: value['p'] as int,
+              )
+          ];
+          return;
+        }
+      }
+    }
+    yield [];
+    return;
+  }
+
+  final allRankings = ref.watch(allRankingsProvider);
   yield* allRankings.when(
     data: (data) async* {
       if (data.containsKey('roundDone')) {

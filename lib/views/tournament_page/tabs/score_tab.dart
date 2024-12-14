@@ -21,7 +21,7 @@ final scoreWidthProvider = StreamProvider.autoDispose((ref) async* {
   final maxScoreWidth = playerScores
       .map((playerScore) => playerScore.scores)
       .flattened
-      .where((score) => score != null)  // Filter out null scores
+      .where((score) => score != null)
       .map((score) => scoreSize(score!.finalScore, negSign).width);
   final maxTotalWidth = playerScores
       .map((playerScore) => playerScore.total)
