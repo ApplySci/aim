@@ -65,7 +65,7 @@ final roundListProvider = StreamProvider((ref) async* {
       .map(
         (round) => (
           id: round.id,
-          name: roundMap[round.id]!.name,
+          name: roundMap![round.id]!.name,
           start: roundMap[round.id]!.start,
           tables: [
             for (final table in round.tables)
@@ -240,7 +240,7 @@ class AssignedTable extends ConsumerWidget {
 
   void onTap(BuildContext context, PlayerData player) =>
       Navigator.of(context).pushNamed(
-        ROUTES.player, 
+        ROUTES.player,
         arguments: {
           'playerId': player.id,
           'seat': player.seat,

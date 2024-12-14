@@ -69,8 +69,9 @@ class TournamentData extends Equatable {
     // Handle seating data
     List<RoundData>? seating;
     if (data['seating'] != null && data['seating'] is Map && data['seating']['rounds'] is List) {
+      final location = getLocation(data['seating']['timezone']);
       seating = (data['seating']['rounds'] as List).map((s) =>
-        RoundData.fromMap(s as Map<String, dynamic>)
+        RoundData.fromMap(s as Map<String, dynamic>, location)
       ).toList();
     }
 
@@ -289,10 +290,14 @@ class RoundData extends Equatable {
   const RoundData({
     required this.id,
     required this.tables,
+    this.name,
+    this.start,
   });
 
-  factory RoundData.fromMap(Map<String, dynamic> data) => RoundData(
+  factory RoundData.fromMap(Map<String, dynamic> data, [Location? location]) => RoundData(
         id: data['id'] as String,
+        name: data.containsKey('name') ? data['name'] : null,
+        start: data.containsKey('start') ? TZDateTime.from(DateTime.parse(data['start'] as String), location!) : null,
         tables: data.containsKey('tables') ? [
           for (final MapEntry(:key, :value) in (data['tables'] as Map).entries)
             TableData(
@@ -302,8 +307,11 @@ class RoundData extends Equatable {
         ] : [],
       );
 
+
   final String id;
   final List<TableData> tables;
+  final String? name;
+  final TZDateTime? start;
 
   String tableNameForSeat(int seat) =>
       tables.firstWhere((e) => e.seats.contains(seat)).name;

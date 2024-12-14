@@ -27,7 +27,7 @@ final playerScoresProvider =
     yield [
       for (final game in games)
         (
-          round: roundMap[game.roundId]!,
+          round: roundMap![game.roundId]!,
           players: [
             for (final score in game.scores)
               (

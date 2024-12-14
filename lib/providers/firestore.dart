@@ -248,9 +248,26 @@ final roundListProvider = StreamProvider((ref) async* {
 });
 
 final roundMapProvider = StreamProvider((ref) async* {
-  final roundList = await ref.watch(roundListProvider.future);
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) return;
+
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    yield {
+      for (final round in tournament.seating ?? [])
+        round.id: RoundScheduleData(
+          id: round.id,
+          name: round.id,
+          start: round.start,
+        ),
+    };
+    return;
+  }
+
+  final schedule = await ref.watch(scheduleProvider.future);
   yield {
-    for (final round in roundList) round.id: round,
+    for (final round in schedule.rounds) round.id: round,
   };
 });
 
