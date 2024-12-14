@@ -31,33 +31,79 @@ class TournamentData extends Equatable {
     required this.htmlnotes,
     this.url,
     this.urlIcon,
+    this.players,
+    this.seating,
+    this.games,
+    this.rankings,
   });
 
   factory TournamentData.fromMap(Map<String, dynamic> data) {
     // For past tournaments, we might get a null status
     final status = data['status'] as String? ?? 'past';
-    
-    // Handle both Timestamp and String date formats
-    final startDate = data['start_date'] is Timestamp 
+
+    // Handle both Timestamp and String/DateTime date formats
+    final startDate = data['start_date'] is Timestamp
         ? data['start_date'] as Timestamp
-        : Timestamp.fromDate(DateTime.parse(data['start_date'] as String));
-    
+        : Timestamp.fromDate(
+            data['start_date'] is DateTime
+                ? data['start_date'] as DateTime
+                : DateTime.parse(data['start_date'] as String)
+          );
+
     final endDate = data['end_date'] is Timestamp
         ? data['end_date'] as Timestamp
-        : Timestamp.fromDate(DateTime.parse(data['end_date'] as String));
+        : Timestamp.fromDate(
+            data['end_date'] is DateTime
+                ? data['end_date'] as DateTime
+                : DateTime.parse(data['end_date'] as String)
+          );
+
+    // Handle players data
+    List<PlayerData>? players;
+    if (data.containsKey('players') && data['players'] != null) {
+        players = ((data['players'] as Map)['players'] as List).map((p) =>
+          PlayerData(p as Map<String, dynamic>)
+        ).toList();
+    }
+
+    // Handle seating data
+    List<RoundData>? seating;
+    if (data['seating'] != null && data['seating'] is Map && data['seating']['rounds'] is List) {
+      seating = (data['seating']['rounds'] as List).map((s) =>
+        RoundData.fromMap(s as Map<String, dynamic>)
+      ).toList();
+    }
+
+    // Handle games data
+    List<GameData>? games;
+    if (data['games'] != null) {
+      if (data['games'] is List) {
+        games = (data['games'] as List).map((g) =>
+          GameData.fromMap(g['id'] as String, g as Map<String, dynamic>)
+        ).toList();
+      } else if (data['games'] is Map) {
+        games = (data['games'] as Map).entries.map((e) =>
+          GameData.fromMap(e.key, e.value as Map<String, dynamic>)
+        ).toList();
+      }
+    }
 
     return TournamentData(
       id: data['id'] as String,
       name: data['name'] as String,
-      address: data['address'] as String? ?? '',  // Default to empty string if null
-      country: data['country'] as String? ?? '',  // Default to empty string if null
+      address: data['address'] as String? ?? '',
+      country: data['country'] as String? ?? '',
       startDate: startDate,
       endDate: endDate,
       status: status,
-      rules: data['rules'] as String? ?? '',  // Default to empty string if null
-      htmlnotes: data['htmlnotes'] as String? ?? '',  // Default to empty string if null
+      rules: data['rules'] as String? ?? '',
+      htmlnotes: data['htmlnotes'] as String? ?? '',
       url: data['url'] as String?,
       urlIcon: data['url_icon'] as String?,
+      players: players,
+      seating: seating,
+      games: games,
+      rankings: data['rankings'] as Map<String, dynamic>?,
     );
   }
 
@@ -72,6 +118,10 @@ class TournamentData extends Equatable {
   final String rules;
   final String? url;
   final String? urlIcon;
+  final List<PlayerData>? players;
+  final List<RoundData>? seating;
+  final List<GameData>? games;
+  final Map<String, dynamic>? rankings;
 
   String get when => dateRange(startDate, endDate);
 
@@ -87,6 +137,10 @@ class TournamentData extends Equatable {
         rules,
         url,
         urlIcon,
+        players,
+        seating,
+        games,
+        rankings,
       ];
 }
 
@@ -321,7 +375,7 @@ class HanchanScore extends Equatable {
     );
   }
 
-  int? get uma => finalScore != null && gameScore != null && penalties != null 
+  int? get uma => finalScore != null && gameScore != null && penalties != null
       ? finalScore! - gameScore! - penalties!
       : null;
 
@@ -386,7 +440,7 @@ class GameData extends Equatable {
         ],
       );
     }).toList();
-    
+
     return GameData(
       roundId: roundId,
       tables: tables,
@@ -424,7 +478,7 @@ class PastTournamentSummary extends Equatable {
   factory PastTournamentSummary.fromMap(Map<String, dynamic> data) => PastTournamentSummary(
     id: data['id'] as String,
     name: data['name'] as String,
-    startDate: data['start_date'] is Timestamp 
+    startDate: data['start_date'] is Timestamp
         ? (data['start_date'] as Timestamp).toDate()
         : DateTime.parse(data['start_date'] as String),
     endDate: data['end_date'] is Timestamp

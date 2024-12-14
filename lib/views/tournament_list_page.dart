@@ -182,8 +182,10 @@ class PastTournamentList extends ConsumerWidget {
               } catch (e) {
                 if (context.mounted) {
                   Navigator.pop(context); // Dismiss loading dialog
+                  String msg = 'Error loading tournament: $e';
+                  Log.warn(msg);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error loading tournament: $e')),
+                    SnackBar(content: Text(msg)),
                   );
                 }
               }

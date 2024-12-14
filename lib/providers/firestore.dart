@@ -63,10 +63,16 @@ final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournam
 });
 
 final tournamentProvider = StreamProvider<TournamentData>((ref) async* {
-  final db = ref.watch(firebaseProvider);
   final tournamentId = ref.watch(tournamentIdProvider);
   if (tournamentId == null) return;
 
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    yield await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    return;
+  }
+
+  final db = ref.watch(firebaseProvider);
   yield* db
       .collection('tournaments')
       .doc(tournamentId)
@@ -87,6 +93,16 @@ final tournamentCollectionProvider = Provider((ref) {
 });
 
 final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) return;
+
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    yield tournament.players ?? [];
+    return;
+  }
+
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -160,6 +176,16 @@ final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
 });
 
 final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) return;
+
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    yield tournament.seating ?? [];
+    return;
+  }
+
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
@@ -175,11 +201,21 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
 });
 
 final gameProvider = StreamProvider<List<GameData>>((ref) async* {
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) return;
+
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+    yield tournament.games ?? [];
+    return;
+  }
+
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
   yield* collection
-      .doc('scores') //
+      .doc('scores')
       .snapshots()
       .map((snapshot) {
     Map<String, Map> data = (snapshot.data() ?? {}).cast();
@@ -316,17 +352,31 @@ final playerScoreProvider = StreamProvider.family
   yield out;
 });
 
-final tournamentStatusProvider = Provider<WhenTournament>((ref) {
-  final tournamentData = ref.watch(tournamentProvider).valueOrNull;
-  if (tournamentData == null) return WhenTournament.upcoming;
+final tournamentStatusProvider = StreamProvider<WhenTournament>((ref) async* {
+  final tournamentId = ref.watch(tournamentIdProvider);
+  if (tournamentId == null) {
+    yield WhenTournament.upcoming;
+    return;
+  }
 
-  return switch (tournamentData.status) {
-    'upcoming' => WhenTournament.upcoming,
-    'live' => WhenTournament.live,
-    'past' => WhenTournament.past,
-    'test' => WhenTournament.test,
-    _ => WhenTournament.upcoming,
-  };
+  // Check if it's in the past tournaments list
+  final pastSummaries = ref.watch(pastTournamentSummariesProvider).valueOrNull ?? [];
+  if (pastSummaries.any((summary) => summary.id == tournamentId)) {
+    yield WhenTournament.past;
+    return;
+  }
+
+  // Otherwise check Firebase status
+  final db = ref.watch(firebaseProvider);
+  yield* db.collection('tournaments').doc(tournamentId).snapshots().map((snapshot) {
+    final status = snapshot.data()?['status'] as String? ?? 'upcoming';
+    return switch (status) {
+      'upcoming' => WhenTournament.upcoming,
+      'live' => WhenTournament.live,
+      'test' => WhenTournament.test,
+      _ => WhenTournament.upcoming,
+    };
+  });
 });
 
 final pastTournamentsLastUpdatedProvider = StreamProvider<DateTime?>((ref) async* {
@@ -364,37 +414,30 @@ final pastTournamentsMetadataProvider = StreamProvider<Map<String, dynamic>?>((r
 
 final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummary>>((ref) async {
   final metadata = await ref.watch(pastTournamentsMetadataProvider.future);
-  Log.debug('Past tournaments metadata: $metadata');
 
   if (metadata == null) {
-    Log.debug('No past tournaments metadata found');
+    Log.warn('No past tournaments metadata found');
     return [];
   }
 
   final lastUpdated = metadata['last_updated'];
-  Log.debug('Last updated raw value: $lastUpdated (type: ${lastUpdated.runtimeType})');
-
   final baseUrl = metadata['api_base_url'] as String?;
-  Log.debug('Using API base URL: $baseUrl');
 
   if (lastUpdated == null || baseUrl == null || baseUrl.isEmpty) {
-    Log.debug('Missing required metadata fields');
+    Log.warn('Missing required metadata fields');
     return [];
   }
 
   try {
     final url = '$baseUrl/api/past_tournaments/summary';
-    Log.debug('Fetching past tournament summaries from API: $url');
     final response = await http.get(Uri.parse(url));
-    Log.debug('API response status: ${response.statusCode}');
 
     if (response.statusCode != 200) {
-      Log.debug('API error: ${response.body}');
+      Log.warn('API error: ${response.body}');
       return [];
     }
 
     final List<dynamic> data = jsonDecode(response.body);
-    Log.debug('Raw API response: $data');
     return data.map((item) => PastTournamentSummary.fromMap(item)).toList();
   } catch (e, stackTrace) {
     Log.error('Error fetching past tournaments: $e\n$stackTrace');
@@ -411,17 +454,14 @@ final pastTournamentDetailsProvider = FutureProvider.family<TournamentData, Stri
     throw Exception('No API base URL configured');
   }
 
-  final url = '$baseUrl/api/tournament/$tournamentId/details';
-  Log.debug('Fetching tournament details from: $url');
+  final url = '$baseUrl/api/tournament/$tournamentId';
   final response = await http.get(Uri.parse(url));
 
   if (response.statusCode != 200) {
-    Log.error('Failed to load tournament details: ${response.body}');
+    Log.warn('Failed to load tournament details: ${response.body}');
     throw Exception('Failed to load tournament details');
   }
 
-  return TournamentData.fromMap({
-    'id': tournamentId,
-    ...jsonDecode(response.body),
-  });
+  Map data = jsonDecode(response.body);
+  return TournamentData.fromMap({'id': tournamentId, ...data});
 });

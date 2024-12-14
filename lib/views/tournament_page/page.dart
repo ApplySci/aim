@@ -19,7 +19,7 @@ class TournamentPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final page = ref.watch(pageProvider);
     final tournament = ref.watch(tournamentProvider);
-    final tournamentStatus = ref.watch(tournamentStatusProvider);
+    final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
 
     return tournament.when(
       skipLoadingOnReload: true,

@@ -12,7 +12,7 @@ class Seating extends ConsumerWidget {
   Widget build(context, ref) {
     final showAll = ref.watch(showAllProvider);
     final filtered = ref.watch(filterByPlayerProvider.select((e) => e != null));
-    final tournamentStatus = ref.watch(tournamentStatusProvider);
+    final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
 
     final Widget allToggle = SwitchListTile(
       title: const Text(
@@ -21,11 +21,10 @@ class Seating extends ConsumerWidget {
       ),
       value: showAll,
       onChanged: (value) => ref
-          .read(showAllProvider.notifier) //
+          .read(showAllProvider.notifier)
           .state = value,
     );
 
-    // TODO if there are no upcoming rounds, only show the past tab, & vice versa
     return(tournamentStatus == WhenTournament.live)
       ? DefaultTabController(
           length: 2,

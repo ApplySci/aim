@@ -203,7 +203,7 @@ def get_past_tournaments_summary():
     return jsonify(summaries)
 
 
-@blueprint.route("/api/tournament/<tournament_id>/details", methods=["GET"])
+@blueprint.route("/api/tournament/<tournament_id>", methods=["GET"])
 def get_tournament_details(tournament_id):
     tournament = get_past_tournament_details(tournament_id)
 
