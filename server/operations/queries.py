@@ -1,4 +1,3 @@
-from typing import List, Optional
 from sqlalchemy import select, func
 from oauth_setup import db
 from models import (
@@ -10,12 +9,12 @@ from models import (
 )
 
 
-def get_past_tournament_summaries() -> List[Tournament]:
+def get_past_tournament_summaries() -> list[Tournament]:
     """Get all past tournaments with their data"""
     return db.session.query(Tournament).join(PastTournamentData).all()
 
 
-def get_past_tournament_details(firebase_id: str) -> Optional[Tournament]:
+def get_past_tournament_details(firebase_id: str) -> Tournament | None:
     """Get a specific past tournament with its data"""
     return (
         db.session.query(Tournament)
@@ -25,7 +24,7 @@ def get_past_tournament_details(firebase_id: str) -> Optional[Tournament]:
     )
 
 
-def get_player_tournament_history(player_id: int) -> List[dict]:
+def get_player_tournament_history(player_id: int) -> list[dict]:
     """Get all tournament results for a player"""
     results = (
         db.session.query(
@@ -54,7 +53,7 @@ def get_player_tournament_history(player_id: int) -> List[dict]:
     ]
 
 
-def get_tournament_results(tournament_id: int) -> List[dict]:
+def get_tournament_results(tournament_id: int) -> list[dict]:
     """Get detailed results for all players in a tournament"""
     results = (
         db.session.query(

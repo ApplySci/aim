@@ -98,7 +98,9 @@ to bad behaviour among players.
 If you're creating your own version of this app, rather than running off my instance,
 you'll need to set up the cloud stuff. I've tried to remember all the steps, but there are probably some missing.
 - First you'll need a google cloud project.
-- Create a `(default)` firestore database, and give it a `tournaments` collection.
+- Create a `(default)` firestore database, and give it a `tournaments` collection,
+and a `metadata` collection containing a past_tournaments document with a field `api_base_url` with
+the base URL of your server.
 - In the google console:
   - Give third-party read-only permissions to the database.
   - Enable the google drive API, and the Sheets API.

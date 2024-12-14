@@ -1,8 +1,7 @@
 import json
-from typing import Dict, List
 from models import Tournament
 
-def tournament_to_summary(tournament: Tournament) -> Dict:
+def tournament_to_summary(tournament: Tournament) -> dict:
     """Convert a tournament to its summary representation"""
     if not tournament.past_data:
         return {}
@@ -16,10 +15,10 @@ def tournament_to_summary(tournament: Tournament) -> Dict:
         "venue": stored_data.get("address"),
         "country": stored_data.get("country"),
         "rules": stored_data.get("rules"),
-        "player_count": len(stored_data.get("players", [])),
+        "player_count": len(stored_data.get("players", {}).get("players", [])),
     }
 
-def tournaments_to_summaries(tournaments: List[Tournament]) -> List[Dict]:
+def tournaments_to_summaries(tournaments: list[Tournament]) -> list[dict]:
     """Convert a list of tournaments to their summary representations"""
     return [
         tournament_to_summary(t)

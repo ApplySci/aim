@@ -167,13 +167,25 @@ class PastTournamentList extends ConsumerWidget {
                 builder: (context) => const LoadingDialog(),
               );
               
-              // Load tournament details
-              await ref.read(pastTournamentDetailsProvider(summary.id).future);
-              
-              // Navigate to tournament page
-              if (context.mounted) {
-                Navigator.pop(context); // Dismiss loading dialog
-                Navigator.pushNamed(context, '/tournament/${summary.id}');
+              try {
+                // Load tournament details
+                await ref.read(pastTournamentDetailsProvider(summary.id).future);
+                
+                // Set the tournament ID
+                await ref.read(tournamentIdProvider.notifier).set(summary.id);
+                
+                // Navigate to tournament page
+                if (context.mounted) {
+                  Navigator.pop(context); // Dismiss loading dialog
+                  Navigator.of(context).pushNamed(ROUTES.tournament);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // Dismiss loading dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error loading tournament: $e')),
+                  );
+                }
               }
             },
           );

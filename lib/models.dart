@@ -424,8 +424,12 @@ class PastTournamentSummary extends Equatable {
   factory PastTournamentSummary.fromMap(Map<String, dynamic> data) => PastTournamentSummary(
     id: data['id'] as String,
     name: data['name'] as String,
-    startDate: (data['start_date'] as Timestamp).toDate(),
-    endDate: (data['end_date'] as Timestamp).toDate(),
+    startDate: data['start_date'] is Timestamp 
+        ? (data['start_date'] as Timestamp).toDate()
+        : DateTime.parse(data['start_date'] as String),
+    endDate: data['end_date'] is Timestamp
+        ? (data['end_date'] as Timestamp).toDate()
+        : DateTime.parse(data['end_date'] as String),
     venue: data['venue'] as String,
     country: data['country'] as String,
     rules: data['rules'] as String,

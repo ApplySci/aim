@@ -157,7 +157,12 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
             "past_tournaments"
         )
         batch.set(
-            metadata_ref, {"last_updated": firestore.SERVER_TIMESTAMP}, merge=True
+            metadata_ref, 
+            {
+                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "api_base_url": "https://wr.mahjong.ie"
+            }, 
+            merge=True
         )
 
         batch.commit()
