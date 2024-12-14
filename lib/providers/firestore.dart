@@ -348,8 +348,9 @@ typedef PlayerRankings = ({
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerRankings, int>((ref, seat) async* {
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
-  final rankingList = await ref.watch(allRankingsProvider.future);
-
+  final tournamentId = ref.watch(tournamentIdProvider);
+  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+  
   final List<HanchanScore> emptyList = [];
   PlayerScore games = (
         id: 'unknown',
@@ -371,20 +372,33 @@ final playerScoreProvider = StreamProvider.family
 
   List<int> rankings = [];
   List<int> totalScores = [];
-  // extract from rankingList just the rankings and totals for this player
-  if (rankingList.containsKey('roundDone')) {
-    int endRound = int.parse(rankingList['roundDone']);
-    for (int i = 1; i <= endRound; i++) {
-      // Check if the round and seat exist in rankings before accessing
-      if (rankingList.containsKey("$i") &&
-          rankingList["$i"].containsKey("$seat") &&
-          rankingList["$i"]["$seat"] != null) {
-        rankings.add(rankingList["$i"]["$seat"]['r']);
-        totalScores.add(rankingList["$i"]["$seat"]['total']);
-      } else {
-        // Add placeholder values for rounds where the substitute wasn't playing
-        rankings.add(0);  // or whatever default rank makes sense
-        totalScores.add(0);  // or whatever default score makes sense
+
+  if (tournamentStatus == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId!).future);
+    if (tournament.rankings != null) {
+      final maxRound = int.parse(tournament.rankings!['roundDone'].toString());
+      for (int i = 1; i <= maxRound; i++) {
+        final roundData = tournament.rankings![i.toString()];
+        if (roundData != null && roundData[seat.toString()] != null) {
+          rankings.add(roundData[seat.toString()]['r']);
+          totalScores.add(roundData[seat.toString()]['total']);
+        }
+      }
+    }
+  } else {
+    final rankingList = await ref.watch(allRankingsProvider.future);
+    if (rankingList.containsKey('roundDone')) {
+      int endRound = int.parse(rankingList['roundDone']);
+      for (int i = 1; i <= endRound; i++) {
+        if (rankingList.containsKey("$i") &&
+            rankingList["$i"].containsKey("$seat") &&
+            rankingList["$i"]["$seat"] != null) {
+          rankings.add(rankingList["$i"]["$seat"]['r']);
+          totalScores.add(rankingList["$i"]["$seat"]['total']);
+        } else {
+          rankings.add(0);
+          totalScores.add(0);
+        }
       }
     }
   }
