@@ -76,16 +76,10 @@ class TournamentData extends Equatable {
 
     // Handle games data
     List<GameData>? games;
-    if (data['games'] != null) {
-      if (data['games'] is List) {
-        games = (data['games'] as List).map((g) =>
-          GameData.fromMap(g['id'] as String, g as Map<String, dynamic>)
-        ).toList();
-      } else if (data['games'] is Map) {
-        games = (data['games'] as Map).entries.map((e) =>
-          GameData.fromMap(e.key, e.value as Map<String, dynamic>)
-        ).toList();
-      }
+    if (data.containsKey('scores') && data['scores'] is Map) {
+      games = data['scores'].entries.map<GameData>((e) =>
+        GameData.fromMap(e.key, e.value as Map<String, dynamic>)
+      ).toList();
     }
 
     return TournamentData(
