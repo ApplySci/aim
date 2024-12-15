@@ -8,6 +8,7 @@ from flask_login import login_required, login_user, logout_user, current_user
 
 from oauth_setup import db, logging, login_manager, oauth
 from models import User
+from config import SUPERADMIN
 
 blueprint = Blueprint("accounts", __name__)
 messages_by_user = {}
@@ -59,3 +60,8 @@ def authorized():
     except Exception as e:
         logging.warning(f"Error in authorization: {str(e)}")
     return logout()
+
+
+@blueprint.context_processor
+def inject_superadmin():
+    return dict(SUPERADMIN=SUPERADMIN)

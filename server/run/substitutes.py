@@ -18,6 +18,7 @@ from oauth_setup import (
     tournament_required,
 )
 from write_sheet import googlesheet
+from config import SUPERADMIN
 
 blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 
@@ -176,3 +177,8 @@ def analyze_seating():
     new_stats = make_stats(data["seating"], ignore_players=substitute_ids)
 
     return jsonify({"status": "success", "current": current_stats, "new": new_stats})
+
+
+@blueprint.context_processor
+def inject_superadmin():
+    return dict(SUPERADMIN=SUPERADMIN)

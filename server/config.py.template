@@ -11,11 +11,11 @@ GOOGLE_CLIENT_EMAIL = "{firebase-adminsdk-something@somethingelse.gserviceaccoun
 TEMPLATE_ID = '{google-doc-id}'
 PORT = {8000} # your app port number
 
-DEFAULT_OWNER = "{your_account}@gmail.com"
-OUR_EMAILS = (GOOGLE_CLIENT_EMAIL, DEFAULT_OWNER)
+SUPERADMIN = "{your_account}@gmail.com"
+OUR_EMAILS = (GOOGLE_CLIENT_EMAIL, SUPERADMIN)
 
 DEFAULT_USERS = (
-                 DEFAULT_OWNER,
+                 SUPERADMIN,
                  {other gmail addresses for default users you want to seed the db with},
                  )
 BASEDIR = "/var/www/tournaments/"

@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 import os
 import shutil
 from functools import wraps
-from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
+from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID, SUPERADMIN
 from write_sheet import googlesheet
 from models import Tournament, Access, User
 from oauth_setup import db, firestore_client, login_required, superadmin_required
@@ -100,3 +100,8 @@ def superadmin():
         )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500
+
+
+@blueprint.context_processor
+def inject_superadmin():
+    return dict(SUPERADMIN=SUPERADMIN)

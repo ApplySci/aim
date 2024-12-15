@@ -12,7 +12,7 @@
     <nav>
         {% if current_user.is_authenticated %}
             <p class="wrap">Hi,<br>{{ current_user.email }}</p>
-            {% if current_user.email == "mj.apply.sci@gmail.com" %}
+            {% if current_user.email == SUPERADMIN %}
                 <a href="{{ url_for('admin.superadmin') }}">Superuser admin</a>
             {% endif %}
             <a href="{{ url_for('create.results_create') }}">Create New Tournament</a>

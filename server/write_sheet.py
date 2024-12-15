@@ -17,7 +17,7 @@ from gspread.exceptions import APIError as GspreadAPIError
 from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 
-from config import TEMPLATE_ID, OUR_EMAILS
+from config import SUPERADMIN, TEMPLATE_ID, OUR_EMAILS
 from oauth_setup import KEYFILE, logging
 
 MAX_HANCHAN = 20
@@ -404,7 +404,7 @@ class GSP:
         table_count: int = 10,
         hanchan_count: int = 7,
         title: str = "Riichi tournament results",
-        owner: str = "mj.apply.sci@gmail.com",
+        owner: str = SUPERADMIN,
         scorers: list[str] = (),
         notify: bool = False,
         timezone: str = "Europe/Dublin",
