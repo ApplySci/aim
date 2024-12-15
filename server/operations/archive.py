@@ -10,7 +10,28 @@ from models import (
     TournamentPlayer,
     Hanchan,
 )
+from config import BASEDIR
+from operations.queries import get_past_tournament_summaries
+from operations.transforms import tournaments_to_summaries
+import os
 
+PAST_TOURNAMENTS_FILE = os.path.join(BASEDIR, "data", "past_tournaments.json")
+
+def ensure_data_directory():
+    """Ensure the data directory exists"""
+    os.makedirs(os.path.dirname(PAST_TOURNAMENTS_FILE), exist_ok=True)
+
+def update_past_tournaments_json():
+    """Update the static JSON file with current past tournament data"""
+    ensure_data_directory()
+    tournaments = get_past_tournament_summaries()
+    summaries = tournaments_to_summaries(tournaments)
+    
+    with open(PAST_TOURNAMENTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump({
+            'last_updated': datetime.utcnow().isoformat(),
+            'tournaments': summaries
+        }, f, ensure_ascii=False, indent=2)
 
 def find_matching_player(name: str, tournament_id: int, threshold: float = 1.1) -> ArchivedPlayer | None:
     """Find existing player with matching name using fuzzy matching"""
@@ -167,6 +188,10 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
 
         batch.commit()
         db.session.commit()
+
+        # After successful archival, update the JSON file
+        update_past_tournaments_json()
+
         return stats
 
     except Exception as e:

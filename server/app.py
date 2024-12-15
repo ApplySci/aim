@@ -26,6 +26,7 @@ from run.cloud_edit import blueprint as bp_edit
 from run.export import blueprint as bp_export
 from run.user_management import blueprint as bp_user_management
 from config import SUPERADMIN
+from operations.api import blueprint as bp_api
 
 
 def create_app():
@@ -39,6 +40,7 @@ def create_app():
         bp_edit,
         bp_export,
         bp_user_management,
+        bp_api,
     ):
         app.register_blueprint(bp)
 

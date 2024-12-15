@@ -1,0 +1,47 @@
+{% extends "runbase.html" %}
+
+{% block title %}Past Tournaments{% endblock %}
+
+{% block content %}
+<h1>Past Tournaments</h1>
+
+<table class="past-tournaments">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th>Players</th>
+            <th>Rules</th>
+        </tr>
+    </thead>
+    <tbody id="tournaments-body">
+        <tr><td colspan="5">Loading...</td></tr>
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const response = await fetch('/static/data/past_tournaments.json');
+        const data = await response.json();
+        const tbody = document.getElementById('tournaments-body');
+        
+        tbody.innerHTML = data.tournaments.map(tournament => `
+            <tr>
+                <td>${tournament.name}</td>
+                <td>${new Date(tournament.start_date).toLocaleDateString()} - 
+                    ${new Date(tournament.end_date).toLocaleDateString()}</td>
+                <td>${tournament.venue}, ${tournament.country}</td>
+                <td>${tournament.player_count}</td>
+                <td>${tournament.rules}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading tournaments:', error);
+        document.getElementById('tournaments-body').innerHTML = 
+            '<tr><td colspan="5">Error loading tournaments</td></tr>';
+    }
+});
+</script>
+{% endblock %} 

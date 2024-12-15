@@ -25,8 +25,13 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from models import Access, User, Tournament
+from models import Access, User, Tournament, PastTournamentData
 from oauth_setup import db, firestore_client, logging, tournament_required
+from operations.queries import (
+    get_active_tournaments,
+    get_past_tournament_summaries,
+)
+from operations.transforms import tournaments_to_summaries
 from write_sheet import googlesheet
 from . import substitutes
 
@@ -74,19 +79,12 @@ def select_tournament():
     for invalid_access in invalid_accesses:
         db.session.delete(invalid_access)
 
-    # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(user_email=current_user.email).all()
-
-    # Group tournaments by status
-    grouped_tournaments = {"live": [], "test": [], "upcoming": [], "past": []}
-
-    for access in accesses:
-        status = access.tournament.status
-        grouped_tournaments[status].append(access.tournament)
-
+    grouped_tournaments = get_active_tournaments(current_user.email)
     db.session.commit()
+    
     return render_template(
-        "select_tournament.html", grouped_tournaments=grouped_tournaments
+        "select_tournament.html", 
+        grouped_tournaments=grouped_tournaments
     )
 
 
@@ -688,3 +686,9 @@ def archive_tournament():
 
 # Register the substitutes blueprint
 blueprint.register_blueprint(substitutes.blueprint)
+
+
+@blueprint.route("/past_tournaments")
+@login_required
+def past_tournaments():
+    return render_template("past_tournaments.html")

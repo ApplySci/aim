@@ -479,25 +479,16 @@ final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummar
     return [];
   }
 
-  final lastUpdated = metadata['last_updated'];
-  final baseUrl = metadata['api_base_url'] as String?;
-
-  if (lastUpdated == null || baseUrl == null || baseUrl.isEmpty) {
-    Log.warn('Missing required metadata fields');
-    return [];
-  }
-
   try {
-    final url = '$baseUrl/api/past_tournaments/summary';
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse('/static/data/past_tournaments.json'));
 
     if (response.statusCode != 200) {
       Log.warn('API error: ${response.body}');
       return [];
     }
 
-    final List<dynamic> data = jsonDecode(response.body);
-    return data.map((item) => PastTournamentSummary.fromMap(item)).toList();
+    final data = jsonDecode(response.body);
+    return data['tournaments'].map((item) => PastTournamentSummary.fromMap(item)).toList();
   } catch (e, stackTrace) {
     Log.error('Error fetching past tournaments: $e\n$stackTrace');
     return [];

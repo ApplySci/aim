@@ -6,6 +6,7 @@ from models import (
     ArchivedPlayer,
     TournamentPlayer,
     Hanchan,
+    Access,
 )
 
 
@@ -78,3 +79,19 @@ def get_tournament_results(tournament_id: int) -> list[dict]:
         }
         for r in results
     ]
+
+
+def get_active_tournaments(user_email: str) -> dict[str, list[Tournament]]:
+    """Get all non-past tournaments accessible by the user"""
+    accesses = db.session.query(Access).filter_by(user_email=user_email).all()
+    
+    grouped_tournaments = {"live": [], "test": [], "upcoming": []}
+    
+    for access in accesses:
+        tournament = access.tournament
+        if not tournament.past_data:  # Skip archived tournaments
+            status = tournament.status
+            if status in grouped_tournaments:
+                grouped_tournaments[status].append(tournament)
+    
+    return grouped_tournaments

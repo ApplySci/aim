@@ -33,11 +33,6 @@ from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client, admin_or_editor_required, logging, Role
 from write_sheet import googlesheet
-from operations.queries import (
-    get_past_tournament_summaries,
-    get_past_tournament_details,
-)
-from operations.transforms import tournaments_to_summaries
 
 blueprint = Blueprint("edit", __name__)
 
@@ -194,21 +189,3 @@ def validate_google_doc():
         return jsonify({"valid": True})
     except Exception as e:
         return jsonify({"valid": False, "error": str(e)})
-
-
-@blueprint.route("/api/past_tournaments/summary", methods=["GET"])
-def get_past_tournaments_summary():
-    tournaments = get_past_tournament_summaries()
-    summaries = tournaments_to_summaries(tournaments)
-    return jsonify(summaries)
-
-
-@blueprint.route("/api/tournament/<tournament_id>", methods=["GET"])
-def get_tournament_details(tournament_id):
-    tournament = get_past_tournament_details(tournament_id)
-
-    if not tournament or not tournament.past_data:
-        return jsonify({"error": "Tournament not found"}), 404
-
-    stored_data = json.loads(tournament.past_data.data)
-    return jsonify(stored_data)
