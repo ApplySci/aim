@@ -5,7 +5,7 @@ import inspect
 import os
 import sys
 
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, render_template
 
 # add directory of this file, to the start of the path,
 # before importing any of the app
@@ -48,12 +48,21 @@ def create_app():
     config_db(app)
     config_jinja(app)
 
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        import traceback
+        tb = traceback.format_exc()
+        return render_template(
+            'error.html',
+            error=str(e),
+            traceback=tb
+        ), 500
+
     @app.after_request
     def add_header(response):
         if request.path.startswith("/static/"):
             return response
 
-        # Disable caching for HTML and JSON responses
         response.headers["Cache-Control"] = (
             "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0"
         )

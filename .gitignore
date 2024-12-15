@@ -1,5 +1,4 @@
 # app-specific exclusions
-/server/fcm-admin.json
 /server/.spyproject/*
 /server/apikey.py
 /server/config.py
@@ -8,6 +7,9 @@ GoogleService-Info.plist*
 firebase.cfg
 fcm-admin.json*
 *.sqlite3
+config.py*
+firebase_options.dart*
+firebase_app_id_file.json*
 
 # Miscellaneous
 *.class
@@ -54,9 +56,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/lib/firebase_options.dart
-/ios/firebase_app_id_file.json
-/macos/firebase_app_id_file.json
 
 /certs/
 /server/.server-admin/debug
