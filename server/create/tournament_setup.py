@@ -19,7 +19,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from config import GOOGLE_CLIENT_EMAIL, BASEDIR, SUPERADMIN
+from config import GOOGLE_CLIENT_EMAIL, BASEDIR
 from forms.tournament_forms import TournamentForm
 from models import Access, Tournament, User
 from oauth_setup import db, firestore_client, logging, Role
@@ -232,8 +232,3 @@ def select_sheet():
 def get_timezones(country):
     timezones = get_timezones_for_country(country)
     return jsonify(sorted(timezones))
-
-
-@blueprint.context_processor
-def inject_superadmin():
-    return dict(SUPERADMIN=SUPERADMIN)

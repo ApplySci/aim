@@ -25,6 +25,7 @@ from run.run import blueprint as bp_run
 from run.cloud_edit import blueprint as bp_edit
 from run.export import blueprint as bp_export
 from run.user_management import blueprint as bp_user_management
+from config import SUPERADMIN
 
 
 def create_app():
@@ -47,6 +48,10 @@ def create_app():
     config_login_manager(app)
     config_db(app)
     config_jinja(app)
+
+    @app.context_processor
+    def inject_superadmin():
+        return dict(SUPERADMIN=SUPERADMIN)
 
     @app.errorhandler(Exception)
     def handle_exception(e):

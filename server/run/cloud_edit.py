@@ -29,7 +29,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Optional, URL, ValidationError
 
-from config import BASEDIR, SUPERADMIN
+from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client, admin_or_editor_required, logging, Role
 from write_sheet import googlesheet
@@ -212,8 +212,3 @@ def get_tournament_details(tournament_id):
 
     stored_data = json.loads(tournament.past_data.data)
     return jsonify(stored_data)
-
-
-@blueprint.context_processor
-def inject_superadmin():
-    return dict(SUPERADMIN=SUPERADMIN)

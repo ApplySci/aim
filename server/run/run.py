@@ -29,7 +29,6 @@ from models import Access, User, Tournament
 from oauth_setup import db, firestore_client, logging, tournament_required
 from write_sheet import googlesheet
 from . import substitutes
-from config import SUPERADMIN
 
 blueprint = Blueprint("run", __name__, url_prefix="/run")
 
@@ -689,8 +688,3 @@ def archive_tournament():
 
 # Register the substitutes blueprint
 blueprint.register_blueprint(substitutes.blueprint)
-
-
-@blueprint.context_processor
-def inject_superadmin():
-    return dict(SUPERADMIN=SUPERADMIN)

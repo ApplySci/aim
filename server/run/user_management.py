@@ -12,7 +12,6 @@ from oauth_setup import (
 )
 from forms.userform import AddUserForm
 from write_sheet import googlesheet
-from config import SUPERADMIN
 
 blueprint = Blueprint("user_management", __name__)
 
@@ -414,8 +413,3 @@ def delete_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
-
-
-@blueprint.context_processor
-def inject_superadmin():
-    return dict(SUPERADMIN=SUPERADMIN)

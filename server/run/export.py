@@ -28,7 +28,6 @@ import zipfile
 from oauth_setup import firestore_client
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 import re
-from config import SUPERADMIN
 
 blueprint = Blueprint("export", __name__)
 
@@ -482,8 +481,3 @@ def export_wordpress():
         "attachment; filename=wordpress_export.zip"
     )
     return response
-
-
-@blueprint.context_processor
-def inject_superadmin():
-    return dict(SUPERADMIN=SUPERADMIN)
