@@ -28,14 +28,14 @@ class PlayerStatsTab extends ConsumerWidget {
     final nonNullScores = player.games.scores.whereType<HanchanScore>();
     final List<int> scores = nonNullScores
         .map((s) => s.finalScore)
-        .whereNotNull()
+        .nonNulls
         .toList();
     List<int> rankings = player.rankings;
     List<int> totals = player.totalScores;
 
     final penalties = nonNullScores
         .map((e) => e.penalties)
-        .whereNotNull()
+        .nonNulls
         .sum;
 
     return ListView(

@@ -526,7 +526,7 @@ class DataTable2d extends DataTable {
       child: DefaultTextStyle(
         style: effectiveDataTextStyle.copyWith(
           color: placeholder
-              ? effectiveDataTextStyle.color!.withOpacity(0.6)
+              ? effectiveDataTextStyle.color!.withValues(alpha: 0.6)
               : null,
         ),
         child: DropdownButtonHideUnderline(child: label),
@@ -596,7 +596,7 @@ class DataTable2d extends DataTable {
     final defaultRowColor = WidgetStateProperty.resolveWith(
       (Set<WidgetState> states) {
         if (states.contains(WidgetState.selected)) {
-          return theme.colorScheme.primary.withOpacity(0.08);
+          return theme.colorScheme.primary.withValues(alpha: 0.08);
         }
         return null;
       },
