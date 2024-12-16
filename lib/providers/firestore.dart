@@ -222,8 +222,11 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
     if (!data.containsKey('rounds')) {
       return [];
     }
+    
+    final location = getLocation(data['timezone'].toString());
     return [
-      for (final Map round in data['rounds']) RoundData.fromMap(round.cast()),
+      for (final Map round in data['rounds']) 
+        RoundData.fromMap(round.cast(), location),
     ];
   });
 });
