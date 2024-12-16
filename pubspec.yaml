@@ -1,5 +1,5 @@
-name: aim_tournaments
-description: "All-Ireland Mahjong"
+name: world_riichi
+description: "World Riichi"
 
 # prevent the package from being accidentally published to pub.dev
 publish_to: 'none'
@@ -12,7 +12,7 @@ publish_to: 'none'
 # In iOS, build name is used as CFBundleShortVersionString
 # build number is used as CFBundleVersion.
 
-version: 1.0.1+43
+version: 1.0.1+44
 
 environment:
   sdk: '>=3.2.5 <4.0.0'
