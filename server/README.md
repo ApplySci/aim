@@ -1,4 +1,4 @@
-# Server-side stuff for the All-Ireland Mahjong Tournament app
+# Server-side stuff for the World Riichi Tournaments app
 
 I'm currently developing on Python 3.13
 
@@ -13,4 +13,4 @@ I run the main public instance on gunicorn:
 
 ### Seating algorithm
 
-See [seating/README](seating/README) for details.
+See [seating/README](seating/README.md) for details.

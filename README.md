@@ -1,4 +1,4 @@
-# AIM Tournaments
+# World Riichi App for Tournaments
 
 This is the [World Riichi](https://worldriichi.org/) mobile app.
 This provides live information about tournaments.
