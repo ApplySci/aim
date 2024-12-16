@@ -141,7 +141,15 @@ def edit_tournament():
             current_user.live_tournament.title = form.title.data
             current_user.live_tournament.google_doc_id = form.google_doc_id.data
             current_user.live_tournament.web_directory = form.web_directory.data
-            current_user.live_tournament.status = form.status.data
+
+            # Update status in Firebase
+            ref = firestore_client.collection("tournaments").document(firebase_id)
+            ref.update({"status": form.status.data})
+
+            # Clear the cached status
+            if "status" in current_user.live_tournament.__dict__:
+                del current_user.live_tournament.__dict__["status"]
+
             db.session.commit()
 
             # Create the web directory if it doesn't exist
