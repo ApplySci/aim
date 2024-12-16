@@ -350,7 +350,7 @@ final playerScoreProvider = StreamProvider.family
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
   final tournamentId = ref.watch(tournamentIdProvider);
   final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  
+
   final List<HanchanScore> emptyList = [];
   PlayerScore games = (
         id: 'unknown',
@@ -480,7 +480,7 @@ final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummar
   }
 
   try {
-    final response = await http.get(Uri.parse('/static/data/past_tournaments.json'));
+    final response = await http.get(Uri.parse('${metadata["api_base_url"]}/static/data/past_tournaments.json'));
 
     if (response.statusCode != 200) {
       Log.warn('API error: ${response.body}');
@@ -488,7 +488,9 @@ final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummar
     }
 
     final data = jsonDecode(response.body);
-    return data['tournaments'].map((item) => PastTournamentSummary.fromMap(item)).toList();
+    return List<PastTournamentSummary>.from(
+      data['tournaments'].map((item) => PastTournamentSummary.fromMap(item))
+    );
   } catch (e, stackTrace) {
     Log.error('Error fetching past tournaments: $e\n$stackTrace');
     return [];

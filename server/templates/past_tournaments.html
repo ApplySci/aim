@@ -2,10 +2,15 @@
 
 {% block title %}Past Tournaments{% endblock %}
 
+{% block extra_head %}
+<script src="/static/js/datatables.min.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/css/datatables.min.css">
+{% endblock %}
+
 {% block content %}
 <h1>Past Tournaments</h1>
 
-<table class="past-tournaments">
+<table id="past-tournaments" class="dataTable">
     <thead>
         <tr>
             <th>Name</th>
@@ -42,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('tournaments-body').innerHTML = 
             '<tr><td colspan="5">Error loading tournaments</td></tr>';
     }
+    let table = new DataTable('#past-tournaments');
 });
 </script>
 {% endblock %} 
