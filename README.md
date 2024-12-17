@@ -120,6 +120,14 @@ the base URL of your server.
 -   There will be a google service account with an email of the form: `firebase-adminsdk-{something}@domain-name-backwards-with-dashes.iam.gserviceaccount.com`. Make sure this email address has editor permissions for the google sheet score template.
 - You'll need an account on the play store to distribute the app.
 
+From the command-line, install the Firebase CLI and generate your firebase_options.dart file:
+```
+npm install -g firebase-tools
+dart pub global activate flutterfire_cli
+firebase login
+flutterfire configure
+```
+
 ## APN - Apple Push Notifications
 Once you've got the google firebase cloud messaging working, you'll need to set up the APN to reach Apple devices.
 
