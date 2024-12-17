@@ -27,24 +27,49 @@ Future<void> initFirebase() => Firebase.initializeApp(
     );
 
 Future<void> initFirebaseMessaging() async {
-  await FirebaseMessaging.instance.requestPermission(
+  final settings = await FirebaseMessaging.instance.requestPermission(
     alert: true,
     announcement: false,
     badge: true,
     carPlay: false,
-    criticalAlert: false, // this is for emergency services and the like. Not us
+    criticalAlert: false,
     provisional: false,
     sound: true,
   );
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  Log.debug('FCM Authorization status: ${settings.authorizationStatus}');
+  Log.debug('Alert setting: ${settings.alert}');
+  Log.debug('Sound setting: ${settings.sound}');
+  
+  // Get FCM token and log it
+  final token = await FirebaseMessaging.instance.getToken();
+  Log.debug('FCM Token: $token');
+  
+  // Configure how to handle notifications when app is in foreground
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  
+  // Listen for foreground messages
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    Log.debug('Got a message whilst in the foreground!');
+    Log.debug('Message data: ${message.data}');
+
+    if (message.notification != null) {
+      Log.debug('Message also contained notification: ${message.notification}');
+    }
+  });
 }
 
 // the following pragma prevents the function from being "optimised" out
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  Log.debug('Handling a background message: ${message.messageId}');
-  Log.debug('Message body: ${message.notification?.body}');
-  // TODO may need to update values if app is in background - particularly if schedule is updated - we must update alarms
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  Log.debug('Handling a background message ${message.messageId}');
+  Log.debug('Notification: ${message.notification?.title}');
+  Log.debug('Data: ${message.data}');
 }
 
 Future<void> initPermissions() async {
