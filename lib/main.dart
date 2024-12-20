@@ -72,20 +72,47 @@ Future<void> initFirebaseMessaging() async {
 }
 
 void _handleMessage(RemoteMessage message) {
-  Log.debug('Handling message: ${message.messageId}');
-  // Add any navigation or state handling logic here
-  // For now, just log the message
-  Log.debug('Message data: ${message.data}');
-  Log.debug('Message notification: ${message.notification}');
+  try {
+    if (!Firebase.apps.isNotEmpty) {
+      print('Firebase not initialized, skipping message handling');
+      return;
+    }
+    
+    Log.debug('Handling message: ${message.messageId}');
+    Log.debug('Message data: ${message.data}');
+    Log.debug('Message notification: ${message.notification}');
+    
+    // Add any navigation or state handling logic here
+    // Make sure to check if the app is ready first
+    
+  } catch (e, stack) {
+    print('Error handling message: $e');
+    print('Stack trace: $stack');
+  }
 }
 
 // the following pragma prevents the function from being "optimised" out
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  Log.debug('Handling a background message ${message.messageId}');
-  Log.debug('Notification: ${message.notification?.title}');
-  Log.debug('Data: ${message.data}');
+  // Don't do anything that could access providers or UI here
+  try {
+    // Initialize Firebase first
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    
+    // Log basic info without accessing any providers or services
+    print('Background message received:');
+    print('MessageId: ${message.messageId}');
+    print('Title: ${message.notification?.title}');
+    print('Body: ${message.notification?.body}');
+    print('Data: ${message.data}');
+    
+    // Don't try to navigate or update UI state here
+    // Just store the message data if needed for later
+    
+  } catch (e, stack) {
+    print('Error in background handler: $e');
+    print('Stack trace: $stack');
+  }
 }
 
 Future<void> initPermissions() async {
@@ -98,9 +125,23 @@ Future<void> initPermissions() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Register background handler BEFORE Firebase init
+  // Register background handler first
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+  // Initialize Firebase core before anything else
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    // Only then initialize messaging
+    await initFirebaseMessaging();
+    
+  } catch (e, stack) {
+    print('Firebase initialization error: $e');
+    print('Stack trace: $stack');
+  }
+  
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black,
     statusBarIconBrightness: Brightness.light,
@@ -109,13 +150,6 @@ Future<void> main() async {
   ));
 
   initializeTimeZones();
-
-  try {
-    await initFirebase();
-    await initFirebaseMessaging();
-  } catch (e) {
-    Log.error('Failed to initialize Firebase: $e');
-  }
 
   // Always initialize permissions and alarms
   await initPermissions();
