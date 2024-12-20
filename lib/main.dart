@@ -52,15 +52,31 @@ Future<void> initFirebaseMessaging() async {
     sound: true,
   );
 
-  // Listen for foreground messages
+  // Handle notification open when app is terminated
+  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    _handleMessage(initialMessage);
+  }
+
+  // Handle notification open when app is in background
+  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+  // Handle foreground messages
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     Log.debug('Got a message whilst in the foreground!');
     Log.debug('Message data: ${message.data}');
-
     if (message.notification != null) {
       Log.debug('Message also contained notification: ${message.notification}');
     }
   });
+}
+
+void _handleMessage(RemoteMessage message) {
+  Log.debug('Handling message: ${message.messageId}');
+  // Add any navigation or state handling logic here
+  // For now, just log the message
+  Log.debug('Message data: ${message.data}');
+  Log.debug('Message notification: ${message.notification}');
 }
 
 // the following pragma prevents the function from being "optimised" out
@@ -80,24 +96,25 @@ Future<void> initPermissions() async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // do this before everything
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Register background handler BEFORE Firebase init
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.black, //top bar color
-    statusBarIconBrightness: Brightness.light, //top bar icons
-    systemNavigationBarColor: Colors.black, //bottom bar color
-    systemNavigationBarIconBrightness: Brightness.light, //bottom bar icons
+    statusBarColor: Colors.black,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.black,
+    systemNavigationBarIconBrightness: Brightness.light,
   ));
 
   initializeTimeZones();
 
-  // Separate Firebase initialization
   try {
     await initFirebase();
     await initFirebaseMessaging();
   } catch (e) {
     Log.error('Failed to initialize Firebase: $e');
-    // Continue with the app even if Firebase fails
   }
 
   // Always initialize permissions and alarms
