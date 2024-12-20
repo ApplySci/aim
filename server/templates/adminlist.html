@@ -5,10 +5,16 @@
 {% block content %}
 <h2>Admin Tools</h2>
 
-{% if current_user.live_tournament_role.value == 'admin' %}
+{% if current_user.email == SUPERADMIN %}
 <form action="{{ url_for('user_management.sync_access_route') }}" method="POST">
     <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">
         Sync access permissions between Database & Google Sheets
+    </button>
+</form>
+
+<form action="{{ url_for('admin.regenerate_past_tournaments') }}" method="POST">
+    <button type="submit" id="regeneratePastBtn" class="btn btn-warning mb-3">
+        Regenerate Past Tournaments JSON
     </button>
 </form>
 {% endif %}

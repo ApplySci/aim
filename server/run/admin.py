@@ -1,16 +1,38 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, render_template, jsonify, abort
-from flask_login import login_required, current_user
+from functools import wraps
 import os
 import shutil
-from functools import wraps
-from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
-from write_sheet import googlesheet
+
+from flask import abort, Blueprint, flash, jsonify, redirect, render_template, url_for
+from flask_login import login_required, current_user
+
+from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, SUPERADMIN, TEMPLATE_ID
 from models import Tournament, Access, User, PastTournamentData
 from oauth_setup import db, firestore_client, login_required, superadmin_required
+from operations.archive import update_past_tournaments_json
+from operations.queries import get_past_tournament_summaries
+from write_sheet import googlesheet
+
 
 blueprint = Blueprint("admin", __name__)
+
+
+@blueprint.route("/regenerate_past_tournaments", methods=["POST"])
+@login_required
+def regenerate_past_tournaments():
+    if current_user.email != SUPERADMIN:
+        flash("Unauthorized", "error")
+        return redirect(url_for("admin.superadmin"))
+
+    try:
+        tournaments = get_past_tournament_summaries()
+        update_past_tournaments_json(tournaments)
+        flash("Past tournaments JSON regenerated successfully", "success")
+    except Exception as e:
+        flash(f"Error regenerating past tournaments JSON: {str(e)}", "error")
+
+    return redirect(url_for("admin.superadmin"))
 
 
 @blueprint.route(
@@ -72,7 +94,9 @@ def superadmin():
     try:
         # Get active tournaments from Firestore
         active_tournaments = []
-        for tournament in db.session.query(Tournament).filter(Tournament.past_data == None).all():
+        for tournament in (
+            db.session.query(Tournament).filter(Tournament.past_data == None).all()
+        ):
             if tournament.firebase_doc:
                 doc_ref = firestore_client.collection("tournaments").document(
                     tournament.firebase_doc
@@ -106,7 +130,7 @@ def superadmin():
             docs=our_docs,
             active_tournaments=active_tournaments,
             archived_tournaments=archived_tournaments,
-            users_without_access=users_without_access
+            users_without_access=users_without_access,
         )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500

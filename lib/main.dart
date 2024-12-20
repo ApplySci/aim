@@ -1,5 +1,3 @@
-// TODO utf8 for info screen
-
 import 'dart:async';
 import 'dart:io' show Platform;
 

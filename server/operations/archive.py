@@ -21,17 +21,23 @@ def ensure_data_directory():
     """Ensure the data directory exists"""
     os.makedirs(os.path.dirname(PAST_TOURNAMENTS_FILE), exist_ok=True)
 
-def update_past_tournaments_json():
-    """Update the static JSON file with current past tournament data"""
+def update_past_tournaments_json(tournaments: list[Tournament]) -> None:
+    """Update the static JSON file containing past tournament data"""
     ensure_data_directory()
-    tournaments = get_past_tournament_summaries()
     summaries = tournaments_to_summaries(tournaments)
     
     with open(PAST_TOURNAMENTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump({
-            'last_updated': datetime.utcnow().isoformat(),
-            'tournaments': summaries
-        }, f, ensure_ascii=False, indent=2)
+        json.dump(
+            {'tournaments': summaries}, 
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+    
+    # Update the last_updated timestamp in Firestore
+    firestore_client.collection('metadata').document('past_tournaments').set({
+        'last_updated': firestore.SERVER_TIMESTAMP
+    }, merge=True)
 
 def find_matching_player(name: str, tournament_id: int, threshold: float = 1.1) -> ArchivedPlayer | None:
     """Find existing player with matching name using fuzzy matching"""

@@ -1,14 +1,15 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 import '/models.dart';
-import '/utils.dart';
-import 'shared_preferences.dart';
 import 'seat_map.dart';
+import 'shared_preferences.dart';
+import '/utils.dart';
 
 final firebaseProvider = Provider((ref) => FirebaseFirestore.instance);
 
@@ -224,10 +225,10 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
     if (!data.containsKey('rounds')) {
       return [];
     }
-    
+
     final location = getLocation(data['timezone'].toString());
     return [
-      for (final Map round in data['rounds']) 
+      for (final Map round in data['rounds'])
         RoundData.fromMap(round.cast(), location),
     ];
   });
@@ -478,6 +479,8 @@ final pastTournamentsMetadataProvider = StreamProvider<Map<String, dynamic>?>((r
 
 final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummary>>((ref) async {
   final metadata = await ref.watch(pastTournamentsMetadataProvider.future);
+  // Watch the last_updated timestamp to trigger refreshes
+  final _ = await ref.watch(pastTournamentsLastUpdatedProvider.future);
 
   if (metadata == null) {
     Log.warn('No past tournaments metadata found');
@@ -492,10 +495,17 @@ final pastTournamentSummariesProvider = FutureProvider<List<PastTournamentSummar
       return [];
     }
 
-    final data = jsonDecode(response.body);
-    return List<PastTournamentSummary>.from(
-      data['tournaments'].map((item) => PastTournamentSummary.fromMap(item))
+    // Explicitly decode the response body as UTF-8 before parsing JSON
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+    final summaries = List<PastTournamentSummary>.from(
+      data['tournaments'].map((item) {
+        final summary = PastTournamentSummary.fromMap(item);
+        return summary;
+      })
     );
+
+    return summaries;
   } catch (e, stackTrace) {
     Log.error('Error fetching past tournaments: $e\n$stackTrace');
     return [];
