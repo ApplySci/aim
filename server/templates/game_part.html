@@ -10,12 +10,21 @@
     <th>Penalty
     <th>Total
 {% for p in range(4) %}
-    <tr class=pid{{ scores[''~p][0] }}>
-        <td class=name>{{ playerLink(players, scores[''~p][0]) }}
-        <td class=place>{{ scores[''~p][3] }}
-        <td class={{ scores[''~p][2] | scoreClass }}>{{ scores[''~p][2] | prettyScore }}
-        {% set uma=scores[''~p][4] - scores[''~p][2] - scores[''~p][1] %}
-        <td class={{ uma | scoreClass}}>{{ uma | prettyScore }}
-        <td class={{ scores[''~p][1] | scoreClass }}>{{ scores[''~p][1] | prettyScore}}
-        <td class="total {{ scores[''~p][4] | scoreClass }}">{{ scores[''~p][4] | prettyScore }}
+    {% if ''~p in scores and scores[''~p] %}
+        <tr class=pid{{ scores[''~p][0] }}>
+            <td class=name>{{ playerLink(players, scores[''~p][0]) }}
+            <td class=place>{{ scores[''~p][3] if scores[''~p][3] is not none else '-' }}
+            <td class={{ scores[''~p][2] | scoreClass }}>{{ scores[''~p][2] | prettyScore if scores[''~p][2] is not none else '-' }}
+            {% if scores[''~p][4] is not none and scores[''~p][2] is not none and scores[''~p][1] is not none %}
+                {% set uma = scores[''~p][4] - scores[''~p][2] - scores[''~p][1] %}
+            {% else %}
+                {% set uma = none %}
+            {% endif %}
+            <td class={{ uma | scoreClass}}>{{ uma | prettyScore if uma is not none else '-' }}
+            <td class={{ scores[''~p][1] | scoreClass }}>{{ scores[''~p][1] | prettyScore if scores[''~p][1] is not none else '-' }}
+            <td class="total {{ scores[''~p][4] | scoreClass }}">{{ scores[''~p][4] | prettyScore if scores[''~p][4] is not none else '-' }}
+    {% else %}
+        <tr>
+            <td colspan="6" class="empty-score">-</td>
+    {% endif %}
 {% endfor %}

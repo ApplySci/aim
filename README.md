@@ -148,7 +148,7 @@ The p8 key file, Key ID and Team ID then go into the firebase console.
 Check your App ID:
 - In the left sidebar, click on "Certificates, Identifiers & Profiles".
 - Under "Identifiers", click on "App IDs".
-- Find your app's identifier (it should match your bundle ID - ie.mahjong.tournament).
+- Find your app's identifier (it should match your bundle ID, eg `ie.mahjong.tournament`).
 - Click on it and ensure that "Push Notifications" is enabled in the capabilities list.
 
 Check your Certificates:

@@ -10,6 +10,7 @@ fcm-admin.json*
 config.py*
 firebase_options.dart*
 firebase_app_id_file.json*
+firebase.json*
 
 # Miscellaneous
 *.class
@@ -62,4 +63,4 @@ app.*.map.json
 /.vscode/settings.json
 /server/seating/gams/cplex.opt
 /server/seating/gams/seats/*
-/server/seating/gams/225*
+/server/seating/gams/2*

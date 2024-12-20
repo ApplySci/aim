@@ -1,3 +1,5 @@
+// TODO utf8 for info screen
+
 import 'dart:async';
 import 'dart:io' show Platform;
 
@@ -36,22 +38,22 @@ Future<void> initFirebaseMessaging() async {
     provisional: false,
     sound: true,
   );
-  
+
   Log.debug('FCM Authorization status: ${settings.authorizationStatus}');
   Log.debug('Alert setting: ${settings.alert}');
   Log.debug('Sound setting: ${settings.sound}');
-  
+
   // Get FCM token and log it
   final token = await FirebaseMessaging.instance.getToken();
   Log.debug('FCM Token: $token');
-  
+
   // Configure how to handle notifications when app is in foreground
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
     alert: true,
     badge: true,
     sound: true,
   );
-  
+
   // Listen for foreground messages
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     Log.debug('Got a message whilst in the foreground!');

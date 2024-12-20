@@ -456,7 +456,9 @@ def update_ranking_and_scores():
             # Store completion status
             _store_job_status(job_id, "Scores updated successfully")
         except Exception as e:
-            _store_job_status(job_id, f"Error: {str(e)}")
+            error_msg = f"Error updating scores: {str(e)}"
+            logging.error(error_msg, exc_info=True)
+            _store_job_status(job_id, error_msg)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()

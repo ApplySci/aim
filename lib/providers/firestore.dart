@@ -160,7 +160,7 @@ final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
       if (roundDone != null) {
         final roundScores = tournament.rankings![roundDone.toString()];
         if (roundScores != null) {
-          yield [
+          final scores = [
             for (final MapEntry(:key, :value) in (roundScores as Map<String, dynamic>).entries)
               PlayerRankData(
                 seat: int.parse(key),
@@ -170,6 +170,8 @@ final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
                 penalty: value['p'] as int,
               )
           ];
+          scores.sort((a, b) => a.rank.compareTo(b.rank));
+          yield scores;
           return;
         }
       }
