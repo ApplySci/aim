@@ -94,6 +94,9 @@ void _handleMessage(RemoteMessage message) {
 // the following pragma prevents the function from being "optimised" out
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (Platform.isIOS) {
+    return;
+  }
   // Don't do anything that could access providers or UI here
   try {
     // Initialize Firebase first
