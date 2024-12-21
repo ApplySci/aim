@@ -22,9 +22,6 @@ import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
 
-Future<void> initFirebase() => Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
 
 Future<void> initFirebaseMessaging() async {
   final settings = await FirebaseMessaging.instance.requestPermission(
@@ -36,10 +33,6 @@ Future<void> initFirebaseMessaging() async {
     provisional: false,
     sound: true,
   );
-
-  Log.debug('FCM Authorization status: ${settings.authorizationStatus}');
-  Log.debug('Alert setting: ${settings.alert}');
-  Log.debug('Sound setting: ${settings.sound}');
 
   // Get FCM token and log it
   final token = await FirebaseMessaging.instance.getToken();
@@ -94,9 +87,6 @@ void _handleMessage(RemoteMessage message) {
 // the following pragma prevents the function from being "optimised" out
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (Platform.isIOS) {
-    return;
-  }
   // Don't do anything that could access providers or UI here
   try {
     // Initialize Firebase first
