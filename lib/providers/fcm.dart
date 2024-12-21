@@ -12,6 +12,11 @@ final fcmTokenProvider = StreamProvider((ref) async* {
 });
 
 final apnsTokenProvider = StreamProvider((ref) async* {
+  if (!const bool.fromEnvironment('dart.vm.product')) {
+    yield '';
+    return;
+  }
+  
   final fcm = ref.watch(fcmProvider);
   yield await fcm.getAPNSToken() ?? '';
   yield* FirebaseMessaging.instance.onTokenRefresh;

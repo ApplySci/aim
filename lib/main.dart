@@ -24,44 +24,84 @@ import 'views/tournament_page/page.dart';
 
 
 Future<void> initFirebaseMessaging() async {
-  final settings = await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
-
-  // Get FCM token and log it
-  final token = await FirebaseMessaging.instance.getToken();
-  Log.debug('FCM Token: $token');
-
-  // Configure how to handle notifications when app is in foreground
-  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  // Handle notification open when app is terminated
-  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    _handleMessage(initialMessage);
+  // Skip FCM initialization in simulator
+  if (Platform.isIOS && !const bool.fromEnvironment('dart.vm.product')) {
+    Log.debug('Skipping FCM initialization in iOS simulator');
+    return;
   }
 
-  // Handle notification open when app is in background
-  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+  try {
+    final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
 
-  // Handle foreground messages
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    Log.debug('Got a message whilst in the foreground!');
-    Log.debug('Message data: ${message.data}');
-    if (message.notification != null) {
-      Log.debug('Message also contained notification: ${message.notification}');
+    final token = await Future.any([
+      FirebaseMessaging.instance.getToken(),
+      Future.delayed(const Duration(seconds: 5), () => null),
+    ]);
+    
+    if (token != null) {
+      Log.debug('FCM Token: $token');
+    } else {
+      Log.debug('Failed to get FCM token within timeout');
     }
-  });
+
+    // Configure how to handle notifications when app is in foreground
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Handle notification open when app is terminated
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessage(initialMessage);
+    }
+
+    // Handle notification open when app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      Log.debug('Got a message whilst in the foreground!');
+      
+      final notification = message.notification;
+      if (notification != null) {
+        final scaffoldMessenger = ScaffoldMessenger.of(
+            globalNavigatorKey.currentState!.overlay!.context
+        );
+        
+        if (scaffoldMessenger != null) {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(notification.title ?? ''),
+                  if (notification.body != null)
+                    Text(
+                      notification.body!,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+    });
+  } catch (e) {
+    Log.debug('Firebase Messaging initialization failed: $e');
+    // Continue app initialization even if FCM fails
+  }
 }
 
 void _handleMessage(RemoteMessage message) {
@@ -71,16 +111,54 @@ void _handleMessage(RemoteMessage message) {
       return;
     }
 
-    Log.debug('Handling message: ${message.messageId}');
-    Log.debug('Message data: ${message.data}');
-    Log.debug('Message notification: ${message.notification}');
+    final data = message.data;
+    final tournamentId = data['tournament_id'];
+    final notificationType = data['notification_type'];
 
-    // Add any navigation or state handling logic here
-    // Make sure to check if the app is ready first
+    if (tournamentId == null || notificationType == null) {
+      Log.debug('Missing required notification data');
+      return;
+    }
+
+    // Set the initial tab via provider
+    final container = ProviderContainer();
+    container.read(initialTabProvider.notifier).state = _getTabIndexForNotification(notificationType);
+
+    // Navigate to tournament without tab argument
+    globalNavigatorKey.currentState?.pushNamed(
+      ROUTES.tournament,
+      arguments: {
+        'tournament_id': tournamentId,
+      },
+    );
 
   } catch (e, stack) {
     Log.debug('Error handling message: $e');
     Log.debug('Stack trace: $stack');
+  }
+}
+
+int _getTabIndexForNotification(String type) {
+  final container = ProviderContainer();
+  final tournamentStatus = container.read(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+
+  // Don't navigate to scores tab if tournament hasn't started
+  if (type == 'scores' && tournamentStatus == WhenTournament.upcoming) {
+    Log.debug('Ignoring scores notification for upcoming tournament');
+    return 0;  // Default to info tab
+  }
+
+  switch (type) {
+    case 'scores':
+      return 0;
+    case 'info':
+      return tournamentStatus == WhenTournament.upcoming ? 0 : 1;
+    case 'seating':
+      return tournamentStatus == WhenTournament.upcoming ? 1 : 2;
+    case 'players':
+      return tournamentStatus == WhenTournament.upcoming ? 2 : 3;
+    default:
+      return 0;
   }
 }
 
@@ -292,3 +370,5 @@ class _MyApp extends ConsumerWidget {
     );
   }
 }
+
+final initialTabProvider = StateProvider<int?>((ref) => null);

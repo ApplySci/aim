@@ -11,6 +11,7 @@ import 'tabs/round_list_tab.dart';
 import 'tabs/score_tab.dart';
 
 final pageProvider = StateProvider((ref) => 0);
+final initialTabProvider = StateProvider<int?>((ref) => null);
 
 class TournamentPage extends ConsumerWidget {
   const TournamentPage({super.key});
@@ -20,6 +21,15 @@ class TournamentPage extends ConsumerWidget {
     final page = ref.watch(pageProvider);
     final tournament = ref.watch(tournamentProvider);
     final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+
+    // Check for initial tab from notification
+    final initialTab = ref.watch(initialTabProvider);
+    if (initialTab != null) {
+      // Clear the initial tab so it's only used once
+      ref.read(initialTabProvider.notifier).state = null;
+      // Set the page
+      ref.read(pageProvider.notifier).state = initialTab;
+    }
 
     return tournament.when(
       skipLoadingOnReload: true,

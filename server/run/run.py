@@ -145,13 +145,18 @@ def _ranking_to_web(scores, games, players, done, schedule):
 
 
 @login_required
-def _send_topic_fcm(topic: str, title: str, body: str):
+def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
             body=body,
         ),
-        topic=topic,  # The topic name
+        data={
+            'tournament_id': current_user.live_tournament.firebase_doc,
+            'tournament_name': current_user.live_tournament.title,
+            'notification_type': notification_type,  # 'players', 'seating', 'schedule', 'scores'
+        },
+        topic=topic,
     )
     messaging.send(message)
 
@@ -239,11 +244,8 @@ def update_schedule():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("seating & schedule updated")
-        return (
-            jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
-            200,
-        )
+        _send_messages("seating & schedule updated", 'seating')
+        return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
     else:
         return (
             jsonify({"status": "SEATING & SCHEDULE updated, NO notifications"}),
@@ -281,17 +283,16 @@ def update_players():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("player list updated")
+        _send_messages("player list updated", 'players')
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
         return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
 
 
 @login_required
-def _send_messages(msg: str):
-    """ """
+def _send_messages(msg: str, notification_type: str):
     firebase_id = current_user.live_tournament.firebase_doc
-    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title)
+    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title, notification_type)
 
 
 @login_required
@@ -309,6 +310,7 @@ def _message_player_topics(scores: dict, done: int, players):
             f"{firebase_id}-{k}",
             f"{name} is now in position {('','=')[v['t']]}{v['r']}",
             f"with {v['total']/10} points after {done} round(s)",
+            'scores'
         )
 
 
