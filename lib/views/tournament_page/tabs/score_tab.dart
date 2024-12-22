@@ -53,7 +53,7 @@ class ScoreTable extends ConsumerWidget {
   const ScoreTable({super.key});
 
   void onTap(BuildContext context, int seat) =>
-      Navigator.of(context).pushNamed(ROUTES.player, arguments: {'seat': seat});
+      Navigator.of(context).popAndPushNamed(ROUTES.player, arguments: {'seat': seat});
 
   @override
   Widget build(context, ref) {
@@ -169,8 +169,8 @@ class ScoreRow extends DataRow2 {
           DataCell(ScoreText(score.total)),
           for (int i = rounds - 1; i >= 0; i--)
             DataCell(
-              i < score.scores.length 
-                  ? (score.scores[i]?.finalScore != null 
+              i < score.scores.length
+                  ? (score.scores[i]?.finalScore != null
                       ? ScoreText(score.scores[i]!.finalScore)
                       : const Text('-'))
                   : const Text('-'),

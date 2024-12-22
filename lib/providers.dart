@@ -123,24 +123,3 @@ extension AutoDisposeRefListen on Ref {
         fireImmediately: fireImmediately,
       );
 }
-
-/// Handles pending notifications stored in shared preferences
-final pendingNotificationProvider = StateProvider.autoDispose((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-
-  // Check for pending notification
-  final tournamentId = prefs.getString(notificationTournamentKey);
-  final tabType = prefs.getString(notificationTabKey);
-
-  if (tournamentId == null || tabType == null) return null;
-
-  // Clear the stored notification immediately
-  prefs.remove(notificationTournamentKey);
-  prefs.remove(notificationTabKey);
-
-  Log.debug('notifying to switch to tab $tabType');
-  return (
-    tournamentId: tournamentId,
-    tab: tabType,
-  );
-});

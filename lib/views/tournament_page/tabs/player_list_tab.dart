@@ -135,7 +135,7 @@ class PlayerTile extends ConsumerWidget {
             : const Icon(Icons.favorite_border),
       ),
       onTap: () =>
-          Navigator.of(context).pushNamed(ROUTES.player, arguments: {
+          Navigator.of(context).popAndPushNamed(ROUTES.player, arguments: {
             'playerId': player.id,
             'seat': player.seat,
           }),

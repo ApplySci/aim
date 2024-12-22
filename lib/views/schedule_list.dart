@@ -196,7 +196,7 @@ class ScheduleList extends ConsumerWidget {
                                 ' (phone time)',
                               ),
                         visualDensity: VisualDensity.compact,
-                        onTap: () => Navigator.of(context).pushNamed(
+                        onTap: () => Navigator.of(context).popAndPushNamed(
                           ROUTES.round,
                           arguments: round.id,
                         ),
@@ -239,7 +239,7 @@ class AssignedTable extends ConsumerWidget {
   final Map<Wind, PlayerData> players;
 
   void onTap(BuildContext context, PlayerData player) =>
-      Navigator.of(context).pushNamed(
+      Navigator.of(context).popAndPushNamed (
         ROUTES.player,
         arguments: {
           'playerId': player.id,

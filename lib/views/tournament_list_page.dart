@@ -166,18 +166,18 @@ class PastTournamentList extends ConsumerWidget {
                 barrierDismissible: false,
                 builder: (context) => const LoadingDialog(),
               );
-              
+
               try {
                 // Load tournament details
                 await ref.read(pastTournamentDetailsProvider(summary.id).future);
-                
+
                 // Set the tournament ID
                 await ref.read(tournamentIdProvider.notifier).set(summary.id);
-                
+
                 // Navigate to tournament page
                 if (context.mounted) {
                   Navigator.pop(context); // Dismiss loading dialog
-                  Navigator.of(context).pushNamed(ROUTES.tournament);
+                  Navigator.of(context).popAndPushNamed(ROUTES.tournament);
                 }
               } catch (e) {
                 if (context.mounted) {

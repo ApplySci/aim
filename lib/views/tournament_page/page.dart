@@ -56,19 +56,11 @@ class TournamentPage extends ConsumerWidget {
     final tournament = ref.watch(tournamentProvider);
     final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
 
-    // Check for pending notification
-    final pendingNotification = ref.watch(pendingNotificationProvider);
-    if (pendingNotification != null) {
-      Log.debug('Processing pending notification');
-      final index = TournamentTab.fromNotificationType(
-        pendingNotification.tab).toIndex(tournamentStatus);
-      Log.debug('Setting page to index: $index');
-
-      // Schedule the state changes for after build
-      Future(() {
-        ref.read(pageProvider.notifier).state = index;
-        ref.read(pendingNotificationProvider.notifier).state = null;
-      });
+    // Handle initial tab from notification
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args?['initial_tab'] case String tab) {
+      final index = TournamentTab.fromNotificationType(tab).toIndex(tournamentStatus);
+      Future(() => ref.read(pageProvider.notifier).state = index);
     }
 
     return tournament.when(
@@ -108,7 +100,7 @@ class TournamentPage extends ConsumerWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.settings),
-                onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+                onPressed: () => Navigator.popAndPushNamed(context, ROUTES.settings),
               ),
             ],
           ),

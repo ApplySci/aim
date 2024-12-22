@@ -78,17 +78,18 @@ void handleNotificationOpen(RemoteMessage message) {
   try {
     final data = message.data;
     final tournamentId = data['tournament_id'];
+    final notificationType = data['notification_type'];
 
     if (tournamentId == null) {
       Log.debug('Missing tournament_id in notification');
       return;
     }
 
-    // Navigate to tournament when user taps notification
-    globalNavigatorKey.currentState?.pushNamed(
+    globalNavigatorKey.currentState?.popAndPushNamed(
       ROUTES.tournament,
       arguments: {
         'tournament_id': tournamentId,
+        'initial_tab': notificationType,
       },
     );
 
@@ -102,16 +103,9 @@ void handleNotificationOpen(RemoteMessage message) {
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
     Log.debug('in firebaseMessagingBackgroundHandler:');
-    Log.debug('MessageId: ${message.messageId}');
-    Log.debug('Title: ${message.notification?.title}');
-    Log.debug('Body: ${message.notification?.body}');
-    Log.debug('Data: ${message.data}');
-
   } catch (e, stack) {
-    Log.debug('Error in background handler: $e');
-    Log.debug('Stack trace: $stack');
+    Log.warn('Error in background handler: $e');
   }
 }
 
@@ -127,9 +121,6 @@ Future<void> initFirebaseMessaging() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // Register background handler
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
@@ -140,65 +131,67 @@ Future<void> initFirebaseMessaging() async {
       sound: true,
     );
 
-    final token = await Future.any([
-      FirebaseMessaging.instance.getToken(),
-      Future.delayed(const Duration(seconds: 5), () => null),
-    ]);
-
-    if (token == null) {
-      Log.debug('Failed to get FCM token within timeout');
-    } else {
+    FirebaseMessaging.instance.getToken().then((String? token) {
+      if (token == null) {
+        Log.debug('Failed to get FCM token');
+        return;
+      }
       Log.debug('FCM Token: $token');
-    }
 
-    // Configure how to handle notifications when app is in foreground
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+      // Register background handler
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Handle notification open when app is terminated
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        Log.debug('in initFirebaseMessaging with initialMessage');
+
+      // Configure how to handle notifications when app is in foreground
+      FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // user has tapped on notification to open killed app
+      FirebaseMessaging.instance.getInitialMessage().then((message) {
+        if (message != null) {
+          Log.debug('in initFirebaseMessaging with initialMessage');
+          handleNotificationOpen(message);
+        }
+      });
+
+      // user has tapped on notification to bring backgrounded app to the foreground
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        Log.debug(
+            'in initFirebaseMessaging/onMessageOpenedApp - ${message.data}');
         handleNotificationOpen(message);
-      }
-    });
+      });
 
-    // Handle notification open when app is in background
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      Log.debug('in initFirebaseMessaging/onMessageOpenedApp');
-      handleNotificationOpen(message);
-    });
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((message) {
+        Log.debug('In initFirebaseMessaging/onMessage');
 
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((message) {
-      Log.debug('In initFirebaseMessaging/onMessage');
+        final notification = message.notification;
+        if (notification != null) {
+          final context = globalNavigatorKey.currentState?.overlay?.context;
+          if (context == null || !context.mounted) return;
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-      final notification = message.notification;
-      if (notification != null) {
-        final context = globalNavigatorKey.currentState?.overlay?.context;
-        if (context == null || !context.mounted) return;
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(notification.title ?? ''),
-                if (notification.body != null)
-                  Text(
-                    notification.body!,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-              ],
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(notification.title ?? ''),
+                  if (notification.body != null)
+                    Text(
+                      notification.body!,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                ],
+              ),
             ),
-          ),
-        );
-      }
+          );
+        }
+      });
     });
   } catch (e) {
     Log.debug('Firebase Messaging initialization failed: $e');
