@@ -11,7 +11,42 @@ import 'tabs/round_list_tab.dart';
 import 'tabs/score_tab.dart';
 
 final pageProvider = StateProvider((ref) => 0);
-final initialTabProvider = StateProvider<int?>((ref) => null);
+final initialTabProvider = StateProvider<TournamentTab?>((ref) => null);
+
+enum TournamentTab {
+  scores,
+  info,
+  seating,
+  players;
+
+  int toIndex(WhenTournament tournamentStatus) {
+    // If tournament hasn't started yet, scores tab isn't shown
+    if (tournamentStatus == WhenTournament.upcoming) {
+      return switch (this) {
+        TournamentTab.scores => 0,  // Default to info if scores not available
+        TournamentTab.info => 0,
+        TournamentTab.seating => 1,
+        TournamentTab.players => 2,
+      };
+    }
+    return switch (this) {
+      TournamentTab.scores => 0,
+      TournamentTab.info => 1,
+      TournamentTab.seating => 2,
+      TournamentTab.players => 3,
+    };
+  }
+
+  static TournamentTab fromNotificationType(String type) {
+    return switch (type) {
+      'scores' => TournamentTab.scores,
+      'info' => TournamentTab.info,
+      'seating' => TournamentTab.seating,
+      'players' => TournamentTab.players,
+      _ => TournamentTab.info,
+    };
+  }
+}
 
 class TournamentPage extends ConsumerWidget {
   const TournamentPage({super.key});
@@ -28,7 +63,7 @@ class TournamentPage extends ConsumerWidget {
       // Clear the initial tab so it's only used once
       ref.read(initialTabProvider.notifier).state = null;
       // Set the page
-      ref.read(pageProvider.notifier).state = initialTab;
+      ref.read(pageProvider.notifier).state = initialTab.toIndex(tournamentStatus);
     }
 
     return tournament.when(

@@ -31,6 +31,12 @@ Future<void> initFirebaseMessaging() async {
   }
 
   try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // Register background handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
     final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         announcement: false,
@@ -45,11 +51,11 @@ Future<void> initFirebaseMessaging() async {
       FirebaseMessaging.instance.getToken(),
       Future.delayed(const Duration(seconds: 5), () => null),
     ]);
-    
-    if (token != null) {
-      Log.debug('FCM Token: $token');
-    } else {
+
+    if (token == null) {
       Log.debug('Failed to get FCM token within timeout');
+    } else {
+      Log.debug('FCM Token: $token');
     }
 
     // Configure how to handle notifications when app is in foreground
@@ -71,13 +77,13 @@ Future<void> initFirebaseMessaging() async {
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       Log.debug('Got a message whilst in the foreground!');
-      
+
       final notification = message.notification;
       if (notification != null) {
         final scaffoldMessenger = ScaffoldMessenger.of(
             globalNavigatorKey.currentState!.overlay!.context
         );
-        
+
         if (scaffoldMessenger != null) {
           scaffoldMessenger.showSnackBar(
             SnackBar(
@@ -122,9 +128,10 @@ void _handleMessage(RemoteMessage message) {
 
     // Set the initial tab via provider
     final container = ProviderContainer();
-    container.read(initialTabProvider.notifier).state = _getTabIndexForNotification(notificationType);
+    container.read(initialTabProvider.notifier).state =
+        TournamentTab.fromNotificationType(notificationType);
 
-    // Navigate to tournament without tab argument
+    // Navigate to tournament
     globalNavigatorKey.currentState?.pushNamed(
       ROUTES.tournament,
       arguments: {
@@ -135,30 +142,6 @@ void _handleMessage(RemoteMessage message) {
   } catch (e, stack) {
     Log.debug('Error handling message: $e');
     Log.debug('Stack trace: $stack');
-  }
-}
-
-int _getTabIndexForNotification(String type) {
-  final container = ProviderContainer();
-  final tournamentStatus = container.read(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-
-  // Don't navigate to scores tab if tournament hasn't started
-  if (type == 'scores' && tournamentStatus == WhenTournament.upcoming) {
-    Log.debug('Ignoring scores notification for upcoming tournament');
-    return 0;  // Default to info tab
-  }
-
-  switch (type) {
-    case 'scores':
-      return 0;
-    case 'info':
-      return tournamentStatus == WhenTournament.upcoming ? 0 : 1;
-    case 'seating':
-      return tournamentStatus == WhenTournament.upcoming ? 1 : 2;
-    case 'players':
-      return tournamentStatus == WhenTournament.upcoming ? 2 : 3;
-    default:
-      return 0;
   }
 }
 
@@ -196,16 +179,10 @@ Future<void> initPermissions() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Register background handler first
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize Firebase core before anything else
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    // Only then initialize messaging
+    // and initialize messaging
     await initFirebaseMessaging();
 
   } catch (e, stack) {
@@ -371,4 +348,4 @@ class _MyApp extends ConsumerWidget {
   }
 }
 
-final initialTabProvider = StateProvider<int?>((ref) => null);
+final initialTabProvider = StateProvider<TournamentTab?>((ref) => null);
