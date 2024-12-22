@@ -29,28 +29,27 @@ class TournamentInfo extends ConsumerWidget {
       ),
       data: (tournament) => ListView(
         children: [
-          if (tournament.urlIcon case String urlIcon)
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Center(
-                child: switch (tournament.urlIcon) {
-                  String url when url.isNotEmpty => CachedNetworkImage(
-                      width: 128,
-                      imageUrl: url,
-                      placeholder: (context, url) => const CircularProgressIndicator(),
-                      errorWidget: (context, url, error) => const Icon(
-                        Icons.emoji_events,
-                        size: 128,
-                      ),
-                      fadeInDuration: const Duration(milliseconds: 300),
-                    ),
-                  _ => const Icon(
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Center(
+              child: switch (tournament.urlIcon) {
+                String url when url.isNotEmpty => CachedNetworkImage(
+                    width: 128,
+                    imageUrl: url,
+                    placeholder: (context, url) => const CircularProgressIndicator(),
+                    errorWidget: (context, url, error) => const Icon(
                       Icons.emoji_events,
                       size: 128,
                     ),
-                },
-              ),
+                    fadeInDuration: const Duration(milliseconds: 300),
+                  ),
+                _ => const Icon(
+                    Icons.emoji_events,
+                    size: 128,
+                  ),
+              },
             ),
+          ),
           switch (tournament.url) {
             String url => ListTile(
                 leading: const Icon(Icons.public),

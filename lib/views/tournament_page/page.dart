@@ -11,7 +11,6 @@ import 'tabs/round_list_tab.dart';
 import 'tabs/score_tab.dart';
 
 final pageProvider = StateProvider((ref) => 0);
-final initialTabProvider = StateProvider<TournamentTab?>((ref) => null);
 
 enum TournamentTab {
   scores,
@@ -64,7 +63,7 @@ class TournamentPage extends ConsumerWidget {
       final index = TournamentTab.fromNotificationType(
         pendingNotification.tab).toIndex(tournamentStatus);
       Log.debug('Setting page to index: $index');
-      
+
       // Schedule the state changes for after build
       Future(() {
         ref.read(pageProvider.notifier).state = index;

@@ -14,10 +14,6 @@ export 'providers/location.dart';
 export 'providers/shared_preferences.dart';
 export 'providers/seat_map.dart';
 
-// Notification-related constants
-const notificationTournamentKey = 'notification_tournament_id';
-const notificationTabKey = 'notification_tab';
-
 typedef AlarmInfo = ({
   RoundId id,
   String name,

@@ -30,6 +30,10 @@ enum WhenTournament {
   past,
 }
 
+// Notification-related constants
+const notificationTournamentKey = 'notification_tournament_id';
+const notificationTabKey = 'notification_tab';
+
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
 
