@@ -57,13 +57,19 @@ class TournamentPage extends ConsumerWidget {
     final tournament = ref.watch(tournamentProvider);
     final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
 
-    // Check for initial tab from notification
-    final initialTab = ref.watch(initialTabProvider);
-    if (initialTab != null) {
-      // Clear the initial tab so it's only used once
-      ref.read(initialTabProvider.notifier).state = null;
-      // Set the page
-      ref.read(pageProvider.notifier).state = initialTab.toIndex(tournamentStatus);
+    // Check for pending notification
+    final pendingNotification = ref.watch(pendingNotificationProvider);
+    if (pendingNotification != null) {
+      Log.debug('Processing pending notification');
+      final index = TournamentTab.fromNotificationType(
+        pendingNotification.tab).toIndex(tournamentStatus);
+      Log.debug('Setting page to index: $index');
+      
+      // Schedule the state changes for after build
+      Future(() {
+        ref.read(pageProvider.notifier).state = index;
+        ref.read(pendingNotificationProvider.notifier).state = null;
+      });
     }
 
     return tournament.when(

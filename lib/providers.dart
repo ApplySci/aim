@@ -5,6 +5,7 @@ import 'models.dart';
 import 'providers/firestore.dart';
 import 'providers/location.dart';
 import 'providers/shared_preferences.dart';
+import 'utils.dart';
 
 export 'providers/alarm.dart';
 export 'providers/fcm.dart';
@@ -12,6 +13,10 @@ export 'providers/firestore.dart';
 export 'providers/location.dart';
 export 'providers/shared_preferences.dart';
 export 'providers/seat_map.dart';
+
+// Notification-related constants
+const notificationTournamentKey = 'notification_tournament_id';
+const notificationTabKey = 'notification_tab';
 
 typedef AlarmInfo = ({
   RoundId id,
@@ -122,3 +127,24 @@ extension AutoDisposeRefListen on Ref {
         fireImmediately: fireImmediately,
       );
 }
+
+/// Handles pending notifications stored in shared preferences
+final pendingNotificationProvider = StateProvider.autoDispose((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+
+  // Check for pending notification
+  final tournamentId = prefs.getString(notificationTournamentKey);
+  final tabType = prefs.getString(notificationTabKey);
+
+  if (tournamentId == null || tabType == null) return null;
+
+  // Clear the stored notification immediately
+  prefs.remove(notificationTournamentKey);
+  prefs.remove(notificationTabKey);
+
+  Log.debug('notifying to switch to tab $tabType');
+  return (
+    tournamentId: tournamentId,
+    tab: tabType,
+  );
+});

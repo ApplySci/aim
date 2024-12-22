@@ -22,7 +22,6 @@ import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
 
-
 Future<void> initFirebaseMessaging() async {
   // Skip FCM initialization in simulator
   if (Platform.isIOS && !const bool.fromEnvironment('dart.vm.product')) {
@@ -121,15 +120,19 @@ void _handleMessage(RemoteMessage message) {
     final tournamentId = data['tournament_id'];
     final notificationType = data['notification_type'];
 
+    Log.debug('Handling message with type: $notificationType');
+
     if (tournamentId == null || notificationType == null) {
       Log.debug('Missing required notification data');
       return;
     }
 
-    // Set the initial tab via provider
-    final container = ProviderContainer();
-    container.read(initialTabProvider.notifier).state =
-        TournamentTab.fromNotificationType(notificationType);
+    // Store notification data in shared preferences
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString(notificationTournamentKey, tournamentId);
+      prefs.setString(notificationTabKey, notificationType);
+      Log.debug('Stored notification data in preferences');
+    });
 
     // Navigate to tournament
     globalNavigatorKey.currentState?.pushNamed(
