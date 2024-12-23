@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -105,7 +106,10 @@ class ScoreTable extends ConsumerWidget {
             ),
             DataColumn2(
               label: const Text('Player', maxLines: 1),
-              fixedWidth: playerScores.maxNameWidth + columnMargin,
+              fixedWidth: min(
+                playerScores.maxNameWidth + columnMargin,
+                MediaQuery.of(context).size.width * 0.3,
+              ),
             ),
             DataColumn2(
               label: const Text('Total', maxLines: 1),
@@ -163,7 +167,7 @@ class ScoreRow extends DataRow2 {
           )),
           DataCell(Text(
             score.name,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           )),
           DataCell(ScoreText(score.total)),
