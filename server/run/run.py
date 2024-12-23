@@ -331,7 +331,7 @@ def _message_player_topics(scores: dict, done: int, players):
     
     for k, v in scores.items():
         name = players[int(k)]
-        reg_id = reg_id_map.get(k)
+        reg_id = reg_id_map.get(int(k))
         if reg_id:
             topic = f"{firebase_id}-{reg_id}"
             title = f"{name} is now in position {('','=')[v['t']]}{v['r']}"
