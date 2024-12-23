@@ -111,12 +111,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 
 Future<void> initFirebaseMessaging() async {
-  // Skip FCM initialization in debug mode in ios
-  if (Platform.isIOS && !const bool.fromEnvironment('dart.vm.product')) {
-    Log.debug('Skipping FCM initialization in iOS simulator');
-    return;
-  }
-
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -130,6 +124,11 @@ Future<void> initFirebaseMessaging() async {
       provisional: false,
       sound: true,
     );
+    // Skip FCM initialization in debug mode in ios
+    if (Platform.isIOS && !const bool.fromEnvironment('dart.vm.product')) {
+      Log.debug('Skipping FCM initialization in iOS simulator');
+      return;
+    }
 
     FirebaseMessaging.instance.getToken().then((String? token) {
       if (token == null) {
