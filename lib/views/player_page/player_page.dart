@@ -25,16 +25,6 @@ class PlayerPage extends ConsumerWidget {
     });
   }
 
-  void initializePlayer(BuildContext context, WidgetRef ref, PlayerId? playerId, int? seat) {
-    Future(() {
-      if (!context.mounted) return;
-      ref.read(selectedSeatProvider.notifier).set(seat);
-      if (playerId != null) {
-        ref.read(selectedPlayerIdProvider.notifier).set(playerId);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final args = ModalRoute.of(context)!.settings.arguments as Map;
@@ -67,8 +57,6 @@ class PlayerPage extends ConsumerWidget {
         abortBuild(context, 'Player not found');
       }
     }
-
-    initializePlayer(context, ref, playerId, seat);
 
     try {
       playerScore = ref.watch(playerScoreProvider(seat!));

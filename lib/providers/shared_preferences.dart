@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '/models.dart';
-import 'seat_map.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError(),
@@ -204,21 +203,6 @@ class SelectedPlayerIdNotifier extends Notifier<PlayerId?> {
     final Map<String, dynamic> selectedPlayers =
         (jsonDecode(jsonString) as Map<String, dynamic>?) ?? {};
     return selectedPlayers[tournamentId] as PlayerId?;
-  }
-
-  Future<void> setBySeat(int seat) async {
-    final tournamentId = ref.read(tournamentIdProvider);
-    if (tournamentId == null) return;
-
-    final seatMapAsync = ref.read(seatMapProvider);
-    
-    seatMapAsync.whenData((seatMap) {
-      final player = seatMap[seat];
-      if (player != null) {
-        _setValue(player.id);
-        state = player.id;
-      }
-    });
   }
 
   Future<void> set(PlayerId? value) async {

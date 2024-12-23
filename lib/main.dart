@@ -115,12 +115,10 @@ class _MyApp extends ConsumerWidget {
         if (prev case TournamentId tournamentId) {
           fcm.unsubscribeFromTopic(tournamentId);
           fcm.unsubscribeFromTopic('$tournamentId-');
-          Log.debug('Unsubscribing: $tournamentId, $tournamentId-');
         }
         if (next case TournamentId tournamentId) {
           fcm.subscribeToTopic(tournamentId);
           fcm.subscribeToTopic('$tournamentId-');
-          Log.debug('Subscribing: $tournamentId, $tournamentId-');
         }
       },
     );
@@ -132,12 +130,10 @@ class _MyApp extends ConsumerWidget {
         if (prev case (:TournamentId tournamentId, :PlayerId playerId)) {
           fcm.unsubscribeFromTopic('$tournamentId-$playerId');
           fcm.subscribeToTopic('$tournamentId-');
-          Log.debug('Unsubscribing: $tournamentId-$playerId; subscribing: $tournamentId-');
         }
         if (next case (:TournamentId tournamentId, :PlayerId playerId)) {
           fcm.unsubscribeFromTopic('$tournamentId-');
           fcm.subscribeToTopic('$tournamentId-$playerId');
-          Log.debug('Unsubscribing: $tournamentId-; subscribing: $tournamentId-$playerId');
         }
       },
     );
