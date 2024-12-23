@@ -251,17 +251,21 @@ class AssignedTable extends ConsumerWidget {
   Widget build(context, ref) {
     final filterByPlayerId = ref.watch(filterByPlayerIdProvider);
     final japaneseWinds = ref.watch(japaneseWindsProvider);
+    final useWinds = ref.watch(useWindsProvider);
     final playerWinds = Wind.values.map(
       (wind) => (wind: wind, player: players[wind]),
     );
+
     return Table(
       border: TableBorder.all(
         width: 2,
         color: const Color(0x88888888),
       ),
-      columnWidths: const {
+      columnWidths: useWinds ? {
         0: IntrinsicColumnWidth(),
         1: FlexColumnWidth(),
+      } : {
+        0: FlexColumnWidth(),
       },
       children: [
         for (final (:wind, :player) in playerWinds)
@@ -272,16 +276,17 @@ class AssignedTable extends ConsumerWidget {
                   : Colors.transparent,
             ),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  switch (japaneseWinds) {
-                    true => wind.japanese,
-                    false => wind.western,
-                  },
-                  textAlign: TextAlign.center,
+              if (useWinds)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    switch (japaneseWinds) {
+                      true => wind.japanese,
+                      false => wind.western,
+                    },
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
               InkWell(
                 onTap: player != null ? () => onTap(context, player) : null,
                 child: Padding(

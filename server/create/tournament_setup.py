@@ -88,6 +88,7 @@ def results_create():
             "url": form.url.data,
             "url_icon": form.url_icon.data,
             "htmlnotes": form.htmlnotes.data,
+            "use_winds": form.use_winds.data,
         }
 
         firestore_client.collection("tournaments").document(short_name).set(

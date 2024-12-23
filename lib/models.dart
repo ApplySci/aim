@@ -35,6 +35,7 @@ class TournamentData extends Equatable {
     this.seating,
     this.games,
     this.rankings,
+    this.useWinds = false,
   });
 
   factory TournamentData.fromMap(Map<String, dynamic> data) {
@@ -119,6 +120,7 @@ class TournamentData extends Equatable {
       seating: seating,
       games: games,
       rankings: rankings,
+      useWinds: data['use_winds'] ?? false,
     );
   }
 
@@ -137,6 +139,7 @@ class TournamentData extends Equatable {
   final List<RoundData>? seating;
   final List<GameData>? games;
   final Map<String, dynamic>? rankings;
+  final bool useWinds;
 
   String get when => dateRange(startDate, endDate);
 
@@ -156,6 +159,7 @@ class TournamentData extends Equatable {
         seating,
         games,
         rankings,
+        useWinds,
       ];
 }
 

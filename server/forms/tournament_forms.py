@@ -211,6 +211,10 @@ class TournamentForm(FlaskForm):
         ),
         min_entries=1,
     )
+    use_winds = BooleanField(
+        "Use the winds as assigned in the pre-defined seating",
+        default=False,
+    )
 
     submit = SubmitField("Submit")
 

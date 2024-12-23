@@ -1,3 +1,4 @@
+// TODO work out what to do with very long names. Ask cursor. Time for autosizetext maybe?
 import 'dart:async';
 import 'dart:io' show Platform;
 

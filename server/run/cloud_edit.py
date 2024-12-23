@@ -127,6 +127,7 @@ def edit_tournament():
                 "status": form.status.data,
                 "url": form.url.data,
                 "url_icon": form.url_icon.data,
+                "use_winds": form.use_winds.data,
                 "htmlnotes": bleach.clean(
                     form.htmlnotes.data,
                     tags=ALLOWED_TAGS,

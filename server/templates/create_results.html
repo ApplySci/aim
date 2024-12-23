@@ -51,6 +51,12 @@
             {% endfor %}
         </fieldset>
         <p>
+            {{ form.use_winds() }} {{ form.use_winds.label }} 
+            {% for error in form.use_winds.errors %}
+                <span class=error>[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
             {{ form.url.label }}<br>
             {{ form.url(size=80, id="url") }}
             <span id="url_status"></span>

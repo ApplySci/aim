@@ -24,6 +24,11 @@ typedef AlarmInfo = ({
   })? player
 });
 
+final useWindsProvider = Provider<bool>((ref) {
+  final tournament = ref.watch(tournamentProvider);
+  return tournament.valueOrNull?.useWinds ?? false;
+});
+
 final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
   final location = await ref.watch(locationProvider.future);
   final seating = await ref.watch(seatingProvider.future);

@@ -159,10 +159,8 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
         topic=topic,
     )
     
-    logging.info(f"Constructed FCM message: {message}")
     try:
         response = messaging.send(message)
-        logging.info(f"FCM send response: {response}")
     except Exception as e:
         logging.error(f"FCM send failed: {str(e)}", exc_info=True)
         raise
@@ -266,6 +264,12 @@ def _seating_to_web(sheet, seating):
     players = _get_players(sheet, False)
     schedule: dict = googlesheet.get_schedule(sheet)
 
+    # Get tournament data from Firestore
+    tournament_ref = firestore_client.collection("tournaments").document(
+        current_user.live_tournament.firebase_doc
+    )
+    tournament_data = tournament_ref.get().to_dict()
+
     html: str = render_template(
         "seating.html",
         done=done,
@@ -274,6 +278,7 @@ def _seating_to_web(sheet, seating):
         schedule=schedule,
         players=players,
         roundNames=_round_names(schedule),
+        use_winds=tournament_data.get("use_winds", False),
     )
     fn = os.path.join(current_user.live_tournament.full_web_directory, "seating.html")
     with open(fn, "w", encoding="utf-8") as f:
@@ -299,7 +304,6 @@ def update_players():
 @login_required
 def _send_messages(msg: str, notification_type: str):
     firebase_id = current_user.live_tournament.firebase_doc
-    logging.info(f"Sending tournament-wide notification to topic {firebase_id} with type {notification_type}")
     _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title, notification_type)
 
 
@@ -312,7 +316,6 @@ def _message_player_topics(scores: dict, done: int, players):
     if done == 0:
         return
     
-    logging.info(f"Starting player notifications for tournament {current_user.live_tournament.firebase_doc}")
     firebase_id = current_user.live_tournament.firebase_doc
     
     # Send general tournament update notification
@@ -321,7 +324,6 @@ def _message_player_topics(scores: dict, done: int, players):
     body = f"Tournament scores have been updated"
     try:
         _send_topic_fcm(topic, title, body, 'scores')
-        logging.info(f"Sent general tournament update notification")
     except Exception as e:
         logging.error(f"Failed to send tournament notification: {str(e)}", exc_info=True)
     
@@ -339,7 +341,6 @@ def _message_player_topics(scores: dict, done: int, players):
             
             try:
                 _send_topic_fcm(topic, title, body, 'scores')
-                logging.info(f"Successfully sent notification to {name}")
             except Exception as e:
                 logging.error(f"Failed to send notification to {name}: {str(e)}", exc_info=True)
 
