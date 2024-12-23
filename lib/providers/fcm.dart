@@ -104,7 +104,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     Log.debug('in firebaseMessagingBackgroundHandler:');
-  } catch (e, stack) {
+  } catch (e) {
     Log.warn('Error in background handler: $e');
   }
 }

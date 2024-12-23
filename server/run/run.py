@@ -154,11 +154,18 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
         data={
             'tournament_id': current_user.live_tournament.firebase_doc,
             'tournament_name': current_user.live_tournament.title,
-            'notification_type': notification_type,  # 'players', 'seating', 'schedule', 'scores'
+            'notification_type': notification_type,
         },
         topic=topic,
     )
-    messaging.send(message)
+    
+    logging.info(f"Constructed FCM message: {message}")
+    try:
+        response = messaging.send(message)
+        logging.info(f"FCM send response: {response}")
+    except Exception as e:
+        logging.error(f"FCM send failed: {str(e)}", exc_info=True)
+        raise
 
 
 @blueprint.route("/")
@@ -292,6 +299,7 @@ def update_players():
 @login_required
 def _send_messages(msg: str, notification_type: str):
     firebase_id = current_user.live_tournament.firebase_doc
+    logging.info(f"Sending tournament-wide notification to topic {firebase_id} with type {notification_type}")
     _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title, notification_type)
 
 
@@ -303,15 +311,37 @@ def _message_player_topics(scores: dict, done: int, players):
     """
     if done == 0:
         return
+    
+    logging.info(f"Starting player notifications for tournament {current_user.live_tournament.firebase_doc}")
     firebase_id = current_user.live_tournament.firebase_doc
+    
+    # Send general tournament update notification
+    topic = f"{firebase_id}-"
+    title = f"Scores updated after round {done}"
+    body = f"Tournament scores have been updated"
+    try:
+        _send_topic_fcm(topic, title, body, 'scores')
+        logging.info(f"Sent general tournament update notification")
+    except Exception as e:
+        logging.error(f"Failed to send tournament notification: {str(e)}", exc_info=True)
+    
+    # Get the player map with registration IDs
+    raw_players = googlesheet.get_players(_get_sheet())
+    reg_id_map = {p[0]: p[1] for p in raw_players if p[0] != ""}  # map seating_id to registration_id
+    
     for k, v in scores.items():
         name = players[int(k)]
-        _send_topic_fcm(
-            f"{firebase_id}-{k}",
-            f"{name} is now in position {('','=')[v['t']]}{v['r']}",
-            f"with {v['total']/10} points after {done} round(s)",
-            'scores'
-        )
+        reg_id = reg_id_map.get(k)
+        if reg_id:
+            topic = f"{firebase_id}-{reg_id}"
+            title = f"{name} is now in position {('','=')[v['t']]}{v['r']}"
+            body = f"with {v['total']/10} points after {done} round(s)"
+            
+            try:
+                _send_topic_fcm(topic, title, body, 'scores')
+                logging.info(f"Successfully sent notification to {name}")
+            except Exception as e:
+                logging.error(f"Failed to send notification to {name}: {str(e)}", exc_info=True)
 
 
 @login_required

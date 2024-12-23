@@ -239,7 +239,7 @@ class AssignedTable extends ConsumerWidget {
   final Map<Wind, PlayerData> players;
 
   void onTap(BuildContext context, PlayerData player) =>
-      Navigator.of(context).popAndPushNamed (
+      Navigator.of(context).pushNamed (
         ROUTES.player,
         arguments: {
           'playerId': player.id,
