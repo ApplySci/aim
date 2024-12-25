@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_fgbg/flutter_fgbg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,14 +59,22 @@ Future<void> main() async {
         await SharedPreferences.getInstance(),
       ),
     ],
-    child: _MyApp(),
+    child: FGBGNotifier(
+      onEvent: (event) {
+        if (event != FGBGType.foreground) return;
+        // check if an alarm is ringing, and if so, show the alarm page
+      },
+      child: _MyApp(),
+    ),
   ));
 }
 
 class _MyApp extends ConsumerWidget {
+
   // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
   // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
   openAlarmPage(BuildContext context, AlarmSettings settings) {
+    Log.debug('*** openAlarmPage');
     if (settings.dateTime
         .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
       globalNavigatorKey.currentState?.push(
@@ -78,6 +87,7 @@ class _MyApp extends ConsumerWidget {
 
   @override
   Widget build(context, ref) {
+
     final fcm = ref.watch(fcmProvider);
 
     // Open alarm screen when alarm rings
