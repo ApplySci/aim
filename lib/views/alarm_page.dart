@@ -13,19 +13,6 @@ void openAlarmPage(settings) {
     Alarm.stop(settings.id);
     return;
   }
-  ModalRoute? currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
-  int id;
-  while (currentRoute?.settings.arguments is AlarmSettings
-    && (id = (currentRoute?.settings.arguments as AlarmSettings).id) != settings.id)
-    {
-    Navigator.pop(globalNavigatorKey.currentState!.context);
-    Alarm.stop(id);
-    currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
-  }
-  if (currentRoute?.settings.arguments is AlarmSettings
-    && (currentRoute?.settings.arguments as AlarmSettings).id == settings.id) {
-    return;
-  }
   Future.delayed(const Duration(minutes: 30), () => Alarm.stop(settings.id));
   globalNavigatorKey.currentState?.push(
     MaterialPageRoute<void>(

@@ -20,6 +20,7 @@ import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
 
+StreamSubscription<AlarmSettings>? ringSubscription;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,8 @@ Future<void> main() async {
   await initPermissions();
   try {
     await Alarm.init();
+    ringSubscription = Alarm.ringStream.stream.listen(openAlarmPage);
+
   } catch (e) {
     Log.error('Failed to initialize Alarm: $e');
     // TODO Handle alarm initialization failure
@@ -89,12 +92,6 @@ class _MyApp extends ConsumerWidget {
           }
         }
 
-        Log.debug('*** listening to alarm stream');
-        try {
-          Alarm.ringStream.stream.listen(openAlarmPage);
-        } catch (e) {
-          true;
-        }
       }),
     );
 
