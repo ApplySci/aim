@@ -29,8 +29,8 @@ class TournamentData extends Equatable {
     required this.status,
     required this.rules,
     required this.htmlnotes,
-    this.url,
-    this.urlIcon,
+    this.url = '',
+    this.urlIcon = '',
     this.players,
     this.seating,
     this.games,
@@ -112,10 +112,10 @@ class TournamentData extends Equatable {
       startDate: startDate,
       endDate: endDate,
       status: status,
-      rules: data['rules'] as String? ?? '',
-      htmlnotes: data['htmlnotes'] as String? ?? '',
-      url: data['url'] as String?,
-      urlIcon: data['url_icon'] as String?,
+      rules: data['rules'] ?? '',
+      htmlnotes: data['htmlnotes'] ?? '',
+      url: data['url'] ?? '',
+      urlIcon: data['url_icon'] ?? '',
       players: players,
       seating: seating,
       games: games,
@@ -128,13 +128,13 @@ class TournamentData extends Equatable {
   final String name;
   final String address;
   final String country;
-  final String? htmlnotes;
+  final String htmlnotes;
   final Timestamp startDate;
   final Timestamp endDate;
   final String status;
   final String rules;
-  final String? url;
-  final String? urlIcon;
+  final String url;
+  final String urlIcon;
   final List<PlayerData>? players;
   final List<RoundData>? seating;
   final List<GameData>? games;

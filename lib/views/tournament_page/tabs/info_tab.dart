@@ -33,31 +33,36 @@ class TournamentInfo extends ConsumerWidget {
             padding: const EdgeInsets.all(8),
             child: Center(
               child: switch (tournament.urlIcon) {
-                String url when url.isNotEmpty => CachedNetworkImage(
+                "" => const Icon(
+                  Icons.event,
+                  size: 128,
+                ),
+                _ => CachedNetworkImage(
                     width: 128,
-                    imageUrl: url,
+                    imageUrl: tournament.urlIcon,
                     placeholder: (context, url) => const CircularProgressIndicator(),
                     errorWidget: (context, url, error) => const Icon(
-                      Icons.emoji_events,
+                      Icons.event,
                       size: 128,
                     ),
                     fadeInDuration: const Duration(milliseconds: 300),
-                  ),
-                _ => const Icon(
-                    Icons.emoji_events,
-                    size: 128,
                   ),
               },
             ),
           ),
           switch (tournament.url) {
-            String url => ListTile(
+            "" => ListTile(
+              leading: const Text(""),
+              title: Text(tournament.name),
+              visualDensity: VisualDensity.compact,
+            ),
+            _ => ListTile(
                 leading: const Icon(Icons.public),
                 title: Text(tournament.name),
-                subtitle: Text(url),
-                onTap: () => launchUrl(Uri.parse(url)),
+                subtitle: Text(tournament.url),
+                onTap: () => launchUrl(Uri.parse(tournament.url)),
                 onLongPress: () async {
-                  await Clipboard.setData(ClipboardData(text: url));
+                  await Clipboard.setData(ClipboardData(text: tournament.url));
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -65,11 +70,6 @@ class TournamentInfo extends ConsumerWidget {
                   );
                 },
               visualDensity: VisualDensity.compact,
-            ),
-            _ => ListTile(
-                leading: const Text(""),
-                title: Text(tournament.name),
-                visualDensity: VisualDensity.compact,
             ),
           },
           ListTile(
@@ -87,7 +87,7 @@ class TournamentInfo extends ConsumerWidget {
             },
             visualDensity: VisualDensity.compact,
           ),
-           if (tournament.htmlnotes != null && tournament.htmlnotes!.isNotEmpty)
+           if (tournament.htmlnotes.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.notes),
               title: const Text('Notes'),

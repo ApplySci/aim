@@ -98,11 +98,11 @@ class TournamentList extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: switch (tournament.urlIcon) {
-                String urlIcon =>
-                    CachedNetworkImage(
+                "" => const Icon(Icons.event),
+                _ => CachedNetworkImage(
                       height: 70,
                       width: 70,
-                      imageUrl: urlIcon,
+                      imageUrl: tournament.urlIcon,
                       placeholder: (c, u) =>
                       const Center(
                         child: CircularProgressIndicator(),
@@ -110,7 +110,6 @@ class TournamentList extends ConsumerWidget {
                       errorWidget: (c, u, e) => const Icon(Icons.error),
                       fit: BoxFit.contain,
                     ),
-                _ => null,
               },
               selected: tournamentId == tournament.id,
               title: Text(tournament.name),

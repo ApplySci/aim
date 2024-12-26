@@ -6,15 +6,25 @@ import '/utils.dart';
 
 void openAlarmPage(settings) {
   Log.debug('openAlarmPage $settings');
+  if (globalNavigatorKey.currentState?.context == null)  return;
   if (settings.dateTime.isAfter(DateTime.now())) return;
   if (settings.dateTime.isBefore(
       DateTime.now().subtract(const Duration(minutes: 30)))) {
     Alarm.stop(settings.id);
     return;
   }
-  Future.delayed(const Duration(minutes: 30), () {
-    Alarm.stop(settings.id);
-  });
+  ModalRoute? currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
+  while (currentRoute?.settings.arguments is AlarmSettings
+    && (currentRoute?.settings.arguments as AlarmSettings).id != settings.id)
+    {
+    Navigator.pop(globalNavigatorKey.currentState!.context);
+    currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
+  }
+  if (currentRoute?.settings.arguments is AlarmSettings
+    && (currentRoute?.settings.arguments as AlarmSettings).id == settings.id) {
+    return;
+  }
+  Future.delayed(const Duration(minutes: 30), () => Alarm.stop(settings.id));
   globalNavigatorKey.currentState?.push(
     MaterialPageRoute<void>(
       builder: (context) => AlarmPage(settings: settings),
