@@ -24,7 +24,6 @@ import 'views/tournament_page/page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
   // Initialize Firebase core before anything else
   try {
     // and initialize messaging
@@ -50,7 +49,7 @@ Future<void> main() async {
     await Alarm.init();
   } catch (e) {
     Log.error('Failed to initialize Alarm: $e');
-    // Handle alarm initialization failure
+    // TODO Handle alarm initialization failure
   }
 
   runApp(ProviderScope(
@@ -64,28 +63,11 @@ Future<void> main() async {
 }
 
 class _MyApp extends ConsumerWidget {
-  void openAlarmPage(AlarmSettings settings) {
-    Log.debug('openAlarmPage');
-    if (settings.dateTime
-        .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
-      globalNavigatorKey.currentState?.push(
-        MaterialPageRoute<void>(
-          builder: (context) => AlarmPage(settings: settings),
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(context, ref) {
 
     final fcm = ref.watch(fcmProvider);
-
-    // Open alarm screen when alarm rings
-    ref.listenAsyncData(
-      alarmRingProvider,
-      (prev, next) => openAlarmPage(next),
-    );
 
     // Set alarms when alarm schedule updates
     ref.listenAsyncData(
@@ -105,6 +87,13 @@ class _MyApp extends ConsumerWidget {
                 : '';
             await setAlarm(alarm, title, body, index + 1, vibratePref);
           }
+        }
+
+        Log.debug('*** listening to alarm stream');
+        try {
+          Alarm.ringStream.stream.listen(openAlarmPage);
+        } catch (e) {
+          true;
         }
       }),
     );

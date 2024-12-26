@@ -2,6 +2,26 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 
+import '/utils.dart';
+
+void openAlarmPage(settings) {
+  Log.debug('openAlarmPage $settings');
+  if (settings.dateTime.isAfter(DateTime.now())) return;
+  if (settings.dateTime.isBefore(
+      DateTime.now().subtract(const Duration(minutes: 30)))) {
+    Alarm.stop(settings.id);
+    return;
+  }
+  Future.delayed(const Duration(minutes: 30), () {
+    Alarm.stop(settings.id);
+  });
+  globalNavigatorKey.currentState?.push(
+    MaterialPageRoute<void>(
+      builder: (context) => AlarmPage(settings: settings),
+    ),
+  );
+}
+
 class AlarmPage extends StatefulWidget {
   const AlarmPage({
     required this.settings,

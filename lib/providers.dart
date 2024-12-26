@@ -6,7 +6,6 @@ import 'providers/firestore.dart';
 import 'providers/location.dart';
 import 'providers/shared_preferences.dart';
 
-export 'providers/alarm.dart';
 export 'providers/fcm.dart';
 export 'providers/firestore.dart';
 export 'providers/location.dart';
