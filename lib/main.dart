@@ -65,6 +65,7 @@ Future<void> main() async {
 
 class _MyApp extends ConsumerWidget {
   void openAlarmPage(AlarmSettings settings) {
+    Log.debug('openAlarmPage');
     if (settings.dateTime
         .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
       globalNavigatorKey.currentState?.push(
@@ -155,16 +156,6 @@ class _MyApp extends ConsumerWidget {
         },
       );
     }
-    // Handle fcm messages
-    ref.listenAsyncData(
-      fcmMessagesProvider,
-      (prev, next) {
-        Log.debug('fcmMessagesProvider received a notification');
-        Log.debug('Title: ${next.notification?.title}');
-        Log.debug('body: ${next.notification?.body}');
-        Log.debug('data: ${next.data}');
-      },
-    );
 
     final lightTheme = ThemeData.light(useMaterial3: true);
     final darkTheme = ThemeData.dark(useMaterial3: true);
@@ -174,7 +165,7 @@ class _MyApp extends ConsumerWidget {
 
         final ringStream = await Alarm.getAlarms();
         for (final settings in ringStream) {
-          if (settings.dateTime.isAfter(DateTime.now())) {
+          if (DateTime.now().isAfter(settings.dateTime)) {
             openAlarmPage(settings);
           }
         }
