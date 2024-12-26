@@ -165,6 +165,8 @@ Future<void> setAlarm(
       notificationSettings: NotificationSettings(
         title: title,
         body: body,
+        stopButton: "Dismiss",
+        icon: "ic_launcher",
       ));
   await Alarm.set(alarmSettings: alarmSettings);
 }

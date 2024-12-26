@@ -59,22 +59,12 @@ Future<void> main() async {
         await SharedPreferences.getInstance(),
       ),
     ],
-    child: FGBGNotifier(
-      onEvent: (event) {
-        if (event != FGBGType.foreground) return;
-        // check if an alarm is ringing, and if so, show the alarm page
-      },
-      child: _MyApp(),
-    ),
+    child: _MyApp(),
   ));
 }
 
 class _MyApp extends ConsumerWidget {
-
-  // Unhandled Exception: Looking up a deactivated widget's ancestor is unsafe.
-  // E/flutter ( 5008): At this point the state of the widget's element tree is no longer stable.
-  openAlarmPage(BuildContext context, AlarmSettings settings) {
-    Log.debug('*** openAlarmPage');
+  void openAlarmPage(AlarmSettings settings) {
     if (settings.dateTime
         .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
       globalNavigatorKey.currentState?.push(
@@ -93,7 +83,7 @@ class _MyApp extends ConsumerWidget {
     // Open alarm screen when alarm rings
     ref.listenAsyncData(
       alarmRingProvider,
-      (prev, next) => openAlarmPage(context, next),
+      (prev, next) => openAlarmPage(next),
     );
 
     // Set alarms when alarm schedule updates
@@ -178,30 +168,42 @@ class _MyApp extends ConsumerWidget {
 
     final lightTheme = ThemeData.light(useMaterial3: true);
     final darkTheme = ThemeData.dark(useMaterial3: true);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: ROUTES.home,
-      navigatorKey: globalNavigatorKey,
-      title: 'All-Ireland Mahjong Tournaments',
-      theme: lightTheme.copyWith(
-        appBarTheme: AppBarTheme(
-          backgroundColor: lightTheme.colorScheme.inversePrimary,
-        ),
-      ),
-      darkTheme: darkTheme.copyWith(
-        appBarTheme: AppBarTheme(
-          backgroundColor: darkTheme.colorScheme.inversePrimary,
-        ),
-      ),
-      themeMode: ThemeMode.system,
-      routes: {
-        ROUTES.home: (context) => const TournamentListPage(),
-        ROUTES.settings: (context) => const SettingsPage(),
-        ROUTES.tournaments: (context) => const TournamentListPage(),
-        ROUTES.tournament: (context) => const TournamentPage(),
-        ROUTES.player: (context) => const PlayerPage(),
-        ROUTES.round: (context) => const RoundPage(),
+    return FGBGNotifier(
+      onEvent: (event) async {
+        if (event != FGBGType.foreground) return;
+
+        final ringStream = await Alarm.getAlarms();
+        for (final settings in ringStream) {
+          if (settings.dateTime.isAfter(DateTime.now())) {
+            openAlarmPage(settings);
+          }
+        }
       },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: ROUTES.home,
+        navigatorKey: globalNavigatorKey,
+        title: 'All-Ireland Mahjong Tournaments',
+        theme: lightTheme.copyWith(
+          appBarTheme: AppBarTheme(
+            backgroundColor: lightTheme.colorScheme.inversePrimary,
+          ),
+        ),
+        darkTheme: darkTheme.copyWith(
+          appBarTheme: AppBarTheme(
+            backgroundColor: darkTheme.colorScheme.inversePrimary,
+          ),
+        ),
+        themeMode: ThemeMode.system,
+        routes: {
+          ROUTES.home: (context) => const TournamentListPage(),
+          ROUTES.settings: (context) => const SettingsPage(),
+          ROUTES.tournaments: (context) => const TournamentListPage(),
+          ROUTES.tournament: (context) => const TournamentPage(),
+          ROUTES.player: (context) => const PlayerPage(),
+          ROUTES.round: (context) => const RoundPage(),
+        },
+      ),
     );
   }
 }
