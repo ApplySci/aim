@@ -14,10 +14,12 @@ void openAlarmPage(settings) {
     return;
   }
   ModalRoute? currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
+  int id;
   while (currentRoute?.settings.arguments is AlarmSettings
-    && (currentRoute?.settings.arguments as AlarmSettings).id != settings.id)
+    && (id = (currentRoute?.settings.arguments as AlarmSettings).id) != settings.id)
     {
     Navigator.pop(globalNavigatorKey.currentState!.context);
+    Alarm.stop(id);
     currentRoute = ModalRoute.of(globalNavigatorKey.currentState!.context);
   }
   if (currentRoute?.settings.arguments is AlarmSettings
