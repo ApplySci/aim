@@ -108,7 +108,7 @@ class ScoreTable extends ConsumerWidget {
               label: const Text('Player', maxLines: 1),
               fixedWidth: min(
                 playerScores.maxNameWidth + columnMargin,
-                MediaQuery.of(context).size.width * 0.3,
+                MediaQuery.of(context).size.width * 0.4,
               ),
             ),
             DataColumn2(
