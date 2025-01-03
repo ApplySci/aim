@@ -13,10 +13,10 @@ packages:
     dependency: "direct main"
     description:
       name: alarm
-      sha256: d2648249abf4575c4b2c733824f4ba3662a92dcb31cbda9f5a23ab651b0854c4
+      sha256: "6f9dd3d0caee8db637f49d474ac29b0dd4ee6a58eeffe906ed87b897dfbbdf7f"
       url: "https://pub.dev"
     source: hosted
-    version: "5.0.0-dev.4"
+    version: "4.1.1"
   archive:
     dependency: transitive
     description:
@@ -801,10 +801,10 @@ packages:
     dependency: transitive
     description:
       name: sqflite_darwin
-      sha256: "96a698e2bc82bd770a4d6aab00b42396a7c63d9e33513a56945cbccb594c2474"
+      sha256: "22adfd9a2c7d634041e96d6241e6e1c8138ca6817018afc5d443fef91dcefa9c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.1"
+    version: "2.4.1+1"
   sqflite_platform_interface:
     dependency: transitive
     description:
@@ -849,18 +849,18 @@ packages:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
-      sha256: "3200bc8acbc91658159464898949f90c984e054eba01e07dfde440ad36f1befd"
+      sha256: "65ba3d7c33fe2a0fb2252f13228230de42793349b099d97d1ab5e7420b22b272"
       url: "https://pub.dev"
     source: hosted
-    version: "28.1.36"
+    version: "28.1.37"
   syncfusion_flutter_core:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: "853069545b718aa13d466bfc3e7b4cfa2cadcbb3c06f531d0053177dc6f1a092"
+      sha256: aa526af3b07691a25ea2700991a6a333ef35abfb6e6679002a26d13d1baa138a
       url: "https://pub.dev"
     source: hosted
-    version: "28.1.36"
+    version: "28.1.37"
   synchronized:
     dependency: transitive
     description:
