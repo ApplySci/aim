@@ -12,7 +12,7 @@ publish_to: 'none'
 # In iOS, build name is used as CFBundleShortVersionString
 # build number is used as CFBundleVersion.
 
-version: 1.0.4+51
+version: 1.0.5+52
 
 environment:
   sdk: '>=3.2.5 <4.0.0'

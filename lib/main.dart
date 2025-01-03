@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:collection';
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
 
 StreamSubscription<AlarmSettings>? ringSubscription;
+final _activeAlarms = HashSet<int>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
