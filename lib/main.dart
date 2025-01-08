@@ -25,7 +25,10 @@ _launch() {
   if (Platform.isAndroid) {
     launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=org.worldriichi.tournament&pli=1'));
   } else {
-    launchUrl(Uri.parse('https://apps.apple.com/us/app/world-riichi/id6738524123'));
+    launchUrl(
+      Uri.parse('https://apps.apple.com/app/id6738524123'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 }
 
@@ -33,6 +36,7 @@ class _MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:Theme.of(context).colorScheme.background,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20),
