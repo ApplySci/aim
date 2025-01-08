@@ -3,10 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  cloud_firestore
-  firebase_core
-  flutter_timezone
-  permission_handler_windows
   url_launcher_windows
 )
 
