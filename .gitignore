@@ -11,6 +11,8 @@ config.py*
 firebase_options.dart*
 firebase_app_id_file.json*
 firebase.json*
+*.wr
+*.aim
 
 # Miscellaneous
 *.class

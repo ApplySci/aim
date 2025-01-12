@@ -136,7 +136,7 @@ class SharedPreferencesBoolNotifier
 }
 
 final alarmPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
-  () => SharedPreferencesBoolNotifier(key: 'alarm', fallback: kReleaseMode || false),
+  () => SharedPreferencesBoolNotifier(key: 'alarm', fallback: true),
 );
 
 final scorePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(

@@ -51,7 +51,7 @@ Future<void> main() async {
   try {
     await Alarm.init();
     ringSubscription = Alarm.ringStream.stream.listen(openAlarmPage);
-
+    checkAlarms();
   } catch (e) {
     Log.error('Failed to initialize Alarm: $e');
     // TODO Handle alarm initialization failure
@@ -150,13 +150,7 @@ class _MyApp extends ConsumerWidget {
     return FGBGNotifier(
       onEvent: (event) async {
         if (event != FGBGType.foreground) return;
-
-        final ringStream = await Alarm.getAlarms();
-        for (final settings in ringStream) {
-          if (DateTime.now().isAfter(settings.dateTime)) {
-            openAlarmPage(settings);
-          }
-        }
+        checkAlarms();
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -193,5 +187,22 @@ Future<void> initPermissions() async {
   final status = await Permission.scheduleExactAlarm.status;
   if (status.isDenied) {
     await Permission.scheduleExactAlarm.request();
+  }
+}
+
+// TODO we should maybe do this on app init too
+void checkAlarms() async {
+  final ringStream = await Alarm.getAlarms();
+  for (final settings in ringStream) {
+    // we'll give ourselves a 3s buffer to avoid a weird race condition
+    if (DateTime.now().isAfter(
+        settings.dateTime.subtract(Duration(seconds: 3)))) {
+      final isRinging = await Alarm.isRinging(settings.id);
+      if (isRinging) {
+        Log.debug('open alarm page on FG');
+        openAlarmPage(settings);
+        break;
+      }
+    }
   }
 }

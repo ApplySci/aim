@@ -9,6 +9,7 @@
 import 'dart:async';
 
 import 'package:alarm/alarm.dart';
+import 'package:alarm/model/volume_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -162,7 +163,7 @@ Future<void> setAlarm(
       assetAudioPath: 'assets/audio/notif.mp3',
       loopAudio: false,
       vibrate: vibrate,
-      //volumeSettings: VolumeSettings.fixed(),
+      volumeSettings: VolumeSettings.fixed(),
       notificationSettings: NotificationSettings(
         title: title,
         body: body,
