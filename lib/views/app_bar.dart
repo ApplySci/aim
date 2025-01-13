@@ -6,14 +6,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.showHomeButton = true,
     this.actions,
-    this.bottom,
     super.key,
   });
 
   final Widget title;
   final bool showHomeButton;
   final List<Widget>? actions;
-  final TabBar? bottom;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -35,7 +33,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: actions,
-      bottom: bottom,
     );
   }
 }

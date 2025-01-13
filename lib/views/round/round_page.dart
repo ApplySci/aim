@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '/models.dart';
 import '/providers.dart';
-import '/views/error_view.dart';
-import '/views/loading_view.dart';
 import 'tabs/games_tab.dart';
 import 'tabs/scores_tab.dart';
+import '/views/app_bar.dart';
+import '/views/error_view.dart';
+import '/views/loading_view.dart';
 
 final roundProvider =
     StreamProvider.autoDispose.family<RoundScheduleData, RoundId>(
@@ -38,17 +39,18 @@ class RoundPage extends ConsumerWidget {
       data: (round) => DefaultTabController(
         length: 2,
         child: Scaffold(
-          appBar: AppBar(
+          appBar: CustomAppBar(
             title: Text(round.name),
-            bottom: const TabBar(tabs: [
-              Tab(text: 'Scores'),
-              Tab(text: 'Games'),
-            ]),
           ),
           body: TabBarView(children: [
             RoundScoresTab(round: round),
             RoundGamesTab(round: round),
           ]),
+          bottomNavigationBar: const TabBar(tabs: [
+            Tab(text: 'Scores'),
+            Tab(text: 'Games'),
+          ]),
+
         ),
       ),
     );

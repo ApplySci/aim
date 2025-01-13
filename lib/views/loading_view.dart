@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_bar.dart';
 
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
@@ -20,7 +21,7 @@ class LoadingScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: title),
+      appBar: CustomAppBar(title: title),
       body: const LoadingView(),
     );
   }

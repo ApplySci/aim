@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_bar.dart';
 
 class ErrorView extends StatelessWidget {
   final Object? error;
@@ -45,7 +46,7 @@ class ErrorScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: title),
+      appBar: CustomAppBar(title: title),
       body: ErrorView(
         error: error,
         stackTrace: stackTrace,
