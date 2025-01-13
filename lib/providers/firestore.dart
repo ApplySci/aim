@@ -64,19 +64,18 @@ final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournam
 });
 
 final tournamentProvider = StreamProvider<TournamentData>((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    yield await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    yield await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     return;
   }
 
   final db = ref.watch(firebaseProvider);
   yield* db
       .collection('tournaments')
-      .doc(tournamentId)
+      .doc(info.id!)
       .snapshots()
       .map((snapshot) => TournamentData.fromMap({
             'id': snapshot.id,
@@ -94,12 +93,11 @@ final tournamentCollectionProvider = Provider((ref) {
 });
 
 final playerListProvider = StreamProvider<List<PlayerData>>((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     yield tournament.players ?? [];
     return;
   }
@@ -150,12 +148,11 @@ final allRankingsProvider = StreamProvider<Map<String, dynamic>>((ref) async* {
 });
 
 final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     if (tournament.rankings != null) {
       final roundDone = tournament.rankings!['roundDone'];
       if (roundDone != null) {
@@ -207,12 +204,11 @@ final rankingProvider = StreamProvider<List<PlayerRankData>>((ref) async* {
 });
 
 final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     yield tournament.seating ?? [];
     return;
   }
@@ -235,12 +231,11 @@ final seatingProvider = StreamProvider<List<RoundData>>((ref) async* {
 });
 
 final gameProvider = StreamProvider<List<GameData>>((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     yield tournament.games ?? [];
     return;
   }
@@ -282,12 +277,11 @@ final roundListProvider = StreamProvider((ref) async* {
 });
 
 final roundMapProvider = StreamProvider((ref) async* {
-  final tournamentId = ref.watch(tournamentIdProvider);
-  if (tournamentId == null) return;
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
 
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     yield {
       for (final round in tournament.seating ?? [])
         round.id: RoundScheduleData(
@@ -353,9 +347,26 @@ typedef PlayerRankings = ({
 
 final playerScoreProvider = StreamProvider.family
     .autoDispose<PlayerRankings, int>((ref, seat) async* {
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) {
+    yield (
+      games: (
+        id: 'unknown',
+        seat: seat,
+        name: '',
+        rank: 0,
+        tied: false,
+        total: 0,
+        penalty: 0,
+        scores: const [],
+      ),
+      rankings: const [],
+      totalScores: const [],
+    );
+    return;
+  }
+
   final playerScoreList = await ref.watch(playerScoreListProvider.future);
-  final tournamentId = ref.watch(tournamentIdProvider);
-  final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
 
   final List<HanchanScore> emptyList = [];
   PlayerScore games = (
@@ -379,8 +390,8 @@ final playerScoreProvider = StreamProvider.family
   List<int> rankings = [];
   List<int> totalScores = [];
 
-  if (tournamentStatus == WhenTournament.past) {
-    final tournament = await ref.watch(pastTournamentDetailsProvider(tournamentId!).future);
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
     if (tournament.rankings != null) {
       final maxRound = int.parse(tournament.rankings!['roundDone'].toString());
       for (int i = 1; i <= maxRound; i++) {
@@ -417,31 +428,36 @@ final playerScoreProvider = StreamProvider.family
   yield out;
 });
 
-final tournamentStatusProvider = StreamProvider<WhenTournament>((ref) async* {
+final tournamentInfoProvider = StreamProvider<({String? id, WhenTournament status})>((ref) async* {
   final tournamentId = ref.watch(tournamentIdProvider);
   if (tournamentId == null) {
-    yield WhenTournament.upcoming;
+    yield (id: null, status: WhenTournament.upcoming);
     return;
   }
 
-  // Check if it's in the past tournaments list
   final pastSummaries = ref.watch(pastTournamentSummariesProvider).valueOrNull ?? [];
   if (pastSummaries.any((summary) => summary.id == tournamentId)) {
-    yield WhenTournament.past;
+    yield (id: tournamentId, status: WhenTournament.past);
     return;
   }
 
-  // Otherwise check Firebase status
   final db = ref.watch(firebaseProvider);
   yield* db.collection('tournaments').doc(tournamentId).snapshots().map((snapshot) {
     final status = snapshot.data()?['status'] as String? ?? 'upcoming';
-    return switch (status) {
-      'upcoming' => WhenTournament.upcoming,
-      'live' => WhenTournament.live,
-      'test' => WhenTournament.test,
-      _ => WhenTournament.upcoming,
-    };
+    return (
+      id: tournamentId,
+      status: switch (status) {
+        'upcoming' => WhenTournament.upcoming,
+        'live' => WhenTournament.live,
+        'test' => WhenTournament.test,
+        _ => WhenTournament.upcoming,
+      }
+    );
   });
+});
+
+final tournamentStatusProvider = Provider<WhenTournament>((ref) {
+  return ref.watch(tournamentInfoProvider).valueOrNull?.status ?? WhenTournament.upcoming;
 });
 
 final pastTournamentsLastUpdatedProvider = StreamProvider<DateTime?>((ref) async* {

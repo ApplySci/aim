@@ -39,25 +39,30 @@ final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
     yield [];
     return;
   }
-  yield seating.map((round) {
-    final roundSchedule =
-        scheduleRounds.rounds.firstWhere((rnd) => rnd.id == round.id);
-    return (
-      id: round.id,
-      name: roundSchedule.name,
-      alarm: TZDateTime.from(
-        roundSchedule.start,
-        location,
-      ).subtract(const Duration(minutes: 5)),
-      player: selectedPlayer != null
-          ? (
-              id: selectedPlayer.id,
-              name: selectedPlayer.name,
-              table: round.tableNameForSeat(selectedPlayer.seat),
-            )
-          : null,
-    );
-  }).toList();
+
+  yield [
+    for (final round in seating)
+      if (scheduleRounds.rounds.any((rnd) => rnd.id == round.id))
+        (
+          id: round.id,
+          name: scheduleRounds.rounds
+              .firstWhere((rnd) => rnd.id == round.id)
+              .name,
+          alarm: TZDateTime.from(
+            scheduleRounds.rounds
+                .firstWhere((rnd) => rnd.id == round.id)
+                .start,
+            location,
+          ).subtract(const Duration(minutes: 5)),
+          player: selectedPlayer != null
+              ? (
+                  id: selectedPlayer.id,
+                  name: selectedPlayer.name,
+                  table: round.tableNameForSeat(selectedPlayer.seat),
+                )
+              : null,
+        ),
+  ];
 });
 
 extension SelectAsyncValue<State> on StreamProvider<State> {

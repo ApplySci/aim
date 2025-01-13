@@ -55,28 +55,26 @@ class TournamentPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final page = ref.watch(pageProvider);
     final tournament = ref.watch(tournamentProvider);
-    final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+    final info = ref.watch(tournamentInfoProvider);
 
     // Handle initial tab from notification
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args?['initial_tab'] case String tab) {
-      final index = TournamentTab.fromNotificationType(tab).toIndex(tournamentStatus);
+      final status = info.valueOrNull?.status ?? WhenTournament.upcoming;
+      final index = TournamentTab.fromNotificationType(tab).toIndex(status);
       Future(() => ref.read(pageProvider.notifier).state = index);
     }
 
-    return tournament.when(
-      skipLoadingOnReload: true,
-      loading: () => const LoadingScaffold(
-        title: Text('Tournament'),
-      ),
-      error: (error, stackTrace) => ErrorScaffold(
+    return info.when(
+      loading: () => const LoadingScaffold(title: Text('Tournament')),
+      error: (error, stack) => ErrorScaffold(
         title: const Text('Tournament'),
         error: error,
-        stackTrace: stackTrace,
+        stackTrace: stack,
       ),
-      data: (tournament) {
+      data: (info) {
         final navItems = [
-          if (tournamentStatus != WhenTournament.upcoming)
+          if (info.status != WhenTournament.upcoming)
             const BottomNavigationBarItem(
               icon: Icon(Icons.score),
               label: 'Scores',
@@ -95,32 +93,45 @@ class TournamentPage extends ConsumerWidget {
           ),
         ];
 
-        return Scaffold(
-          appBar: CustomAppBar(
-            title: Text(tournament.name),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+        return tournament.when(
+          skipLoadingOnReload: true,
+          loading: () => const LoadingScaffold(
+            title: Text('Tournament'),
+          ),
+          error: (error, stackTrace) => ErrorScaffold(
+            title: const Text('Tournament'),
+            error: error,
+            stackTrace: stackTrace,
+          ),
+          data: (tournament) {
+            return Scaffold(
+              appBar: CustomAppBar(
+                title: Text(tournament.name),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+                  ),
+                ],
               ),
-            ],
-          ),
-          body: IndexedStack(
-            index: page,
-            children: [
-              if (tournamentStatus != WhenTournament.upcoming)
-                const ScoreTable(),
-              const TournamentInfo(),
-              const Seating(),
-              const Players(),
-            ],
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: page,
-            onTap: (index) => ref.read(pageProvider.notifier).state = index,
-            items: navItems,
-          ),
+              body: IndexedStack(
+                index: page,
+                children: [
+                  if (info.status != WhenTournament.upcoming)
+                    const ScoreTable(),
+                  const TournamentInfo(),
+                  const Seating(),
+                  const Players(),
+                ],
+              ),
+              bottomNavigationBar: BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                currentIndex: page,
+                onTap: (index) => ref.read(pageProvider.notifier).state = index,
+                items: navItems,
+              ),
+            );
+          },
         );
       },
     );

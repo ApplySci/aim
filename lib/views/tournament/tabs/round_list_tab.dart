@@ -12,7 +12,8 @@ class Seating extends ConsumerWidget {
   Widget build(context, ref) {
     final showAll = ref.watch(showAllProvider);
     final filtered = ref.watch(filterByPlayerProvider.select((e) => e != null));
-    final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+    final info = ref.watch(tournamentInfoProvider).valueOrNull;
+    final status = info?.status ?? WhenTournament.upcoming;
 
     final Widget allToggle = SwitchListTile(
       title: const Text(
@@ -25,7 +26,7 @@ class Seating extends ConsumerWidget {
           .state = value,
     );
 
-    return(tournamentStatus == WhenTournament.live)
+    return(status == WhenTournament.live)
       ? DefaultTabController(
           length: 2,
           child: Column(children: [
