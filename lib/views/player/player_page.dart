@@ -102,18 +102,18 @@ class PlayerPage extends ConsumerWidget {
                       : const Icon(Icons.favorite_border),
                 ),
               ],
-              bottom: const TabBar(tabs: [
-                Tab(text: 'Stats'),
-                Tab(text: 'Schedule'),
-                Tab(text: 'Scores'),
-                Tab(text: 'Games'),
-              ]),
             ),
             body: TabBarView(children: [
               PlayerStatsTab(player: player),
               PlayerScheduleTab(player: player.games),
               PlayerScoreTab(player: player.games),
               PlayerGameTab(player: player.games),
+            ]),
+            bottomNavigationBar: const TabBar(tabs: [
+              Tab(text: 'Stats'),
+              Tab(text: 'Schedule'),
+              Tab(text: 'Scores'),
+              Tab(text: 'Games'),
             ]),
           ),
         );

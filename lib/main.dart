@@ -15,11 +15,11 @@ import 'models.dart';
 import 'providers.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
-import 'views/player_page/player_page.dart';
-import 'views/round_page/round_page.dart';
+import 'views/player/player_page.dart';
+import 'views/round/round_page.dart';
 import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
-import 'views/tournament_page/page.dart';
+import 'views/tournament/tournament_page.dart';
 
 StreamSubscription<AlarmSettings>? ringSubscription;
 
@@ -79,11 +79,11 @@ class _MyApp extends ConsumerWidget {
       (prev, next) {
         final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
-        
+
         if (prevData != null && nextData != null) {
-          if (prevData.length == nextData.length && 
-              prevData.every((e) => nextData.any((n) => 
-                n.id == e.id && 
+          if (prevData.length == nextData.length &&
+              prevData.every((e) => nextData.any((n) =>
+                n.id == e.id &&
                 n.alarm == e.alarm))) {
             return;
           }
