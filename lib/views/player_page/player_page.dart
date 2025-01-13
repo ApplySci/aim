@@ -5,6 +5,7 @@ import '/models.dart';
 import '/providers.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
+import '/views/app_bar.dart';
 import 'tabs/games_tab.dart';
 import 'tabs/schedule_tab.dart';
 import 'tabs/scores_tab.dart';
@@ -83,8 +84,8 @@ class PlayerPage extends ConsumerWidget {
         return DefaultTabController(
           length: 4,
           child: Scaffold(
-            appBar: AppBar(
-              title: Text(playerData!.name, style: const TextStyle(fontSize: 16),),
+            appBar: CustomAppBar(
+              title: Text(playerData!.name),
               actions: [
                 IconButton(
                   onPressed: () {

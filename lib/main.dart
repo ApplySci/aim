@@ -22,7 +22,6 @@ import 'views/tournament_list_page.dart';
 import 'views/tournament_page/page.dart';
 
 StreamSubscription<AlarmSettings>? ringSubscription;
-final _activeAlarms = HashSet<int>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,26 +74,41 @@ class _MyApp extends ConsumerWidget {
     final fcm = ref.watch(fcmProvider);
 
     // Set alarms when alarm schedule updates
-    ref.listenAsyncData(
+    ref.listen<AsyncValue<List<AlarmInfo>>>(
       alarmScheduleProvider,
-      (prev, next) => alarmRunner(() async {
-        final now = DateTime.now().toUtc();
-        await Alarm.stopAll();
-
-        final vibratePref = ref.read(vibratePrefProvider);
-
-        // set one alarm for each round
-        for (final (index, (id: _, :name, :alarm, :player)) in next.indexed) {
-          if (now.isBefore(alarm)) {
-            final title = '$name starts in 5 minutes';
-            final body = player != null
-                ? '${player.name} is at table ${player.table}'
-                : '';
-            await setAlarm(alarm, title, body, index + 1, vibratePref);
+      (prev, next) {
+        final prevData = prev?.valueOrNull;
+        final nextData = next.valueOrNull;
+        
+        if (prevData != null && nextData != null) {
+          if (prevData.length == nextData.length && 
+              prevData.every((e) => nextData.any((n) => 
+                n.id == e.id && 
+                n.alarm == e.alarm))) {
+            return;
           }
         }
 
-      }),
+        if (nextData == null) return;
+
+        alarmRunner(() async {
+          final now = DateTime.now().toUtc();
+          await Alarm.stopAll();
+
+          final vibratePref = ref.read(vibratePrefProvider);
+
+          // set one alarm for each round
+          for (final (index, (id: _, :name, :alarm, :player)) in nextData.indexed) {
+            if (now.isBefore(alarm)) {
+              final title = '$name starts in 5 minutes';
+              final body = player != null
+                  ? '${player.name} is at table ${player.table}'
+                  : '';
+              await setAlarm(alarm, title, body, index + 1, vibratePref);
+            }
+          }
+        });
+      },
     );
 
     // Update firebase subscription when tournamentId changes

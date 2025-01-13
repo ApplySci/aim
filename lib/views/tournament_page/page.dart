@@ -5,6 +5,7 @@ import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
+import '/views/app_bar.dart';
 import 'tabs/info_tab.dart';
 import 'tabs/player_list_tab.dart';
 import 'tabs/round_list_tab.dart';
@@ -95,7 +96,7 @@ class TournamentPage extends ConsumerWidget {
         ];
 
         return Scaffold(
-          appBar: AppBar(
+          appBar: CustomAppBar(
             title: Text(tournament.name),
             actions: [
               IconButton(

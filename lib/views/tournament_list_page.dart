@@ -7,6 +7,7 @@ import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
 import 'loading_view.dart';
+import 'app_bar.dart';
 
 class TournamentListPage extends ConsumerWidget {
   const TournamentListPage({super.key});
@@ -24,7 +25,8 @@ class TournamentListPage extends ConsumerWidget {
           ),
       data: (_) {
         return Scaffold(
-          appBar: AppBar(
+          appBar: CustomAppBar(
+            showHomeButton: false,
             title: GestureDetector(
               onTap: () {
                 // Toggle test mode on triple tap
