@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/utils.dart';
 import '/providers/firestore.dart';
 import '/views/schedule_list.dart';
+import '/views/tab_scaffold.dart';
 
 class Seating extends ConsumerWidget {
   const Seating({super.key});
@@ -27,24 +28,16 @@ class Seating extends ConsumerWidget {
     );
 
     return(status == WhenTournament.live)
-      ? DefaultTabController(
-          length: 2,
-          child: Column(children: [
-            Material(
-              color: Theme.of(context).colorScheme.inversePrimary,
-              child: const TabBar(tabs: [
-                Tab(text: 'Upcoming'),
-                Tab(text: 'Past'),
-              ]),
-            ),
-            const Expanded(
-              child: TabBarView(children: [
-                ScheduleList(when: When.upcoming),
-                ScheduleList(when: When.past),
-              ]),
-            ),
-            if (filtered) allToggle,
-          ]),
+      ? TabScaffold(
+          title: const Text('Seating'),
+          tabs: const [
+            Tab(text: 'Upcoming'),
+            Tab(text: 'Past'),
+          ],
+          children: [
+            const ScheduleList(when: When.upcoming),
+            const ScheduleList(when: When.past),
+          ],
         )
       : Column(children: [
           const Expanded(child: ScheduleList(when: When.all)),

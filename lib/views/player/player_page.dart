@@ -5,11 +5,11 @@ import '/models.dart';
 import '/providers.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
-import '/views/app_bar.dart';
 import 'tabs/games_tab.dart';
 import 'tabs/schedule_tab.dart';
 import 'tabs/scores_tab.dart';
 import 'tabs/stats_tab.dart';
+import '../tab_scaffold.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({
@@ -81,41 +81,36 @@ class PlayerPage extends ConsumerWidget {
           selectedPlayerIdProvider.select((id) => id == playerId),
         );
 
-        return DefaultTabController(
-          length: 4,
-          child: Scaffold(
-            appBar: CustomAppBar(
-              title: Text(playerData!.name),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    final selectedPlayerIdNotifier =
-                        ref.read(selectedPlayerIdProvider.notifier);
-                    if (isSelected) {
-                      selectedPlayerIdNotifier.set(null);
-                    } else {
-                      selectedPlayerIdNotifier.set(playerId);
-                    }
-                  },
-                  icon: isSelected
-                      ? const Icon(Icons.favorite)
-                      : const Icon(Icons.favorite_border),
-                ),
-              ],
+        return TabScaffold(
+          title: Text(playerData!.name),
+          actions: [
+            IconButton(
+              onPressed: () {
+                final selectedPlayerIdNotifier =
+                    ref.read(selectedPlayerIdProvider.notifier);
+                if (isSelected) {
+                  selectedPlayerIdNotifier.set(null);
+                } else {
+                  selectedPlayerIdNotifier.set(playerId);
+                }
+              },
+              icon: isSelected
+                  ? const Icon(Icons.favorite)
+                  : const Icon(Icons.favorite_border),
             ),
-            body: TabBarView(children: [
-              PlayerStatsTab(player: player),
-              PlayerScheduleTab(player: player.games),
-              PlayerScoreTab(player: player.games),
-              PlayerGameTab(player: player.games),
-            ]),
-            bottomNavigationBar: const TabBar(tabs: [
-              Tab(text: 'Stats'),
-              Tab(text: 'Schedule'),
-              Tab(text: 'Scores'),
-              Tab(text: 'Games'),
-            ]),
-          ),
+          ],
+          tabs: const [
+            Tab(text: 'Stats'),
+            Tab(text: 'Schedule'),
+            Tab(text: 'Scores'),
+            Tab(text: 'Games'),
+          ],
+          children: [
+            PlayerStatsTab(player: player),
+            PlayerScheduleTab(player: player.games),
+            PlayerScoreTab(player: player.games),
+            PlayerGameTab(player: player.games),
+          ],
         );
       });
   }

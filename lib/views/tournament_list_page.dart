@@ -7,7 +7,7 @@ import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
 import 'loading_view.dart';
-import 'app_bar.dart';
+import 'tab_scaffold.dart';
 
 class TournamentListPage extends ConsumerWidget {
   const TournamentListPage({super.key});
@@ -24,54 +24,41 @@ class TournamentListPage extends ConsumerWidget {
             stackTrace: stackTrace,
           ),
       data: (_) {
-        return Scaffold(
-          appBar: CustomAppBar(
-            showHomeButton: false,
-            title: GestureDetector(
-              onTap: () {
-                // Toggle test mode on triple tap
-                if (DateTime.now().difference(_lastTap).inMilliseconds < 500) {
-                  _tapCount++;
-                  if (_tapCount > 2) {
-                    ref.read(testModePrefProvider.notifier).set(!testMode);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Test mode ${testMode ? 'disabled' : 'enabled'}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                    _tapCount = 0;
-                  }
-                } else {
-                  _tapCount = 1;
+        return TabScaffold(
+          title: GestureDetector(
+            onTap: () {
+              // Toggle test mode on triple tap
+              if (DateTime.now().difference(_lastTap).inMilliseconds < 500) {
+                _tapCount++;
+                if (_tapCount > 2) {
+                  ref.read(testModePrefProvider.notifier).set(!testMode);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Test mode ${testMode ? 'disabled' : 'enabled'}'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  _tapCount = 0;
                 }
-                _lastTap = DateTime.now();
-              },
-              child: const Text('Tournaments'),
-            ),
+              } else {
+                _tapCount = 1;
+              }
+              _lastTap = DateTime.now();
+            },
+            child: const Text('Tournaments'),
           ),
-          body: DefaultTabController(
-            length: testMode ? 4 : 3,
-            child: Column(children: [
-              Material(
-                color: Theme.of(context).colorScheme.inversePrimary,
-                child: TabBar(tabs: [
-                  const Tab(text: 'Live'),
-                  const Tab(text: 'Upcoming'),
-                  const Tab(text: 'Past'),
-                  if (testMode) const Tab(text: 'Test'),
-                ]),
-              ),
-              Expanded(
-                child: TabBarView(children: [
-                  const TournamentList(when: WhenTournament.live),
-                  const TournamentList(when: WhenTournament.upcoming),
-                  const PastTournamentList(),
-                  if (testMode) const TournamentList(when: WhenTournament.test),
-                ]),
-              ),
-            ]),
-          ),
+          tabs: [
+            const Tab(text: 'Live'),
+            const Tab(text: 'Upcoming'),
+            const Tab(text: 'Past'),
+            if (testMode) const Tab(text: 'Test'),
+          ],
+          children: [
+            const TournamentList(when: WhenTournament.live),
+            const TournamentList(when: WhenTournament.upcoming),
+            const PastTournamentList(),
+            if (testMode) const TournamentList(when: WhenTournament.test),
+          ],
         );
       },
     );

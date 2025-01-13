@@ -7,9 +7,9 @@ import '/providers.dart';
 import 'tabs/games_tab.dart';
 import 'tabs/scores_tab.dart';
 import '/utils.dart';
-import '/views/app_bar.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
+import '/views/tab_scaffold.dart';
 
 final roundProvider =
     StreamProvider.autoDispose.family<RoundScheduleData, String>(
@@ -47,22 +47,16 @@ class RoundPage extends ConsumerWidget {
         error: error,
         stackTrace: stackTrace,
       ),
-      data: (round) => DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          appBar: CustomAppBar(
-            title: Text(round.name),
-          ),
-          body: TabBarView(children: [
-            RoundGamesTab(round: round),
-            RoundScoresTab(round: round),
-          ]),
-          bottomNavigationBar: const TabBar(tabs: [
-            Tab(text: 'Games'),
-            Tab(text: 'Scores'),
-          ]),
-
-        ),
+      data: (round) => TabScaffold(
+        title: Text(round.name),
+        tabs: const [
+          Tab(text: 'Games'),
+          Tab(text: 'Scores'),
+        ],
+        children: [
+          RoundGamesTab(round: round),
+          RoundScoresTab(round: round),
+        ],
       ),
     );
   }
