@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
+import '/views/app_bar.dart';
 import 'loading_view.dart';
 
 class TournamentListPage extends ConsumerWidget {
@@ -19,12 +20,12 @@ class TournamentListPage extends ConsumerWidget {
     return allTournamentsAsync.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(
-            error: error,
-            stackTrace: stackTrace,
-          ),
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (_) {
         return Scaffold(
-          appBar: AppBar(
+          appBar: CustomAppBar(
             title: GestureDetector(
               onTap: () {
                 // Toggle test mode on triple tap
@@ -34,7 +35,8 @@ class TournamentListPage extends ConsumerWidget {
                     ref.read(testModePrefProvider.notifier).set(!testMode);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Test mode ${testMode ? 'disabled' : 'enabled'}'),
+                        content: Text(
+                            'Test mode ${testMode ? 'disabled' : 'enabled'}'),
                         duration: const Duration(seconds: 2),
                       ),
                     );
@@ -100,16 +102,15 @@ class TournamentList extends ConsumerWidget {
               leading: switch (tournament.urlIcon) {
                 "" => const Icon(Icons.event),
                 _ => CachedNetworkImage(
-                      height: 70,
-                      width: 70,
-                      imageUrl: tournament.urlIcon,
-                      placeholder: (c, u) =>
-                      const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      errorWidget: (c, u, e) => const Icon(Icons.error),
-                      fit: BoxFit.contain,
+                    height: 70,
+                    width: 70,
+                    imageUrl: tournament.urlIcon,
+                    placeholder: (c, u) => const Center(
+                      child: CircularProgressIndicator(),
                     ),
+                    errorWidget: (c, u, e) => const Icon(Icons.error),
+                    fit: BoxFit.contain,
+                  ),
               },
               selected: tournamentId == tournament.id,
               title: Text(tournament.name),
@@ -168,7 +169,8 @@ class PastTournamentList extends ConsumerWidget {
 
               try {
                 // Load tournament details
-                await ref.read(pastTournamentDetailsProvider(summary.id).future);
+                await ref
+                    .read(pastTournamentDetailsProvider(summary.id).future);
 
                 // Set the tournament ID
                 await ref.read(tournamentIdProvider.notifier).set(summary.id);

@@ -9,6 +9,7 @@ import 'tabs/info_tab.dart';
 import 'tabs/player_list_tab.dart';
 import 'tabs/round_list_tab.dart';
 import 'tabs/score_tab.dart';
+import '/views/app_bar.dart';
 
 final pageProvider = StateProvider((ref) => 0);
 
@@ -54,12 +55,12 @@ class TournamentPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final page = ref.watch(pageProvider);
     final tournament = ref.watch(tournamentProvider);
-    final tournamentStatus = ref.watch(tournamentStatusProvider).valueOrNull ?? WhenTournament.upcoming;
+    final tournamentState = ref.watch(tournamentStateProvider).valueOrNull ?? (id: null, status: WhenTournament.upcoming);
 
     // Handle initial tab from notification
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args?['initial_tab'] case String tab) {
-      final index = TournamentTab.fromNotificationType(tab).toIndex(tournamentStatus);
+      final index = TournamentTab.fromNotificationType(tab).toIndex(tournamentState.status);
       Future(() => ref.read(pageProvider.notifier).state = index);
     }
 
@@ -75,7 +76,7 @@ class TournamentPage extends ConsumerWidget {
       ),
       data: (tournament) {
         final navItems = [
-          if (tournamentStatus != WhenTournament.upcoming)
+          if (tournamentState.status != WhenTournament.upcoming)
             const BottomNavigationBarItem(
               icon: Icon(Icons.score),
               label: 'Scores',
@@ -95,7 +96,7 @@ class TournamentPage extends ConsumerWidget {
         ];
 
         return Scaffold(
-          appBar: AppBar(
+          appBar: CustomAppBar(
             title: Text(tournament.name),
             actions: [
               IconButton(
@@ -107,7 +108,7 @@ class TournamentPage extends ConsumerWidget {
           body: IndexedStack(
             index: page,
             children: [
-              if (tournamentStatus != WhenTournament.upcoming)
+              if (tournamentState.status != WhenTournament.upcoming)
                 const ScoreTable(),
               const TournamentInfo(),
               const Seating(),

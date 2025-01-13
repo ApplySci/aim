@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '/providers.dart';
+import '/views/app_bar.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -14,8 +15,8 @@ class SettingsPage extends ConsumerWidget {
     final vibratePref = ref.watch(vibratePrefProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
+      appBar: const CustomAppBar(
+        title: Text('Settings'),
       ),
       body: Column(
         children: <Widget>[

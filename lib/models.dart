@@ -519,3 +519,9 @@ class PastTournamentSummary extends Equatable {
   @override
   List<Object?> get props => [id, name, startDate, endDate, venue, country, rules, playerCount];
 }
+
+typedef PlayerRankings = ({
+  List<GameData> games,
+  List<int> rankings,
+  List<int> totalScores,
+});
