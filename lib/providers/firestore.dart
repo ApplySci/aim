@@ -258,6 +258,32 @@ final gameProvider = StreamProvider<List<GameData>>((ref) async* {
 });
 
 final scheduleProvider = StreamProvider<ScheduleData>((ref) async* {
+  final info = ref.watch(tournamentInfoProvider).valueOrNull;
+  if (info == null || info.id == null) return;
+
+  if (info.status == WhenTournament.past) {
+    final tournament = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
+    if (tournament.seating != null && tournament.seating!.isNotEmpty) {
+      final firstRound = tournament.seating![0];
+      final location = firstRound.start?.location;
+      if (location != null) {
+        yield ScheduleData(
+          timezone: getLocation(location.name),
+          rounds: [
+            for (final round in tournament.seating!)
+              if (round.start != null)
+                RoundScheduleData(
+                  id: round.id,
+                  name: round.id,
+                  start: round.start!,
+                ),
+          ],
+        );
+      }
+    }
+    return;
+  }
+
   final collection = ref.watch(tournamentCollectionProvider);
   if (collection == null) return;
 
