@@ -35,7 +35,8 @@ final roundScoresProvider =
                   ),
               ],
             ),
-    ];
+    ]..sort((a, b) => int.parse(a.table.tableId.replaceAll(RegExp(r'[^\d]'), ''))
+        .compareTo(int.parse(b.table.tableId.replaceAll(RegExp(r'[^\d]'), ''))));
   },
 );
 

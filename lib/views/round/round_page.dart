@@ -54,12 +54,12 @@ class RoundPage extends ConsumerWidget {
             title: Text(round.name),
           ),
           body: TabBarView(children: [
-            RoundScoresTab(round: round),
             RoundGamesTab(round: round),
+            RoundScoresTab(round: round),
           ]),
           bottomNavigationBar: const TabBar(tabs: [
-            Tab(text: 'Scores'),
             Tab(text: 'Games'),
+            Tab(text: 'Scores'),
           ]),
 
         ),

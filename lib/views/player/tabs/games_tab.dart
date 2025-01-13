@@ -136,7 +136,7 @@ class PlayerGameTab extends ConsumerWidget {
                       DateFormat('EEEE d MMMM HH:mm').format(round.round.start),
                     ),
                     visualDensity: VisualDensity.compact,
-                    onTap: () => Navigator.of(context).popAndPushNamed(
+                    onTap: () => Navigator.of(context).pushNamed(
                       ROUTES.round,
                       arguments: round.round.id,
                     ),

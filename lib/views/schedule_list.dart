@@ -196,7 +196,7 @@ class ScheduleList extends ConsumerWidget {
                                 ' (phone time)',
                               ),
                         visualDensity: VisualDensity.compact,
-                        onTap: () => Navigator.of(context).popAndPushNamed(
+                        onTap: () => Navigator.of(context).pushNamed(
                           ROUTES.round,
                           arguments: round.id,
                         ),
