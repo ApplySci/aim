@@ -44,21 +44,23 @@ typedef PlayerRoundScoreWidths = ({
 });
 
 final roundScoreListWidthsProvider = StreamProvider.autoDispose
-    .family<(PlayerRoundScoreWidths, List<PlayerRoundScore>), RoundId>(
+    .family<(PlayerRoundScoreWidths, List<PlayerRoundScore>, int?)?, RoundId>(
   (ref, roundId) async* {
     final negSign = ref.watch(negSignProvider);
-    final roundScoreList =
-        await ref.watch(roundScoreListProvider(roundId).future);
-    // roundScoreList might be empty - handle this correctly
+    final roundScoreList = await ref.watch(roundScoreListProvider(roundId).future);
+    final selectedSeat = ref.watch(selectedSeatProvider);
+    
     if (roundScoreList.isEmpty) {
-      yield ((
-        maxNameWidth: 0,
-        maxPlacementWidth: 0,
-        maxGameScoreWidth: 0,
-        maxFinalScoreWidth: 0,
-        maxPenaltiesWith: 0,
+      yield (
+        (
+          maxNameWidth: 0,
+          maxPlacementWidth: 0,
+          maxGameScoreWidth: 0,
+          maxFinalScoreWidth: 0,
+          maxPenaltiesWith: 0,
         ),
         [],
+        selectedSeat,
       );
     } else {
       yield (
@@ -78,6 +80,7 @@ final roundScoreListWidthsProvider = StreamProvider.autoDispose
               .max,
         ),
         roundScoreList,
+        selectedSeat,
       );
     }
   },
@@ -101,12 +104,12 @@ class RoundScoresTab extends ConsumerWidget {
         stackTrace: stackTrace,
       ),
       data: (data) {
-        final (widths, players) = data;
-        if (players.isEmpty) {
+        if (data == null) {
           return const Center(
             child: Text('No scores available yet'),
           );
         }
+        final (widths, players, selectedSeat) = data;
         return DataTable2(
           minWidth: double.infinity,
           columnSpacing: 8,
@@ -138,13 +141,20 @@ class RoundScoresTab extends ConsumerWidget {
           ],
           rows: [
             for (final player in players)
-              DataRow2(cells: [
-                DataCell(Text(player.name)),
-                DataCell(Text('${player.score.placement}')),
-                DataCell(ScoreText(player.score.gameScore)),
-                DataCell(ScoreText(player.score.finalScore)),
-                DataCell(PenaltyText(player.score.penalties)),
-              ])
+              DataRow2(
+                cells: [
+                  DataCell(Text(player.name)),
+                  DataCell(Text('${player.score.placement}')),
+                  DataCell(ScoreText(player.score.gameScore)),
+                  DataCell(ScoreText(player.score.finalScore)),
+                  DataCell(PenaltyText(player.score.penalties)),
+                ],
+                selected: selectedSeat == player.seat,
+                color: selectedSeat == player.seat
+                    ? WidgetStateColor.resolveWith((states) => 
+                        Theme.of(context).colorScheme.primaryContainer)
+                    : null,
+              )
           ],
         );
       },

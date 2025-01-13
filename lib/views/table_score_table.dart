@@ -20,14 +20,18 @@ class TableScoreTable extends StatelessWidget {
   const TableScoreTable({
     required this.widths,
     required this.players,
+    this.selectedSeat,
     super.key,
   });
 
   final TableScoreWidths widths;
   final List<TablePlayerScore> players;
+  final int? selectedSeat;
 
   @override
   Widget build(BuildContext context) {
+    final highlightColor = Theme.of(context).colorScheme.primaryContainer;
+    
     return SizedBox(
       height: 248,
       child: DataTable2(
@@ -64,14 +68,20 @@ class TableScoreTable extends StatelessWidget {
         ],
         rows: [
           for (final player in players)
-            DataRow2(cells: [
-              DataCell(Text(player.player.name)),
-              DataCell(Text(player.score.placement.toString())),
-              DataCell(ScoreText(player.score.gameScore)),
-              DataCell(ScoreText(player.score.uma)),
-              DataCell(PenaltyText(player.score.penalties)),
-              DataCell(ScoreText(player.score.finalScore)),
-            ])
+            DataRow2(
+              selected: selectedSeat == player.player.seat,
+              color: selectedSeat == player.player.seat
+                  ? WidgetStateColor.resolveWith((states) => highlightColor)
+                  : null,
+              cells: [
+                DataCell(Text(player.player.name)),
+                DataCell(Text(player.score.placement.toString())),
+                DataCell(ScoreText(player.score.gameScore)),
+                DataCell(ScoreText(player.score.uma)),
+                DataCell(PenaltyText(player.score.penalties)),
+                DataCell(ScoreText(player.score.finalScore)),
+              ],
+            )
         ],
       ),
     );

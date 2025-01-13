@@ -41,10 +41,11 @@ final roundScoresProvider =
 );
 
 final roundGamesWithWidthsProvider = StreamProvider.autoDispose
-    .family<(TableScoreWidths, List<RoundTableScores>)?, RoundId>(
+    .family<(TableScoreWidths, List<RoundTableScores>, int?)?, RoundId>(
   (ref, roundId) async* {
     final negSign = ref.watch(negSignProvider);
     final scores = await ref.watch(roundScoresProvider(roundId).future);
+    final selectedSeat = ref.watch(selectedSeatProvider);
     if (scores.isEmpty) {
       yield null;
       return;
@@ -94,6 +95,7 @@ final roundGamesWithWidthsProvider = StreamProvider.autoDispose
             .max,
       ),
       scores,
+      selectedSeat,
     );
   },
 );
@@ -121,7 +123,7 @@ class RoundGamesTab extends ConsumerWidget {
             child: Text('No game results available yet'),
           );
         }
-        final (widths, tables) = data;
+        final (widths, tables, selectedSeat) = data;
         return CustomScrollView(
           slivers: [
             for (final table in tables)
@@ -139,6 +141,7 @@ class RoundGamesTab extends ConsumerWidget {
                     TableScoreTable(
                       widths: widths,
                       players: table.players,
+                      selectedSeat: selectedSeat,
                     ),
                   ]),
                 ),
