@@ -9,7 +9,7 @@ import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/score_text.dart';
 import '/views/table_score_table.dart';
-import '/views/utils.dart';
+import '/views/viewutils.dart';
 
 typedef RoundTableScores = ({
   Hanchan table,

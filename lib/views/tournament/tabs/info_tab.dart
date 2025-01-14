@@ -11,7 +11,7 @@ import '/providers.dart';
 import '/venue.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
-import '/views/utils.dart';
+import '/views/viewutils.dart';
 
 class TournamentInfo extends ConsumerWidget {
   const TournamentInfo({super.key});

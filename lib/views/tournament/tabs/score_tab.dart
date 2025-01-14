@@ -12,7 +12,7 @@ import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/rank_text.dart';
 import '/views/score_text.dart';
-import '/views/utils.dart';
+import '/views/viewutils.dart';
 
 const columnMargin = 18;
 

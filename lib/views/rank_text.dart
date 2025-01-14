@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'utils.dart';
+import 'viewutils.dart';
 
 String rankText(int rank, bool tied) => '${tied ? '=' : ''}$rank';
 

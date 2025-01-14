@@ -8,7 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
-import '/views/utils.dart';
+import '/views/viewutils.dart';
 import '/views/error_view.dart';
 import 'loading_view.dart';
 

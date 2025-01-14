@@ -8,7 +8,7 @@ import '/providers.dart';
 import '/views/error_view.dart';
 import '/views/loading_view.dart';
 import '/views/score_text.dart';
-import '/views/utils.dart';
+import '/views/viewutils.dart';
 
 typedef PlayerRoundScore = ({
   int seat,
@@ -49,7 +49,7 @@ final roundScoreListWidthsProvider = StreamProvider.autoDispose
     final negSign = ref.watch(negSignProvider);
     final roundScoreList = await ref.watch(roundScoreListProvider(roundId).future);
     final selectedSeat = ref.watch(selectedSeatProvider);
-    
+
     if (roundScoreList.isEmpty) {
       yield (
         (
@@ -151,7 +151,7 @@ class RoundScoresTab extends ConsumerWidget {
                 ],
                 selected: selectedSeat == player.seat,
                 color: selectedSeat == player.seat
-                    ? WidgetStateColor.resolveWith((states) => 
+                    ? WidgetStateColor.resolveWith((states) =>
                         Theme.of(context).colorScheme.primaryContainer)
                     : null,
               )

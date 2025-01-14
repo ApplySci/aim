@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '/providers.dart';
-import 'utils.dart';
+import 'viewutils.dart';
 
 const scoreStyle = TextStyle(
   fontWeight: FontWeight.bold,
