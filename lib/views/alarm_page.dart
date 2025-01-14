@@ -6,21 +6,30 @@ import 'package:flutter/material.dart';
 import '/utils.dart';
 
 final _activeAlarms = HashSet<int>();
+bool _handlingAlarm = false;
 
 void openAlarmPage(AlarmSettings settings) async {
-  Log.debug('openAlarmPage $settings');
-  if (globalNavigatorKey.currentState?.context == null) return;
-  if (settings.dateTime.isAfter(DateTime.now())) return;
+  if (_handlingAlarm) return;
+  _handlingAlarm = true;
+  Log.debug('*** openAlarmPage for alarm #${settings.id}');
+  if (globalNavigatorKey.currentState?.context == null) {
+    _handlingAlarm = false;
+    return;
+  }
   if (settings.dateTime.isBefore(
       DateTime.now().subtract(const Duration(minutes: 30)))) {
     Alarm.stop(settings.id);
+    _handlingAlarm = false;
     return;
   }
 
-  if (_activeAlarms.contains(settings.id)) return;
-  
+  if (_activeAlarms.contains(settings.id)) {
+    _handlingAlarm = false;
+    return;
+  }
+
   _activeAlarms.add(settings.id);
-  
+
   await Future.delayed(const Duration(milliseconds: 100));
 
   Future.delayed(const Duration(minutes: 30), () {
@@ -28,16 +37,21 @@ void openAlarmPage(AlarmSettings settings) async {
     _activeAlarms.remove(settings.id);
   });
 
-  if (!globalNavigatorKey.currentState!.mounted) return;
-  
+  if (!globalNavigatorKey.currentState!.mounted) {
+    _handlingAlarm = false;
+    return;
+  }
+
   globalNavigatorKey.currentState?.push(
     MaterialPageRoute<void>(
-      builder: (context) => AlarmPage(
-        settings: settings,
-        onClose: () => _activeAlarms.remove(settings.id),
-      ),
+      builder: (context) =>
+          AlarmPage(
+            settings: settings,
+            onClose: () => _activeAlarms.remove(settings.id),
+          ),
     ),
   );
+  _handlingAlarm = false;
 }
 
 class AlarmPage extends StatefulWidget {

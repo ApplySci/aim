@@ -47,6 +47,12 @@ class TournamentListPage extends ConsumerWidget {
             },
             child: const Text('Tournaments'),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+            ),
+          ],
           tabs: [
             const Tab(text: 'Live'),
             const Tab(text: 'Upcoming'),
