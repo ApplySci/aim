@@ -5,7 +5,7 @@ import inspect
 import os
 import sys
 
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, render_template
 
 # add directory of this file, to the start of the path,
 # before importing any of the app
@@ -25,6 +25,8 @@ from run.run import blueprint as bp_run
 from run.cloud_edit import blueprint as bp_edit
 from run.export import blueprint as bp_export
 from run.user_management import blueprint as bp_user_management
+from config import SUPERADMIN
+from operations.api import blueprint as bp_api
 
 
 def create_app():
@@ -38,6 +40,7 @@ def create_app():
         bp_edit,
         bp_export,
         bp_user_management,
+        bp_api,
     ):
         app.register_blueprint(bp)
 
@@ -48,12 +51,25 @@ def create_app():
     config_db(app)
     config_jinja(app)
 
+    @app.context_processor
+    def inject_superadmin():
+        return dict(SUPERADMIN=SUPERADMIN)
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        import traceback
+        tb = traceback.format_exc()
+        return render_template(
+            'error.html',
+            error=str(e),
+            traceback=tb
+        ), 500
+
     @app.after_request
     def add_header(response):
         if request.path.startswith("/static/"):
             return response
 
-        # Disable caching for HTML and JSON responses
         response.headers["Cache-Control"] = (
             "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0"
         )

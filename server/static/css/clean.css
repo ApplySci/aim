@@ -1,0 +1,420 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0 auto;
+    padding: 0;
+    background-color: #f4f4f4;
+    width: 90%;
+}
+
+form + form {
+    padding-top: 1em;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    padding: 20px 0;
+}
+
+form {
+    margin: 0 auto;
+    width: auto;
+}
+
+fieldset {
+    border: none;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0px 0px 8px #888;
+}
+
+p {
+    margin-bottom: 10px;
+}
+
+label {
+    margin-left: 1em;
+}
+
+li {
+    margin-bottom: 0.5em;
+}
+
+input[type="text"], input[type="number"], input[type="email"] {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+input[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background-color: #444;
+}
+
+input[type="submit"]:active {
+    background-color: #888;
+    color: black;
+}
+
+.error {
+    color: red;
+}
+
+/*
+                    scoresheet
+*/
+
+#scoreHeader {
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+#scoreHeader h1 {
+    text-align: left;
+}
+
+#scoreHeader #paginator {
+    font-size: 0.5em;
+}
+
+#scoreBody {
+    position: fixed;
+    bottom: 0;
+    left: 1em;
+    display: grid;
+    margin: 1em 3em 0 3em;
+    grid-auto-flow: column;
+    column-gap: 5px;
+    background-color: #005;
+    grid-template-rows: repeat(auto-fill, 2.5em);
+    grid-template-columns: repeat(auto-fill, 35em);
+}
+
+
+.scorePlayer:nth-child(2n) {
+  background-color: #ddd;
+}
+
+.scorePlayer {
+    padding-right: 5px;
+    margin-right: 3em;
+    background-color: #eee;
+    padding-top: 0.75em;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.scoreRank {
+    width: 3em;
+    display: inline-block;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.scoreName {
+    display: inline-block;
+    padding-left: 1em;
+    vertical-align: middle;
+}
+
+.scoreScore {
+    width: 4em;
+    display: inline-block;
+    text-align: right;
+    vertical-align: middle;
+}
+
+#datetimeInputs label{
+    display: block;
+    margin-top: 0.5em;
+}
+
+#runButtons button {
+    display: block;
+    width: 80%;
+    margin-bottom: 1em;
+    padding: 0.25em;
+}
+
+#logMessageBox {
+    width: 80%;
+    min-height: 2em;
+    max-height: 20em;
+    overflow-y: scroll;
+    border: 1px solid black;
+}
+
+#logMessageBox p {
+  margin: 6px;
+}
+
+.dateTimeStamp {
+    font-weight: bold;
+}
+
+#seatingBody {
+    width: 90%;
+}
+
+#seatingBody section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-auto-flow: dense;
+    gap: 10px;
+}
+
+#seatingBody table {
+    grid-column: span 1;
+    border-top: none;
+    margin-right: 1em;
+}
+
+#seatingBody h2 {
+    grid-column: 1 / -1;
+    border-top: 2px solid blue;
+    padding-top: 2em;
+    text-align: center;
+}
+
+#seatingBody tbody td, #seatingBody tbody th {
+  border-top: 2px #ccc solid;
+  padding: 5px 0 ;
+}
+
+#seatingBody td, #seatingBody tbody th {
+  border-top: 2px #ccc solid;
+  padding: 5px 0 ;
+}
+
+.gameresults {
+  border-collapse: collapse;
+}
+
+.gameresults .caption {
+  border-top: 2px solid #555;
+}
+
+.gameresults td, .gameresults th {
+  text-align: right;
+  border-left: 1px solid #aaa;
+  padding: 6px;
+}
+
+.gameresults td.place {
+  text-align: center;
+}
+
+.gameresults .caption:first-child {
+  border-top: none;
+}
+
+.gameresults .caption td {
+  border-left: none;
+  text-align: center;
+  padding-top: 1.5em;
+  font-style: italic;
+}
+
+.gameresults td:first-child, .gameresults th:first-child {
+  text-align: center;
+  border-left: none;
+}
+
+.gameresults .total {
+  font-weight: bolder;
+}
+
+.scorePos {
+  color: #080;
+}
+
+.scoreNeg {
+  color: #800;
+}
+
+.score0 {
+  color: #888;
+}
+
+.gameresults tr:not(.caption):not(.headers) {
+  border-top: 1px solid green;
+}
+
+nav {
+  position: fixed;
+  width: 10em;
+}
+
+#main {
+    margin-left: 12em;
+    padding-bottom: 2em;
+	border-left: 1px solid grey;
+	padding-left: 1em;
+}
+
+nav a {
+  display: block;
+  text-align: left;
+  padding: 1em;
+  }
+
+/* Change the color of links on hover */
+nav a:hover {
+  background-color: black;
+  color: yellow;
+}
+
+/* Add an active class to highlight the current page */
+nav a.active {
+  background-color: #aaf;
+}
+
+@media screen and (max-width: 800px) {
+    body {
+        width: 100%;
+        padding: 0 10px;
+    }
+
+    nav {
+        position: static;
+        width: 100%;
+        background-color: #f8f8f8;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    nav a {
+        display: inline-block;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-decoration: none;
+        color: #333;
+    }
+
+    nav a:hover {
+        background-color: #ddd;
+        color: #000;
+    }
+
+    nav a.active {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    #main {
+        margin-left: 0;
+        border-left: none;
+        padding-left: 0;
+        padding-top: 20px;
+    }
+
+    h1 {
+        font-size: 24px;
+        padding: 10px 0;
+    }
+
+    /* Adjust table layouts for mobile */
+    #ranking, .gameresults {
+        font-size: 14px;
+    }
+
+    #ranking td, #ranking th, .gameresults td, .gameresults th {
+        padding: 5px 2px;
+    }
+
+    /* Adjust seating layout for mobile */
+    #seatingBody section {
+        grid-template-columns: 1fr;
+    }
+}
+
+#home {
+    position: fixed;
+    top:5px;
+    left: 5px;
+    z-index: 9;
+}
+
+#ranking {
+    position: relative;
+}
+
+#ranking a, .gameresults a {
+  text-decoration: none;
+}
+
+#ranking thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+#ranking tbody {
+    max-height: 80%;
+    overflow-y: auto
+}
+
+#ranking .scorePos a, #ranking .scoreNeg a, #ranking .score0 a {
+    color: inherit;
+}
+
+#ranking .scorePos, #ranking .scoreNeg, #ranking .score0 {
+    text-align: right;
+}
+
+#ranking tr:nth-child(even) {
+    background-color: #ffffd8;
+}
+#ranking thead th {
+    background-color: #ccf;
+}
+
+#ranking tbody td, #ranking thead th {
+  padding: 0.5em 0.1em;
+}
+
+#ranking td:nth-child(2) {
+  font-weight: bolder;
+}
+
+.flashes {
+  margin-bottom: 20px;
+}
+
+.alert {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.alert-success {
+  color: #3c763d;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+}
+
+.alert-error {
+  color: #a94442;
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+
+.alert-info {
+  color: #113060;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}

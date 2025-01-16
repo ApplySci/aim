@@ -13,9 +13,9 @@ from sqlalchemy.types import String
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from config import BASEDIR
-from oauth_setup import firestore_client, Role
+from oauth_setup import firestore_client, logging, Role
 
-_missing = object()   # sentinel object for missing values
+_missing = object()  # sentinel object for missing values
 
 
 class cached_hybrid_property(hybrid_property):
@@ -31,7 +31,7 @@ class cached_hybrid_property(hybrid_property):
                 value = self.fget(instance)
                 instance.__dict__[name] = value
             return value
-        
+
 
 class Base(DeclarativeBase):
     pass
@@ -60,25 +60,6 @@ class Access(Base):
         self.user_email = user_email.lower()
 
 
-class Hanchan(Base):
-    # we store these so that we can spot when a scorer changes the hanchan
-    # times in the googlesheet
-    # and then we can notify the players accordingly
-    __tablename__ = "hanchan"
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
-    hanchan_number: Mapped[int] = mapped_column(Integer)
-    start_time: Mapped[datetime | None]
-    tournament: Mapped["Tournament"] = relationship(
-        back_populates="hanchans",
-        foreign_keys=[tournament_id],
-    )
-
-
 class Tournament(Base):
     __tablename__ = "tournament"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -87,9 +68,11 @@ class Tournament(Base):
     web_directory: Mapped[str]
     firebase_doc: Mapped[str | None]
     users: Mapped[list[Access]] = relationship(back_populates="tournament")
-    hanchans: Mapped[list[Hanchan]] = relationship(
-        "Hanchan",
-        back_populates="tournament",
+    past_data: Mapped[list["PastTournamentData"]] = relationship(
+        back_populates="tournament", uselist=False
+    )
+    players: Mapped[list["TournamentPlayer"]] = relationship(
+        back_populates="tournament"
     )
 
     @hybrid_property
@@ -102,15 +85,9 @@ class Tournament(Base):
             self.firebase_doc
         )
         tournament_data = tournament_ref.get().to_dict()
-        status = tournament_data.get("status")
-        return status
-
-    @status.setter
-    def status(self, value):
-        tournament_ref = firestore_client.collection("tournaments").document(
-            self.firebase_doc
-        )
-        tournament_ref.update({"status": value})
+        if tournament_data is None:
+            return "past" if self.past_data else None
+        return tournament_data.get("status")
 
 
 class User(Base, UserMixin):
@@ -149,3 +126,57 @@ class User(Base, UserMixin):
     def __init__(self, email, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.email = email.lower()
+
+
+class PastTournamentData(Base):
+    __tablename__ = "past_tournament_data"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    data: Mapped[str]  # JSON string containing all tournament data
+    archived_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    tournament: Mapped["Tournament"] = relationship(back_populates="past_data")
+
+
+class ArchivedPlayer(Base):
+    __tablename__ = "archived_player"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str]
+    # Additional fields that could help with matching:
+    country: Mapped[str | None]
+    ema_id: Mapped[str | None]
+
+    tournament_appearances: Mapped[list["TournamentPlayer"]] = relationship(
+        back_populates="player"
+    )
+
+
+class TournamentPlayer(Base):
+    __tablename__ = "tournament_player"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    player_id: Mapped[int] = mapped_column(ForeignKey("archived_player.id"))
+    seating_id: Mapped[str]
+    registration_id: Mapped[str]
+
+    tournament: Mapped["Tournament"] = relationship(back_populates="players")
+    player: Mapped["ArchivedPlayer"] = relationship(
+        back_populates="tournament_appearances"
+    )
+    results: Mapped[list["Hanchan"]] = relationship(back_populates="player")
+
+
+class Hanchan(Base):
+    __tablename__ = "hanchan"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    player_id: Mapped[int] = mapped_column(ForeignKey("tournament_player.id"))
+    hanchan_number: Mapped[int]
+    table_number: Mapped[str]
+    seat: Mapped[int]
+    points: Mapped[int]
+    placement: Mapped[int]
+    chombo: Mapped[int | None]
+
+    tournament: Mapped["Tournament"] = relationship()
+    player: Mapped["TournamentPlayer"] = relationship(back_populates="results")

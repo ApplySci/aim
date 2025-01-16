@@ -1,0 +1,33 @@
+{% extends "runbase.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+<h1>An error occurred</h1>
+<div class="error-details">
+    <h2>Error message:</h2>
+    <pre>{{ error }}</pre>
+    
+    <h2>Stack trace:</h2>
+    <pre>{{ traceback }}</pre>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.error-details {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.error-details pre {
+    background: #f5f5f5;
+    padding: 15px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+</style>
+{% endblock %} 

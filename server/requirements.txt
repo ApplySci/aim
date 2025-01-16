@@ -31,3 +31,5 @@ pycountry
 ## timezones are hard
 pytz
 tzdata
+## fuzzy string matching
+jellyfish

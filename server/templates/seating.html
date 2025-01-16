@@ -13,12 +13,14 @@
       {% for tname, t in seating[loop.index0]['tables'].items() %}
         <table class=seating>
           <thead>
-          <tr><th colspan = 2>Table {{ tname }}</th></tr>
+          <tr><th {% if use_winds %}colspan = 2{% endif %}>Table {{ tname }}</th></tr>
           </thead>
           <tbody>
             {% for p in t %}
             <tr>
+              {% if use_winds %}
               <th><span class='seatwind'>{{ "ESWN"[loop.index0] }}</span></th>
+              {% endif %}
               <td>{{ players[p] }}</td>
             </tr>
             {% endfor %}

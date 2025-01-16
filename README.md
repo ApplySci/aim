@@ -1,6 +1,6 @@
-# AIM Tournaments
+# World Riichi App for Tournaments
 
-This is the [All-Ireland Mahjong](https://mahjong.ie/) mobile app.
+This is the [World Riichi](https://worldriichi.org/) mobile app.
 This provides live information about tournaments.
 
 For tournament participants, it gives **live** info during tournament: current scores,
@@ -26,7 +26,7 @@ It's designed in a way that a browser with 3 tabs can do everything:
 The client-side written in Dart with the **Flutter** framework. It's developed and
 tested for **android**, in Android Studio, and for iPhone & iPad(Mini) on xCode.
 
-The server-side is written in **Python**, with the **Flask** framework. See [server/README.md](server/README.md) for details.
+The server-side is written in **Python (3.10+)**, with the **Flask** framework. See [server/README.md](server/README.md) for details.
 I'm running it
 on the server with **gunicorn**. Note that the oauth2 authentication won't work on localhost: you need
 a google project that knows about the domain that the app is being served from, and must be given
@@ -40,7 +40,7 @@ Live tournament data is stored in **Google Cloud Firestore**.
 
 When the app has a connection, and is in foreground or background, any update to
 the firebase cloud data gets noticed by the listener.
-If the app is closed, then it won't know anything about it, so the server sends FCM notificaions
+If the app is closed, then it won't know anything about it, so the server sends FCM notifications
 to all subscribed devices.
 
 The live scoring of a tournament is done in a **Google spreadsheet**,
@@ -62,15 +62,16 @@ and because it takes care of loads of messy stuff such as background syncing of
 data between mobiles and server, and caching stuff on mobile so that everything
 behaves just perfectly even when the mobile has patchy signal. I did try crafting my own
 local caching thing for android, and it was super messy, so it just made sense to let google
-do all the clever io stuff, and I just concentrate on the mahjong stuff.
+do all the clever io stuff, and I just concentrate on the mahjong stuff. Past tournaments *are*
+stored on server, rather than in-cloud, as their number will just grow and grow.
 
 ### Scores stored as integers
 
 In the Google scoresheet, scores are stored in their real form, as floats with one decimal place:
 so +29.1 is stored as 29.1 And -5.0 is stored as -5.0.
 
-On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored as
- integers. That's to avoid any nonsense with inaccurate floating point arithmetic.
+**On the server, in the cloud firestore, and in the app, scores are multiplied by 10 and stored as
+ integers.** That's to avoid any nonsense with inaccurate floating point arithmetic.
 So a tournament score of +29.1 is stored as 291. A score of -5.0 is stored as -50.
 Scores are expected to be received from the server in this form too.
 
@@ -93,14 +94,39 @@ will be the tournament scorers. We don't release the scores for a round, until
 all games in that round have finished. This is important. It removes an incentive
 to bad behaviour among players.
 
-# Setting up the cloud stuff
+
+### App screenshots (TODO - UPDATE)
+
+<img src='https://github.com/applysci/aim/blob/main/pix/1p-seats.png?raw=true' width=200>
+<img src='https://github.com/applysci/aim/blob/main/pix/all-seats.png?raw=true' width=200>
+<img src='https://github.com/applysci/aim/blob/main/pix/scoresheet.png?raw=true' width=200>
+
+
+# If you're creating your own version of this app
 
 If you're creating your own version of this app, rather than running off my instance,
-you'll need to set up the cloud stuff.
+you'll need to set up the cloud stuff. I've tried to remember all the steps, but there are probably some missing.
 - First you'll need a google cloud project.
-- Then you'll need a google-services.json file from it
-- and an fcm-admin.json file from it
-- you'll need an account on the play store
+- Create a `(default)` firestore database, and give it a `tournaments` collection,
+and a `metadata` collection containing a past_tournaments document with a field `api_base_url` with
+the base URL of your server.
+- In the google console:
+  - Give third-party read-only permissions to the database.
+  - Enable the google drive API, and the Sheets API.
+  - Then you'll need a google-services.json and GoogleServices.plist file from it
+  - Configure the Google Auth Platform
+  - Create a Google OAuth Client - you'll need the client ID and client secret for the `server/config.py` file
+  - and generate a new private key to access the database - save this as `fcm-admin.json`
+-   There will be a google service account with an email of the form: `firebase-adminsdk-{something}@domain-name-backwards-with-dashes.iam.gserviceaccount.com`. Make sure this email address has editor permissions for the google sheet score template.
+- You'll need an account on the play store to distribute the app.
+
+From the command-line, install the Firebase CLI and generate your firebase_options.dart file:
+```
+npm install -g firebase-tools
+dart pub global activate flutterfire_cli
+firebase login
+flutterfire configure
+```
 
 ## APN - Apple Push Notifications
 Once you've got the google firebase cloud messaging working, you'll need to set up the APN to reach Apple devices.
@@ -122,7 +148,7 @@ The p8 key file, Key ID and Team ID then go into the firebase console.
 Check your App ID:
 - In the left sidebar, click on "Certificates, Identifiers & Profiles".
 - Under "Identifiers", click on "App IDs".
-- Find your app's identifier (it should match your bundle ID - ie.mahjong.tournament).
+- Find your app's identifier (it should match your bundle ID, eg `ie.mahjong.tournament`).
 - Click on it and ensure that "Push Notifications" is enabled in the capabilities list.
 
 Check your Certificates:
@@ -157,9 +183,3 @@ After completing these steps, clean and rebuild your project in Xcode. This shou
 
 You'll need an account on the Apple store. It can take several days to get approved,
 and several more to get your app approved.
-
-### App screenshots (TODO - UPDATE)
-
-<img src='https://github.com/applysci/aim/blob/main/pix/1p-seats.png?raw=true' width=200>
-<img src='https://github.com/applysci/aim/blob/main/pix/all-seats.png?raw=true' width=200>
-<img src='https://github.com/applysci/aim/blob/main/pix/scoresheet.png?raw=true' width=200>

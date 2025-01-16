@@ -18,8 +18,17 @@
     {% for r in games %}
         {% set roundname = roundNames[r] %}
         {% for tablenumber in games[r] %}
-            {% set scores = games[r][tablenumber] %}
-            {% include 'game_part.html' %}
+            {% if games[r][tablenumber] %}
+                {% set scores = {} %}
+                {% for i in range(4) %}
+                    {% if games[r][tablenumber][''~i] %}
+                        {% set _ = scores.update({''~i: games[r][tablenumber][''~i]}) %}
+                    {% endif %}
+                {% endfor %}
+                {% if scores %}
+                    {% include 'game_part.html' %}
+                {% endif %}
+            {% endif %}
         {% endfor %}
     {% endfor %}
 </table>

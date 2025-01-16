@@ -1,18 +1,53 @@
-name: aim_tournaments
-description: "All-Ireland Mahjong (superseded by the World Riichi App)"
+name: world_riichi
+description: "World Riichi"
 
 # prevent the package from being accidentally published to pub.dev
 publish_to: 'none'
 
-version: 1.0.2+44
+# A version number is build name: three numbers separated by dots, like 1.2.43
+# then a + , then the build number
+
+# IMPORTANT: the build number must be increased each time it is uploaded to the Play Store
+
+# In iOS, build name is used as CFBundleShortVersionString
+# build number is used as CFBundleVersion.
+
+version: 1.0.7+54
 
 environment:
   sdk: '>=3.2.5 <4.0.0'
 
+# To automatically upgrade dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`
+
 dependencies:
   flutter:
     sdk: flutter
+
+  alarm: # ^5.0.0-dev.6
+    path: ../alarm/
+  cached_network_image: ^3.4.1
+  cloud_firestore: ^5.6.1
+  collection: ^1.18.0
+  data_table_2: ^2.5.17
+  equatable: ^2.0.7
+  firebase_core: ^3.10.0
+  firebase_messaging: ^15.2.0
+  flutter_autostart: ^0.0.2
+  flutter_fgbg: ^0.6.0
+  flutter_html: ^3.0.0-beta.2
+  flutter_riverpod: ^2.6.1
+  flutter_sticky_header: ^0.7.0
+  flutter_timezone: ^4.0.0
+  flutter_typeahead: ^5.2.0
+  http: ^1.2.2
+  intl: ^0.19.0
+  permission_handler: ^11.3.1
+  shared_preferences: ^2.3.5
+  syncfusion_flutter_charts: ^28.1.38
+  timezone: ^0.10.0
   url_launcher: ^6.3.1
+
 
 dev_dependencies:
   flutter_test:
@@ -20,14 +55,26 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.2
   flutter_lints: ^5.0.0
 
-# flutter pub run flutter_launcher_icons
+# dart run flutter_launcher_icons
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: "ic_launcher"
+  image_path_android: assets/icon/logo1.png
+  min_sdk_android: 21
   ios: true
-  image_path: "assets/icon/icon.png"
-  min_sdk_android: 21 # android min sdk min:16, default 21
+  image_path_ios: assets/icon/logo512.png
+  remove_alpha_ios: true
+  windows:
+    generate: false
+  macos:
+    generate: false
+  web:
+    generate: false
 
 # The following section is specific to Flutter packages
 flutter:
   # needed for the Icons class
   uses-material-design: true
+
+  assets:
+    - assets/audio/notif.mp3
+    - assets/icon/logo512.png

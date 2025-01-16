@@ -17,7 +17,7 @@ from gspread.exceptions import APIError as GspreadAPIError
 from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 
-from config import TEMPLATE_ID, OUR_EMAILS
+from config import SUPERADMIN, TEMPLATE_ID, OUR_EMAILS
 from oauth_setup import KEYFILE, logging
 
 MAX_HANCHAN = 20
@@ -37,13 +37,13 @@ class GSP:
     def get_sheet(self, id: str) -> gspread.spreadsheet.Spreadsheet:
         """
         Open a spreadsheet by ID.
-        
+
         Args:
             id: The spreadsheet ID
-        
+
         Returns:
             The opened spreadsheet
-        
+
         Raises:
             GspreadAPIError: If the sheet cannot be opened
         """
@@ -56,10 +56,10 @@ class GSP:
     def get_raw_schedule(self, live: gspread.spreadsheet.Spreadsheet) -> list:
         """
         Get raw schedule data from the sheet.
-        
+
         Args:
             live: The spreadsheet to read from
-        
+
         Returns:
             list: Raw schedule data excluding header row
         """
@@ -220,15 +220,8 @@ class GSP:
         """
         players_sheet = live.worksheet("players")
         players = self.get_players(live)
-        max_id = table_count * 4
-
-        updates = []
-        for row_idx, player in enumerate(players, start=4):
-            if player[0] and int(player[0]) > max_id:
-                updates.append({"range": f"A{row_idx}", "values": [[""]]})
-
-        if updates:
-            players_sheet.batch_update(updates)
+        player_count = table_count * 4
+        players_sheet.delete_rows(player_count + 4, len(players) + 5)
 
     def _duplicate_hanchan_table(self, sheet, table_count):
         extra_rows = 7 * (table_count - 1)
@@ -368,13 +361,19 @@ class GSP:
 
         self._update_seating_from_list(seating_sheet, seating_data)
 
-    def _update_seating_worksheet(self, worksheet: gspread.worksheet.Worksheet, seating_data: list) -> None:
+    def _update_seating_worksheet(
+        self, worksheet: gspread.worksheet.Worksheet, seating_data: list
+    ) -> None:
         """Update seating worksheet with new seating data."""
         if seating_data:
-            worksheet.batch_update([{
-                "range": f"A2:F{len(seating_data)+1}",
-                "values": seating_data,
-            }])
+            worksheet.batch_update(
+                [
+                    {
+                        "range": f"A2:F{len(seating_data)+1}",
+                        "values": seating_data,
+                    }
+                ]
+            )
 
     def _set_schedule(
         self,
@@ -404,7 +403,7 @@ class GSP:
         table_count: int = 10,
         hanchan_count: int = 7,
         title: str = "Riichi tournament results",
-        owner: str = "mj.apply.sci@gmail.com",
+        owner: str = SUPERADMIN,
         scorers: list[str] = (),
         notify: bool = False,
         timezone: str = "Europe/Dublin",
@@ -440,7 +439,9 @@ class GSP:
             raise ValueError(f"hanchan_count must be between 1 and {MAX_HANCHAN}")
 
         if len(start_times) < hanchan_count:
-            raise ValueError(f"start_times must contain {hanchan_count} datetime strings")
+            raise ValueError(
+                f"start_times must contain {hanchan_count} datetime strings"
+            )
 
         self.live_sheet: gspread.spreadsheet.Spreadsheet = self.client.copy(
             TEMPLATE_ID,

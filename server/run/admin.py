@@ -1,24 +1,46 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, render_template, jsonify, abort
-from flask_login import login_required, current_user
+from functools import wraps
 import os
 import shutil
-from functools import wraps
-from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, TEMPLATE_ID
-from write_sheet import googlesheet
-from models import Tournament, Access, User
+
+from flask import abort, Blueprint, flash, jsonify, redirect, render_template, url_for
+from flask_login import login_required, current_user
+
+from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, SUPERADMIN, TEMPLATE_ID
+from models import Tournament, Access, User, PastTournamentData
 from oauth_setup import db, firestore_client, login_required, superadmin_required
+from operations.archive import update_past_tournaments_json
+from operations.queries import get_past_tournament_summaries
+from write_sheet import googlesheet
+
 
 blueprint = Blueprint("admin", __name__)
+
+
+@blueprint.route("/regenerate_past_tournaments", methods=["POST"])
+@login_required
+def regenerate_past_tournaments():
+    if current_user.email != SUPERADMIN:
+        flash("Unauthorized", "error")
+        return redirect(url_for("admin.superadmin"))
+
+    try:
+        tournaments = get_past_tournament_summaries()
+        update_past_tournaments_json(tournaments)
+        flash("Past tournaments JSON regenerated successfully", "success")
+    except Exception as e:
+        flash(f"Error regenerating past tournaments JSON: {str(e)}", "error")
+
+    return redirect(url_for("admin.superadmin"))
 
 
 @blueprint.route(
     "/admin/delete_sheet/<doc_id>",
     methods=["DELETE"],
 )
-@login_required
 @superadmin_required
+@login_required
 def delete_sheet(doc_id):
     if doc_id == TEMPLATE_ID:
         return "Sorry Dave, I can't do that", 403
@@ -30,8 +52,8 @@ def delete_sheet(doc_id):
     "/admin/delete_tournament/<int:t_id>",
     methods=["DELETE"],
 )
-@login_required
 @superadmin_required
+@login_required
 def delete_tournament(t_id):
     if t_id < 4:
         return "Sorry Dave, I can't do that", 403
@@ -66,16 +88,15 @@ def delete_tournament(t_id):
 
 
 @blueprint.route("/admin/list")
-@login_required
 @superadmin_required
+@login_required
 def superadmin():
     try:
-        # Fetch all tournaments from the database
-        all_tournaments = db.session.query(Tournament).all()
-
-        # Filter tournaments based on Firestore status
-        filtered_tournaments = []
-        for tournament in all_tournaments:
+        # Get active tournaments from Firestore
+        active_tournaments = []
+        for tournament in (
+            db.session.query(Tournament).filter(Tournament.past_data == None).all()
+        ):
             if tournament.firebase_doc:
                 doc_ref = firestore_client.collection("tournaments").document(
                     tournament.firebase_doc
@@ -84,19 +105,32 @@ def superadmin():
                 if doc.exists:
                     status = doc.to_dict().get("status")
                     if status in ("upcoming", "test"):
-                        filtered_tournaments.append(tournament)
+                        active_tournaments.append(tournament)
+
+        # Get archived tournaments
+        archived_tournaments = (
+            db.session.query(Tournament)
+            .join(PastTournamentData)
+            .order_by(PastTournamentData.archived_at.desc())
+            .all()
+        )
 
         docs = googlesheet.list_sheets(GOOGLE_CLIENT_EMAIL)
         our_docs = [doc for doc in docs if doc["ours"] and doc["id"] != TEMPLATE_ID]
 
-        # Fetch users without access to any tournament
-        users_without_access = db.session.query(User).outerjoin(Access).filter(Access.user_email == None).all()
+        users_without_access = (
+            db.session.query(User)
+            .outerjoin(Access)
+            .filter(Access.user_email == None)
+            .all()
+        )
 
         return render_template(
-            "adminlist.html", 
-            docs=our_docs, 
-            tournaments=filtered_tournaments,
-            users_without_access=users_without_access
+            "adminlist.html",
+            docs=our_docs,
+            active_tournaments=active_tournaments,
+            archived_tournaments=archived_tournaments,
+            users_without_access=users_without_access,
         )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500

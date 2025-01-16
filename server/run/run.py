@@ -3,6 +3,7 @@
 pages and backend for the user running the tournament
 """
 from functools import wraps
+import json
 import os
 import sys
 import threading
@@ -24,8 +25,13 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from models import Access, User, Tournament
+from models import Access, User, Tournament, PastTournamentData
 from oauth_setup import db, firestore_client, logging, tournament_required
+from operations.queries import (
+    get_active_tournaments,
+    get_past_tournament_summaries,
+)
+from operations.transforms import tournaments_to_summaries
 from write_sheet import googlesheet
 from . import substitutes
 
@@ -73,19 +79,12 @@ def select_tournament():
     for invalid_access in invalid_accesses:
         db.session.delete(invalid_access)
 
-    # Query the Access table for all records where the user_email is the current user's email
-    accesses = db.session.query(Access).filter_by(user_email=current_user.email).all()
-
-    # Group tournaments by status
-    grouped_tournaments = {"live": [], "test": [], "upcoming": [], "past": []}
-
-    for access in accesses:
-        status = access.tournament.status
-        grouped_tournaments[status].append(access.tournament)
-
+    grouped_tournaments = get_active_tournaments(current_user.email)
     db.session.commit()
+    
     return render_template(
-        "select_tournament.html", grouped_tournaments=grouped_tournaments
+        "select_tournament.html", 
+        grouped_tournaments=grouped_tournaments
     )
 
 
@@ -146,15 +145,25 @@ def _ranking_to_web(scores, games, players, done, schedule):
 
 
 @login_required
-def _send_topic_fcm(topic: str, title: str, body: str):
+def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
             body=body,
         ),
-        topic=topic,  # The topic name
+        data={
+            'tournament_id': current_user.live_tournament.firebase_doc,
+            'tournament_name': current_user.live_tournament.title,
+            'notification_type': notification_type,
+        },
+        topic=topic,
     )
-    messaging.send(message)
+    
+    try:
+        response = messaging.send(message)
+    except Exception as e:
+        logging.error(f"FCM send failed: {str(e)}", exc_info=True)
+        raise
 
 
 @blueprint.route("/")
@@ -171,12 +180,12 @@ def run_tournament():
 
     tournament_tz = ZoneInfo(schedule["timezone"])
     now = datetime.now(tournament_tz)
-    first_hanchan = datetime.fromisoformat(
-        schedule["rounds"][0]["start"]
-    ).astimezone(tournament_tz)
-    last_hanchan = datetime.fromisoformat(
-        schedule["rounds"][-1]["start"]
-    ).astimezone(tournament_tz)
+    first_hanchan = datetime.fromisoformat(schedule["rounds"][0]["start"]).astimezone(
+        tournament_tz
+    )
+    last_hanchan = datetime.fromisoformat(schedule["rounds"][-1]["start"]).astimezone(
+        tournament_tz
+    )
 
     expected_status = "live"
     if now < first_hanchan - timedelta(hours=24):
@@ -185,9 +194,7 @@ def run_tournament():
         expected_status = "past"
 
     current_status = tournament.status
-    status_mismatch = (
-        current_status != expected_status
-    )  # and current_status != 'test'
+    status_mismatch = current_status != expected_status  # and current_status != 'test'
 
     return render_template(
         "run_tournament.html",
@@ -209,7 +216,11 @@ def run_tournament():
 def update_tournament_status():
     new_status = request.form.get("new_status")
     if new_status in ["live", "past", "test", "upcoming"]:
-        current_user.live_tournament.status = new_status
+        tournament = current_user.live_tournament
+        tournament_ref = firestore_client.collection("tournaments").document(
+            tournament.firebase_doc
+        )
+        tournament_ref.update({"status": new_status})
         return jsonify({"status": "success", "new_status": new_status})
     return jsonify({"status": "error", "message": "Invalid status"}), 400
 
@@ -238,11 +249,8 @@ def update_schedule():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("seating & schedule updated")
-        return (
-            jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
-            200,
-        )
+        _send_messages("seating & schedule updated", 'seating')
+        return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
     else:
         return (
             jsonify({"status": "SEATING & SCHEDULE updated, NO notifications"}),
@@ -256,6 +264,12 @@ def _seating_to_web(sheet, seating):
     players = _get_players(sheet, False)
     schedule: dict = googlesheet.get_schedule(sheet)
 
+    # Get tournament data from Firestore
+    tournament_ref = firestore_client.collection("tournaments").document(
+        current_user.live_tournament.firebase_doc
+    )
+    tournament_data = tournament_ref.get().to_dict()
+
     html: str = render_template(
         "seating.html",
         done=done,
@@ -264,6 +278,7 @@ def _seating_to_web(sheet, seating):
         schedule=schedule,
         players=players,
         roundNames=_round_names(schedule),
+        use_winds=tournament_data.get("use_winds", False),
     )
     fn = os.path.join(current_user.live_tournament.full_web_directory, "seating.html")
     with open(fn, "w", encoding="utf-8") as f:
@@ -280,17 +295,16 @@ def update_players():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("player list updated")
+        _send_messages("player list updated", 'players')
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
         return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
 
 
 @login_required
-def _send_messages(msg: str):
-    """ """
+def _send_messages(msg: str, notification_type: str):
     firebase_id = current_user.live_tournament.firebase_doc
-    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title)
+    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title, notification_type)
 
 
 @login_required
@@ -301,14 +315,34 @@ def _message_player_topics(scores: dict, done: int, players):
     """
     if done == 0:
         return
+    
     firebase_id = current_user.live_tournament.firebase_doc
+    
+    # Send general tournament update notification
+    topic = f"{firebase_id}-"
+    title = f"Scores updated after round {done}"
+    body = f"Tournament scores have been updated"
+    try:
+        _send_topic_fcm(topic, title, body, 'scores')
+    except Exception as e:
+        logging.error(f"Failed to send tournament notification: {str(e)}", exc_info=True)
+    
+    # Get the player map with registration IDs
+    raw_players = googlesheet.get_players(_get_sheet())
+    reg_id_map = {p[0]: p[1] for p in raw_players if p[0] != ""}  # map seating_id to registration_id
+    
     for k, v in scores.items():
         name = players[int(k)]
-        _send_topic_fcm(
-            f"{firebase_id}-{k}",
-            f"{name} is now in position {('','=')[v['t']]}{v['r']}",
-            f"with {v['total']/10} points after {done} round(s)",
-        )
+        reg_id = reg_id_map.get(int(k))
+        if reg_id:
+            topic = f"{firebase_id}-{reg_id}"
+            title = f"{name} is now in position {('','=')[v['t']]}{v['r']}"
+            body = f"with {v['total']/10} points after {done} round(s)"
+            
+            try:
+                _send_topic_fcm(topic, title, body, 'scores')
+            except Exception as e:
+                logging.error(f"Failed to send notification to {name}: {str(e)}", exc_info=True)
 
 
 @login_required
@@ -455,7 +489,9 @@ def update_ranking_and_scores():
             # Store completion status
             _store_job_status(job_id, "Scores updated successfully")
         except Exception as e:
-            _store_job_status(job_id, f"Error: {str(e)}")
+            error_msg = f"Error updating scores: {str(e)}"
+            logging.error(error_msg, exc_info=True)
+            _store_job_status(job_id, error_msg)
 
     thread = threading.Thread(target=_finish_sheet_to_cloud)
     thread.start()
@@ -604,9 +640,38 @@ def _seating_to_map(sheet, schedule):
     return seating
 
 
+def _save_to_archive(document: str, data: dict, force_set=False):
+    # For past tournaments, save to local database
+    tournament = current_user.live_tournament
+    if not tournament.past_data:
+        return False
+
+    try:
+        stored_data = json.loads(tournament.past_data.data)
+        if document not in stored_data:
+            stored_data[document] = {}
+        if force_set:
+            stored_data[document] = data
+        else:
+            stored_data[document].update(data)
+        tournament.past_data.data = json.dumps(stored_data)
+        db.session.commit()
+        return True
+    except Exception as e:
+        logging.error(f"Error saving past tournament data: {e}")
+        db.session.rollback()
+        return False
+
+
 @login_required
 def _save_to_cloud(document: str, data: dict, force_set=False):
-    firebase_id: str = current_user.live_tournament.firebase_doc
+    tournament = current_user.live_tournament
+
+    if tournament.status == "past":
+        return _save_to_archive()
+
+    # For live tournaments, continue using Firebase
+    firebase_id: str = tournament.firebase_doc
     for version in ("v3", "v2"):
         ref = firestore_client.collection("tournaments").document(
             f"{firebase_id}/{version}/{document}"
@@ -619,7 +684,46 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
             ref.update(data)
         else:
             ref.set(data)
+    return True
+
+
+@blueprint.route("/archive_tournament", methods=["POST"])
+@login_required
+def archive_tournament():
+    """Archive a tournament's data and update its status"""
+    tournament = current_user.live_tournament
+    if tournament.status != "past":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Can only archive tournaments with 'past' status",
+                }
+            ),
+            400,
+        )
+
+    # Import here to avoid circular imports
+    from operations.archive import archive_tournament
+
+    result = archive_tournament(tournament)
+    if isinstance(result, dict):
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Tournament archived successfully",
+                "details": result,
+            }
+        )
+
+    return jsonify({"status": "error", "message": "Failed to archive tournament"}), 500
 
 
 # Register the substitutes blueprint
 blueprint.register_blueprint(substitutes.blueprint)
+
+
+@blueprint.route("/past_tournaments")
+@login_required
+def past_tournaments():
+    return render_template("past_tournaments.html")
