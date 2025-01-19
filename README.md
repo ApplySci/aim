@@ -102,6 +102,10 @@ to bad behaviour among players.
 
 
 ### App screenshots
-
+<p float="left">
+<img src='pix/tlist.png?raw=true' width=200>
+<img src='pix/ranking.png?raw=true' width=200>
 <img src='pix/info.png?raw=true' width=200>
-<img src='/blob/main/pix/playercharts.png?raw=true' width=200>
+<img src='pix/playerscores.png?raw=true' width=200>
+<img src='pix/playercharts.png?raw=true' width=200>
+</p>
