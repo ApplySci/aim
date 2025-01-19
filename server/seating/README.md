@@ -51,14 +51,14 @@ Access a specific table in a hanchan (e.g., the third table in the second hancha
 The docstring for each .py file lists how many non-optimal occurrences happened, for each number of players:
 - Winds: counts players who sit in any wind position too rarely or too often
 - Tables: counts players who visit the same table more often than strictly necessary.
-- Direct MeetS: counts pairs of players who meet more than once across all hanchan.
+- Direct Meets: counts pairs of players who meet more than once across all hanchan.
 - Indirect Meets: counts pairs of players who never play each other, and for whom there are too few other players who they each play.
 
 
 
 # Detailed Statistics Files
 
-The [statall.py](server/seating/gams/statall.py) script generates detailed statistics files in the `stats/` directory. These files provide insights into the seating arrangements and highlight any non-optimal occurrences.
+The [statall.py](gams/statall.py) script generates detailed statistics files in the `stats/` directory. These files provide insights into the seating arrangements and highlight any non-optimal occurrences.
 
 
 ## Criteria for Warnings
@@ -91,7 +91,7 @@ If they don't play each other directly, but both play quite a few other players,
 
 if A always beats the shared third player, and B always loses to the shared third player, then we can expect that were A and B to finally meet, A would beat B, more often than B would beat A.
 
-NB I didn't work this out for myself. Martin Lester did the hard thinking, and published it in a paper (see reference above)
+NB I didn't work this out for myself. Martin Lester did the hard thinking, and published it in a paper (see reference below)
 
 
 Created by Andrew ZP Smith (ZAPS) https://github.com/ApplySci/aim/
