@@ -24,8 +24,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  alarm: # ^5.0.0-dev.6
-    path: ../alarm/
+  alarm: ^5.0.0-dev.7
   cached_network_image: ^3.4.1
   cloud_firestore: ^5.6.1
   collection: ^1.18.0
