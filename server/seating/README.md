@@ -22,13 +22,13 @@ The Excel file contains one tab for each number of hanchan: the seating arrangem
 
 Each .py file contains all the seating for a specific number of hanchan. e.g. seats_8.py contains all the seating for mahjong tournaments with 8 hanchan, with 16-172 players.
 
-Variable "seats" is dict of seating arrangements. 
+Variable `seats` is a dict of seating arrangements. 
 Each key is the number of players. 
 The corresponding dict value is a list of hanchan. 
 Each hanchan is a list of tables. 
 Each table is a list of players, indexed from 1 upwards, in wind order (ESWN).
 
-To use:
+### To use:
 
 Import the seats dictionary from the appropriate file:
 
@@ -85,11 +85,13 @@ Obviously, that would be deeply unsatisfactory. So that's the extreme worst case
 
 #### More conceptually, we can frame it like this:
 
-when A and B play each other, they have a chance to take points off each other directly, so we get some indication of how good A is, relative to B.
+When A and B play each other, they have a chance to take points off each other directly, so we get some indication of how good A is, relative to B.
 
 If they don't play each other directly, but both play quite a few other players, then we can judge how good A is relative to B, by looking at how well they perform in each case: 
 
 if A always beats the shared third player, and B always loses to the shared third player, then we can expect that were A and B to finally meet, A would beat B, more often than B would beat A.
+
+We want the rankings to reflect, as far as possible, the relationship between every pair of players, and so maximising the number of indirect meets is an appropriate objective.
 
 NB I didn't work this out for myself. Martin Lester did the hard thinking, and published it in a paper (see reference below)
 
