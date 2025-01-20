@@ -23,6 +23,7 @@ It's designed in a way that a browser with 3 tabs can do everything:
 
 ## Other documentation
 
+- [App file structure](APP_FILES.md)
 - [Server documentation - python](server/README.md)
 - [Offline seating algorithm - GAMS](server/seating/README.md)
 - [Notes for forkers](FORKING.md)

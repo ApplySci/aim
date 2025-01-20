@@ -1,6 +1,6 @@
 # Server-side stuff for the World Riichi Tournaments app
 
-Currently being developed, and running, on Python 3.13. It probably works on Python 3.10 onwards, but that's not tested.
+Currently being developed, and running, on Python 3.13. It probably works on Python 3.10-3.12, but that's not tested.
 
 ## running a dev server locally
 `flask --app app.py run`
