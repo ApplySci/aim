@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+Tournament metadata editing functionality.
 
+Provides routes and functions for editing tournament information stored in
+Firebase cloud storage, including tournament details, schedule, and custom HTML
+content. Includes sanitization of user-provided HTML content.
 """
 from datetime import datetime, timedelta
 import os

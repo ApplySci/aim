@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+User management form definitions.
+
+Defines WTForms form classes for user management operations,
+including adding users to tournaments and assigning roles.
+"""
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, RadioField, SubmitField
 from wtforms.validators import DataRequired, Email

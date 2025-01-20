@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+Database query operations.
+
+Provides functions for retrieving tournament data from the database,
+including past tournament summaries, specific tournament details,
+and player tournament history.
+
+The queries are optimized to minimize database load and provide
+efficient access to tournament data.
+"""
+
 from sqlalchemy import select, func
 from oauth_setup import db
 from models import (

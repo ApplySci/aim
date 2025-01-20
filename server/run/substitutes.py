@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Player substitution management.
+
+Handles mid-tournament player substitutions and table count reductions,
+including updating seating arrangements and player assignments while
+maintaining optimal seating patterns.
+"""
+
 from flask import (
     Blueprint,
     jsonify,

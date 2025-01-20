@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+Administrative functionality.
+
+Provides routes and functions for tournament administration,
+including regenerating past tournament data, managing access permissions,
+and other administrative tasks. Restricted to users with admin privileges.
+"""
 
 from functools import wraps
 import os

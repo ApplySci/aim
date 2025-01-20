@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
+SQLAlchemy database models.
 
+Defines the database schema using SQLAlchemy ORM classes.
+Includes models for tournaments, users, access permissions,
+and tournament-related data. Features hybrid properties for
+computed attributes and cached properties for performance.
 """
 from datetime import datetime, timedelta
 from functools import cache

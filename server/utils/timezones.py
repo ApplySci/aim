@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Timezone utilities. Retrieves valid timezones for a given country
+"""
 import pycountry
 import pytz
 from oauth_setup import logging

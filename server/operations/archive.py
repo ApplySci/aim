@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+Tournament archiving functionality.
+
+Handles archiving of completed tournaments, storing their data in a local database
+and generating static JSON files for efficient access. This reduces load on the
+Google Cloud services as the number of historic tournaments grows.
+
+Functions:
+    ensure_data_directory: Create data directory if it doesn't exist
+    update_past_tournaments_json: Update static JSON file with tournament data
+"""
+
 from datetime import datetime, timezone
 import json
 import jellyfish

@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+OAuth2 authentication and authorization configuration.
+
+This module sets up Google OAuth2 authentication, login management,
+database connections, and provides decorators for role-based access control.
+Includes configuration for Firebase and SQLite database.
+"""
 
 from enum import Enum as PyEnum
 from functools import wraps

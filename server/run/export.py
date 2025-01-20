@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
 """
-This module provides functionality to export tournament results to WordPress format.
+Tournament data export functionality.
+
+Handles exporting tournament data to various formats,
+particularly focusing on WordPress-compatible output.
+Includes CSS handling for consistent styling of exported content.
+Largely untested.
 
 It generates a zip file containing a css file, custom_styles.css, and a WordPress eXtended RSS
 (WXR) file for import, wordpress_export.xml. The module also provides a Flask route to trigger the

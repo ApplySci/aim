@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+Main Flask application setup and configuration.
+
+This module initializes the Flask application, registers blueprints,
+configures OAuth, login management, database connections, and sets up
+error handling and caching policies.
 """
 import inspect
 import os

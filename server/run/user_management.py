@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+User management and access control.
+
+Handles user roles and permissions for tournaments, including adding users,
+modifying access levels, and synchronizing permissions between the local
+database and Google Sheets.
+"""
+
 from flask import Blueprint, redirect, url_for, render_template, request, flash, jsonify
 from flask_login import login_required, current_user
 from models import Access, User, Tournament

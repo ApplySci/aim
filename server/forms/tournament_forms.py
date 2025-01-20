@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Tournament-related form definitions.
+
+Defines WTForms form classes for tournament creation and management,
+including validation rules for dates, URLs, and other tournament parameters.
+Includes custom validators for ensuring data integrity and accessibility.
+"""
 from datetime import datetime
 import os
 
