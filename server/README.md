@@ -21,28 +21,28 @@ I run the main public instance on gunicorn:
 - [`write_sheet.py`](/server/write_sheet.py) - Google Sheets integration and management
 
 ### ./accounts/
-- [`accounts/accounts.py`](/server/accounts/accounts.py) - User account management and authentication
+- [`accounts.py`](/server/accounts/accounts.py) - User account management and authentication
 
 ### ./create/   
-- [`create/tournament_setup.py`](/server/create/tournament_setup.py) - Tournament creation
+- [`tournament_setup.py`](/server/create/tournament_setup.py) - Tournament creation
 
 ### ./forms/
-- [`forms/tournament_forms.py`](/server/forms/tournament_forms.py) - Forms for tournament management
-- [`forms/userform.py`](/server/forms/userform.py) - Forms for user management
+- [`tournament_forms.py`](/server/forms/tournament_forms.py) - Forms for tournament management
+- [`userform.py`](/server/forms/userform.py) - Forms for user management
 
 ### ./operations/
-- [`operations/api.py`](/server/operations/api.py) - API endpoint for the app to retrieve summary data of historic past tournaments
-- [`operations/archive.py`](/server/operations/archive.py) - Archive a finished tournament, and store its summary data; the intention here is that because historic tournaments will only increase in number, they're best taken off the google cloud (to keep requests down), so we store those on our own server.
-- [`operations/queries.py`](/server/operations/queries.py) - Database queries that return lists fo tournaments
-- [`operations/transforms.py`](/server/operations/transforms.py) - Summarise tournaments
+- [`api.py`](/server/operations/api.py) - API endpoint for the app to retrieve summary data of historic past tournaments
+- [`archive.py`](/server/operations/archive.py) - Archive a finished tournament, and store its summary data; the intention here is that because historic tournaments will only increase in number, they're best taken off the google cloud (to keep requests down), so we store those on our own server.
+- [`queries.py`](/server/operations/queries.py) - Database queries that return lists fo tournaments
+- [`transforms.py`](/server/operations/transforms.py) - Summarise tournaments
 
 ### ./run/
-- [`run/admin.py`](/server/run/admin.py) - Admin panel
-- [`run/cloud_edit.py`](/server/run/cloud_edit.py) - edit the tournament metadata that's stored in the google cloud
-- [`run/export.py`](/server/run/export.py) - Tournament results export for wordpress (untested)
-- [`run/run.py`](/server/run/run.py) - Tournament running and management
-- [`run/substitutes.py`](/server/run/substitutes.py) - handle player substitution, and reducing the number of tables, mid-tournament
-- [`run/user_management.py`](/server/run/user_management.py) - User role and access management
+- [`admin.py`](/server/run/admin.py) - Admin panel
+- [`cloud_edit.py`](/server/run/cloud_edit.py) - edit the tournament metadata that's stored in the google cloud
+- [`export.py`](/server/run/export.py) - Tournament results export for wordpress (untested)
+- [`run.py`](/server/run/run.py) - Tournament running and management
+- [`substitutes.py`](/server/run/substitutes.py) - handle player substitution, and reducing the number of tables, mid-tournament
+- [`user_management.py`](/server/run/user_management.py) - User role and access management
 
 ### ./seating/
 Contains the individual seating files, as well as the software that is used offline to generate them. e.g. `seats_5.py` contains the seating plans for all 5-hanchan tournaments, 16-172 players (=4-43 tables). The top of each seating file contains summary statistics for each arrangement.
@@ -59,5 +59,5 @@ javascript for generating near-optimal mid-tournament seating rearrangements
 jinja2 templates for the website - both the public pages, and the management pages
 
 ### ./utils/
-- [`utils/timezones.py`](/server/utils/timezones.py) - return a list of the timezones for a given country
+- [`timezones.py`](/server/utils/timezones.py) - return a list of the timezones for a given country
 
