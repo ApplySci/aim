@@ -57,10 +57,10 @@ dev_dependencies:
 # dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: "ic_launcher"
-  image_path_android: assets/icon/logo1.png
+  image_path_android: assets/icon/android1024.png
   min_sdk_android: 21
   ios: true
-  image_path_ios: assets/icon/logo512.png
+  image_path_ios: assets/icon/apple512.png
   remove_alpha_ios: true
   windows:
     generate: false
@@ -76,4 +76,3 @@ flutter:
 
   assets:
     - assets/audio/notif.mp3
-    - assets/icon/logo512.png
