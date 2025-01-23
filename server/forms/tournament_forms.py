@@ -153,8 +153,13 @@ class TournamentForm(FlaskForm):
     )
     rules = RadioField(
         "Rules",
-        default="WRC",
-        choices=[("WRC", "WRC"), ("EMA", "EMA"), ("custom", "custom")],
+        default="wrl",
+        choices=[
+            ("wrl", "World Riichi League"),
+            ("wro", "World Riichi Other"),
+            ("ema", "EMA"),
+            ("other", "Other")
+        ],
         validators=[DataRequired()],
     )
     url = StringField(
@@ -246,6 +251,16 @@ class TournamentForm(FlaskForm):
             else self.hanchan_name.data
         )
         return [template.replace("?", str(i + 1)) for i in range(len(self.round_dates))]
+
+    def validate_rules(self, field):
+        if field.data not in ['wrl', 'wro', 'ema', 'other']:
+            raise ValidationError("Invalid rules selected")
+
+    def validate_chombo(self, form):
+        chombo = (
+            -30 if form.rules.data in ['wrl', 'wro']
+            else -20
+        )
 
 
 class EditTournamentForm(TournamentForm):

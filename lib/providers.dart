@@ -11,6 +11,7 @@ export 'providers/firestore.dart';
 export 'providers/location.dart';
 export 'providers/shared_preferences.dart';
 export 'providers/seat_map.dart';
+export 'providers/filters.dart';
 
 typedef AlarmInfo = ({
   RoundId id,

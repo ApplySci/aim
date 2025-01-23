@@ -16,13 +16,14 @@ class TournamentListPage extends ConsumerWidget {
   Widget build(BuildContext context, ref) {
     final allTournamentsAsync = ref.watch(allTournamentsListProvider);
     final testMode = ref.watch(testModePrefProvider);
+    final rulesFilter = ref.watch(rulesFilterProvider);
 
     return allTournamentsAsync.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(
-            error: error,
-            stackTrace: stackTrace,
-          ),
+        error: error,
+        stackTrace: stackTrace,
+      ),
       data: (_) {
         return TabScaffold(
           title: GestureDetector(
@@ -53,6 +54,37 @@ class TournamentListPage extends ConsumerWidget {
               onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
             ),
           ],
+          filterBar: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Wrap(
+              spacing: 4.0,
+              children: [
+                for (final rules in TournamentRules.values)
+                  FilterChip(
+                    selected: rulesFilter.contains(rules),
+                    showCheckmark: false,
+                    label: Text(rules.displayName),
+                    labelStyle: TextStyle(
+                      color: rulesFilter.contains(rules)
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                    selectedColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    onSelected: (selected) {
+                      final newFilter = Set<TournamentRules>.from(rulesFilter);
+                      if (selected) {
+                        newFilter.add(rules);
+                      } else {
+                        newFilter.remove(rules);
+                      }
+                      ref.read(rulesFilterProvider.notifier).state = newFilter;
+                      ref.read(rulesFilterPrefProvider.notifier).set(newFilter);
+                    },
+                  ),
+              ],
+            ),
+          ),
           tabs: [
             const Tab(text: 'Live'),
             const Tab(text: 'Upcoming'),
@@ -83,13 +115,20 @@ class TournamentList extends ConsumerWidget {
   Widget build(context, ref) {
     final tournamentId = ref.watch(tournamentIdProvider);
     final tournamentList = ref.watch(tournamentListProvider(when));
-    if (tournamentList.isEmpty) {
+    final rulesFilter = ref.watch(rulesFilterProvider);
+
+    // Apply rules filter
+    final filteredList = tournamentList.where((tournament) {
+      return rulesFilter.isEmpty || rulesFilter.contains(tournament.rules);
+    }).toList();
+
+    if (filteredList.isEmpty) {
       return const Center(child: Text('No Tournaments Found'));
     }
     return ListView(
       padding: const EdgeInsets.all(8),
       children: [
-        for (final tournament in tournamentList)
+        for (final tournament in filteredList)
           Card(
             child: ListTile(
               leading: switch (tournament.urlIcon) {
@@ -113,6 +152,7 @@ class TournamentList extends ConsumerWidget {
                 children: [
                   Text(tournament.when),
                   Text(tournament.country),
+                  Text(tournament.rules.displayName),
                 ],
               ),
               onTap: () async {
@@ -136,57 +176,69 @@ class PastTournamentList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaries = ref.watch(pastTournamentSummariesProvider);
+    final rulesFilter = ref.watch(rulesFilterProvider);
 
     return summaries.when(
       loading: () => const LoadingView(),
       error: (error, stack) => ErrorView(error: error, stackTrace: stack),
-      data: (summaries) => ListView.builder(
-        itemCount: summaries.length,
-        itemBuilder: (context, index) {
-          final summary = summaries[index];
-          return ListTile(
-            title: Text(summary.name),
-            subtitle: Text(
-              '${DateFormat.yMMMd().format(summary.startDate)} - '
-              '${DateFormat.yMMMd().format(summary.endDate)}\n'
-              '${summary.venue}, ${summary.country}\n'
-              '${summary.playerCount} players - ${summary.rules}',
-            ),
-            isThreeLine: true,
-            onTap: () async {
-              // Show loading dialog
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const LoadingDialog(),
-              );
+      data: (summaries) {
+        final filteredSummaries = summaries.where((summary) {
+          final rules = TournamentRules.fromString(summary.rules);
+          return rulesFilter.isEmpty || rulesFilter.contains(rules);
+        }).toList();
 
-              try {
-                // Load tournament details
-                await ref.read(pastTournamentDetailsProvider(summary.id).future);
+        if (filteredSummaries.isEmpty) {
+          return const Center(child: Text('No Tournaments Found'));
+        }
 
-                // Set the tournament ID
-                await ref.read(tournamentIdProvider.notifier).set(summary.id);
+        return ListView.builder(
+          itemCount: filteredSummaries.length,
+          itemBuilder: (context, index) {
+            final summary = filteredSummaries[index];
+            return ListTile(
+              title: Text(summary.name),
+              subtitle: Text(
+                '${DateFormat.yMMMd().format(summary.startDate)} - '
+                '${DateFormat.yMMMd().format(summary.endDate)}\n'
+                '${summary.venue}, ${summary.country}\n'
+                '${summary.playerCount} players - ${TournamentRules.fromString(summary.rules).displayName}',
+              ),
+              isThreeLine: true,
+              onTap: () async {
+                // Show loading dialog
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const LoadingDialog(),
+                );
 
-                // Navigate to tournament page
-                if (context.mounted) {
-                  Navigator.pop(context); // Dismiss loading dialog
-                  Navigator.of(context).popAndPushNamed(ROUTES.tournament);
+                try {
+                  // Load tournament details
+                  await ref.read(pastTournamentDetailsProvider(summary.id).future);
+
+                  // Set the tournament ID
+                  await ref.read(tournamentIdProvider.notifier).set(summary.id);
+
+                  // Navigate to tournament page
+                  if (context.mounted) {
+                    Navigator.pop(context); // Dismiss loading dialog
+                    Navigator.of(context).popAndPushNamed(ROUTES.tournament);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // Dismiss loading dialog
+                    String msg = 'Error loading tournament: $e';
+                    Log.warn(msg);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg)),
+                    );
+                  }
                 }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context); // Dismiss loading dialog
-                  String msg = 'Error loading tournament: $e';
-                  Log.warn(msg);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
-                  );
-                }
-              }
-            },
-          );
-        },
-      ),
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

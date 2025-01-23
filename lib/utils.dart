@@ -31,6 +31,30 @@ enum WhenTournament {
   past,
 }
 
+enum TournamentRules {
+  wrLeague,
+  wrRules,
+  ema,
+  other;
+
+  factory TournamentRules.fromString(String value) {
+    return switch (value.toLowerCase()) {
+      'wrl' => TournamentRules.wrLeague,
+      'wro' => TournamentRules.wrRules,
+      'ema' => TournamentRules.ema,
+      'other' => TournamentRules.other,
+      _ => TournamentRules.other,
+    };
+  }
+
+  String get displayName => switch (this) {
+    TournamentRules.wrLeague => 'WRL',
+    TournamentRules.wrRules => 'WR other',
+    TournamentRules.ema => 'EMA',
+    TournamentRules.other => 'Other',
+  };
+}
+
 // Notification-related constants
 const notificationTournamentKey = 'notification_tournament_id';
 const notificationTabKey = 'notification_tab';

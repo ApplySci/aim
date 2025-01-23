@@ -27,7 +27,7 @@ class TournamentData extends Equatable {
     required this.startDate,
     required this.endDate,
     required this.status,
-    required this.rules,
+    required String rules,
     required this.htmlnotes,
     this.url = '',
     this.urlIcon = '',
@@ -36,7 +36,10 @@ class TournamentData extends Equatable {
     this.games,
     this.rankings,
     this.useWinds = false,
-  });
+  }) : _rules = rules;
+
+  final String _rules;
+  TournamentRules get rules => TournamentRules.fromString(_rules);
 
   factory TournamentData.fromMap(Map<String, dynamic> data) {
     // For past tournaments, we might get a null status
@@ -132,7 +135,6 @@ class TournamentData extends Equatable {
   final Timestamp startDate;
   final Timestamp endDate;
   final String status;
-  final String rules;
   final String url;
   final String urlIcon;
   final List<PlayerData>? players;

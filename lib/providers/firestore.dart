@@ -26,6 +26,7 @@ final allTournamentsListProvider = StreamProvider((ref) {
           'name': '',
           'country': '',
           'status': 'upcoming',
+          'rules': doc.data()['rules'] ?? 'OTHER',
           ...doc.data(),
         })
   ]);

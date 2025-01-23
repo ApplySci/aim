@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '/models.dart';
+import '/utils.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError(),
@@ -261,3 +262,36 @@ final vibratePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool
 final testModePrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
   () => SharedPreferencesBoolNotifier(key: 'testMode', fallback: false),
 );
+
+final rulesFilterPrefProvider = NotifierProvider<RulesFilterNotifier, Set<TournamentRules>>(
+  () => RulesFilterNotifier(),
+);
+
+class RulesFilterNotifier extends Notifier<Set<TournamentRules>> {
+  late SharedPreferences _prefs;
+
+  @override
+  Set<TournamentRules> build() {
+    _prefs = ref.watch(sharedPreferencesProvider);
+    return _getValue();
+  }
+
+  String get _key => 'rulesFilter';
+
+  Set<TournamentRules> _getValue() {
+    final String? jsonString = _prefs.getString(_key);
+    if (jsonString == null) return {};
+    final List<dynamic> rulesList = jsonDecode(jsonString) as List<dynamic>;
+    return rulesList
+        .map((e) => TournamentRules.fromString(e as String))
+        .toSet();
+  }
+
+  Future<void> set(Set<TournamentRules> value) async {
+    final List<String> rulesList = value
+        .map((rule) => rule.name)
+        .toList();
+    await _prefs.setString(_key, jsonEncode(rulesList));
+    state = value;
+  }
+}

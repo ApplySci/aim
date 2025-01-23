@@ -6,6 +6,7 @@ class TabScaffold extends StatelessWidget {
     required this.tabs,
     required this.children,
     this.actions,
+    this.filterBar,
     super.key,
   }) : assert(tabs.length == children.length);
 
@@ -13,6 +14,7 @@ class TabScaffold extends StatelessWidget {
   final List<Tab> tabs;
   final List<Widget> children;
   final List<Widget>? actions;
+  final Widget? filterBar;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,14 @@ class TabScaffold extends StatelessWidget {
           actions: actions,
           bottom: TabBar(tabs: tabs),
         ),
-        body: TabBarView(children: children),
+        body: Column(
+          children: [
+            if (filterBar != null) filterBar!,
+            Expanded(
+              child: TabBarView(children: children),
+            ),
+          ],
+        ),
       ),
     );
   }
