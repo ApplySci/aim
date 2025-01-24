@@ -13,24 +13,24 @@
         {% if current_user.is_authenticated %}
             <p class="wrap">Hi,<br>{{ current_user.email }}</p>
             {% if current_user.email == SUPERADMIN %}
-                <a href="{{ url_for('admin.superadmin') }}">Superuser admin</a>
+                <a href="{{ url_for('admin.superadmin') }}" {% if request.endpoint == 'admin.superadmin' %}class="active"{% endif %}>Superuser admin</a>
             {% endif %}
-            <a href="{{ url_for('create.results_create') }}">Create New Tournament</a>
-            <a href="{{ url_for('run.past_tournaments') }}">Past Tournaments</a>
-            <a href="{{ url_for('run.select_tournament') }}">Select Tournament</a>
+            <a href="{{ url_for('create.results_create') }}" {% if request.endpoint == 'create.results_create' %}class="active"{% endif %}>Create New Tournament</a>
+            <a href="{{ url_for('run.past_tournaments') }}" {% if request.endpoint == 'run.past_tournaments' %}class="active"{% endif %}>Past Tournaments</a>
+            <a href="{{ url_for('run.select_tournament') }}" {% if request.endpoint == 'run.select_tournament' %}class="active"{% endif %}>Select Tournament</a>
             {% if current_user.live_tournament %}
-                <a href="{{ url_for('run.run_tournament') }}">Run Tournament</a>
+                <a href="{{ url_for('run.run_tournament') }}" {% if request.endpoint == 'run.run_tournament' %}class="active"{% endif %}>Run Tournament</a>
                 {% if current_user.live_tournament_role %}
                     {% if current_user.live_tournament_role.value in ['admin', 'editor'] %}
-                        <a href="{{ url_for('edit.edit_tournament') }}">Edit Tournament Metadata</a>
-                        <a href="{{ url_for('user_management.add_user_get') }}">Manage team</a>
+                        <a href="{{ url_for('edit.edit_tournament') }}" {% if request.endpoint == 'edit.edit_tournament' %}class="active"{% endif %}>Edit Tournament Metadata</a>
+                        <a href="{{ url_for('user_management.add_user_get') }}" {% if request.endpoint == 'user_management.add_user_get' %}class="active"{% endif %}>Manage team</a>
                     {% endif %}
                 {% endif %}
-                <a href="{{ url_for('export.export_wordpress') }}">Export result pages for wordpress</a>
+                <a href="{{ url_for('export.export_wordpress') }}" {% if request.endpoint == 'export.export_wordpress' %}class="active"{% endif %}>Export result pages for wordpress</a>
             {% endif %}
-            <a href="{{ url_for('accounts.logout') }}">Logout</a>
+            <a href="{{ url_for('accounts.logout') }}" {% if request.endpoint == 'accounts.logout' %}class="active"{% endif %}>Logout</a>
         {% else %}
-            <a href="{{ url_for('accounts.login') }}">Login</a>
+            <a href="{{ url_for('accounts.login') }}" {% if request.endpoint == 'accounts.login' %}class="active"{% endif %}>Login</a>
         {% endif %}
     </nav>
     <div id=main>

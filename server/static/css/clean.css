@@ -267,17 +267,24 @@ nav a {
   display: block;
   text-align: left;
   padding: 1em;
-  }
+  border-radius: 4px;
+  margin: 0.25em 0;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: #333;
+}
 
 /* Change the color of links on hover */
 nav a:hover {
-  background-color: black;
-  color: yellow;
+  background-color: #4CAF50;
+  color: white;
+  transform: translateX(5px);
 }
 
 /* Add an active class to highlight the current page */
 nav a.active {
-  background-color: #aaf;
+  background-color: #45a049;
+  color: white;
 }
 
 @media screen and (max-width: 800px) {

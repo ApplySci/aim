@@ -28,7 +28,10 @@ input[type="radio"]:checked + label {
 
 .alert {
     margin-top: 12px;
-    border: 2px solid #111;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 button {
@@ -52,4 +55,69 @@ input:invalid {
 #doclist li {
   padding-bottom: 1em;
   list-style-type: none;
+}
+
+/* Enhance button styling */
+button.action {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin: 0.5em 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    max-width: 400px;
+    font-size: 14px;
+}
+
+button.action:hover {
+    background-color: #45a049;
+}
+
+button.action:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Style the log message box */
+#logMessageBox {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 1em;
+    background-color: #f9f9f9;
+    max-height: 300px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+#logMessageBox p {
+    margin: 4px 0;
+    padding: 4px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Style the notifications checkbox area */
+#sendNotifications + label {
+    display: block;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    margin: 1em 0;
+}
+
+/* Style action groups */
+.action-group {
+    background-color: white;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5em;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
 }
