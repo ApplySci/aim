@@ -128,3 +128,110 @@ fieldset legend {
   border-radius: 4px;
   padding: 4px 8px;
 }
+
+#logMessageBox {
+    min-height: 2em;
+    max-height: 20em;
+    overflow-y: scroll;
+    border: 1px solid black;
+}
+
+#logMessageBox p {
+  margin: 6px;
+}
+
+form + form {
+    padding-top: 1em;
+}
+
+form {
+    margin: 0 auto;
+    width: auto;
+}
+
+fieldset {
+    border: none;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0px 0px 8px #888;
+}
+
+label {
+    margin-left: 1em;
+}
+
+
+input[type="text"], input[type="number"], input[type="email"] {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+input[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background-color: #444;
+}
+
+input[type="submit"]:active {
+    background-color: #888;
+    color: black;
+}
+
+.error {
+    color: red;
+}
+
+.flashes {
+  margin-bottom: 20px;
+}
+
+.alert {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.alert-success {
+  color: #3c763d;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+}
+
+.alert-error {
+  color: #a94442;
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+
+.alert-info {
+  color: #113060;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+
+#datetimeInputs label{
+  display: block;
+  margin-top: 0.5em;
+}
+
+#runButtons button {
+  display: block;
+  width: 80%;
+  margin-bottom: 1em;
+  padding: 0.25em;
+}
+
+.dateTimeStamp {
+  font-weight: bold;
+}
