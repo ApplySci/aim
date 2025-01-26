@@ -13,14 +13,14 @@
     {% for r in range(done, 0, -1)  %}
       <th>{{ roundNames[''~r] }}
     {% endfor %}
-    {% set has_penalties = false %}
+    {% set ns = namespace(has_penalties=false) %}
     {% for p in scores %}
         {% if p[1]['p'] != 0 %}
-            {% set has_penalties = true %}
+            {% set ns.has_penalties = true %}
         {% endif %}
     {% endfor %}
-    {% if has_penalties %}
-        <th>Penalty
+    {% if ns.has_penalties %}
+        <th>Penalty<a href="#fn1" id="ref1"><sup>a</sup></a>
     {% endif %}
 <tbody>
 {% for p in scores %}
@@ -43,10 +43,17 @@
                 <td></td>
             {% endif %}
         {% endfor %}
-        {% if has_penalties %}
+        {% if ns.has_penalties %}
             {% set score=p[1]['p'] %}
             <td class={{score | scoreClass}}>{{ score | prettyScore }}
         {% endif %}
 {% endfor %}
 </table>
+{% if ns.has_penalties %}
+    <p class="footnote" id="fn1"><sup>a</sup>
+        The penalties column only displays penalties that were imposed outside of any particular hanchan.
+        In-game penalties are included within the hanchan scores.
+        <a href="#ref1">↩</a>
+    </p>
+{% endif %}
 {% endblock %}
