@@ -35,6 +35,7 @@ final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
   final scheduleRounds = await ref.watch(scheduleProvider.future);
   final selectedPlayer = ref.watch(selectedPlayerProvider);
   final alarmsOn = ref.watch(alarmPrefProvider);
+  final vibratePref = ref.watch(vibratePrefProvider);
 
   if (!alarmsOn) {
     yield [];

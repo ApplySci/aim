@@ -80,16 +80,9 @@ class _MyApp extends ConsumerWidget {
         final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
 
-        if (prevData != null && nextData != null) {
-          if (prevData.length == nextData.length &&
-              prevData.every((e) => nextData.any((n) =>
-                n.id == e.id &&
-                n.alarm == e.alarm))) {
-            return;
-          }
-        }
-
         if (nextData == null) return;
+        Log.debug('************* actually updating alarms');
+
 
         alarmRunner(() async {
           final now = DateTime.now().toUtc();
