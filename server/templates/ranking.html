@@ -13,7 +13,15 @@
     {% for r in range(done, 0, -1)  %}
       <th>{{ roundNames[''~r] }}
     {% endfor %}
-    <th>Penalty
+    {% set has_penalties = false %}
+    {% for p in scores %}
+        {% if p[1]['p'] != 0 %}
+            {% set has_penalties = true %}
+        {% endif %}
+    {% endfor %}
+    {% if has_penalties %}
+        <th>Penalty
+    {% endif %}
 <tbody>
 {% for p in scores %}
     {% set pid=p[0] | int %}
@@ -35,8 +43,10 @@
                 <td></td>
             {% endif %}
         {% endfor %}
-        {% set score=p[1]['p'] %}
-        <td class={{score | scoreClass}}>{{ score | prettyScore }}
+        {% if has_penalties %}
+            {% set score=p[1]['p'] %}
+            <td class={{score | scoreClass}}>{{ score | prettyScore }}
+        {% endif %}
 {% endfor %}
 </table>
 {% endblock %}
