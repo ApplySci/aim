@@ -94,6 +94,11 @@ class ScoreTable extends ConsumerWidget {
         if (rounds==0) {
           return const Center(child: Text('No scores available yet'),);
         }
+
+        // Check if there are any non-zero penalties
+        final hasNonZeroPenalties = playerScores.playerScores
+            .any((score) => score.penalty != 0);
+
         return DataTable2FixedLine(
           key: ValueKey(selectedSeat),
           minWidth: double.infinity,
@@ -122,11 +127,41 @@ class ScoreTable extends ConsumerWidget {
                 numeric: true,
                 fixedWidth: playerScores.maxScoreWidth + columnMargin,
               ),
-            DataColumn2(
-              label: const Text('Pen.', maxLines: 1),
-              numeric: true,
-              fixedWidth: playerScores.maxScoreWidth + columnMargin,
-            ),
+            if (hasNonZeroPenalties)
+              DataColumn2(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Pen.', maxLines: 1),
+                    IconButton(
+                      padding: const EdgeInsets.all(0),
+                      constraints: const BoxConstraints(),  // Removes minimum size constraints
+                      icon: const Icon(Icons.info_outline, size: 16),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Penalties'),
+                            content: const Text(
+                              'The penalties column only displays penalties that were imposed '
+                              'outside of any particular hanchan. In-game penalties are '
+                              'included within the hanchan scores.'
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                numeric: true,
+                fixedWidth: playerScores.maxScoreWidth + columnMargin + 24,  // Added space for icon
+              ),
           ],
           rows: [
             // TODO what if a player doesn't have a score for a particular round?
@@ -135,12 +170,13 @@ class ScoreTable extends ConsumerWidget {
                 selected: selectedSeat == score.seat,
                 score: score,
                 rounds: rounds,
+                showPenalty: hasNonZeroPenalties,
                 onTap: () => onTap(context, score.seat),
                 decoration: selectedSeat == score.seat
                     ? BoxDecoration(
                       border: Border.all(
-                        color: Colors.green, // Border color
-                        width: 2.0,         // Border width
+                        color: Colors.green,
+                        width: 2.0,
                       ))
                     : null,
               ),
@@ -157,6 +193,7 @@ class ScoreRow extends DataRow2 {
     required PlayerScore score,
     required super.onTap,
     required int rounds,
+    required bool showPenalty,
     super.color,
     super.selected,
     super.decoration,
@@ -179,6 +216,7 @@ class ScoreRow extends DataRow2 {
                       : const Text('-'))
                   : const Text('-'),
             ),
-          DataCell(PenaltyText(score.penalty)),
+          if (showPenalty)
+            DataCell(PenaltyText(score.penalty)),
         ]);
 }
