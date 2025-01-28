@@ -38,11 +38,17 @@ enum TournamentRules {
   other;
 
   factory TournamentRules.fromString(String value) {
-    return switch (value.toLowerCase()) {
-      'wrl' => TournamentRules.wrLeague,
-      'wro' => TournamentRules.wrRules,
-      'ema' => TournamentRules.ema,
-      'other' => TournamentRules.other,
+    // First try to match based on the stored format
+    return switch (value.toUpperCase()) {
+      'WRL' => TournamentRules.wrLeague,
+      'WRO' => TournamentRules.wrRules,
+      'EMA' => TournamentRules.ema,
+      // Then try to match based on enum names
+      String name when TournamentRules.values.any(
+        (rule) => rule.name.toLowerCase() == name.toLowerCase()
+      ) => TournamentRules.values.firstWhere(
+        (rule) => rule.name.toLowerCase() == name.toLowerCase()
+      ),
       _ => TournamentRules.other,
     };
   }
