@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '/models.dart';
 import '/providers.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
@@ -128,15 +129,15 @@ class TournamentList extends ConsumerWidget {
   }) async {
     final fcm = ref.read(fcmProvider);
     final currentTopics = ref.read(fcmTopicsProvider) ?? {};
-    
+
     // Unsubscribe from all current topics
     for (final topic in currentTopics) {
       await fcm.unsubscribeFromTopic(topic);
     }
-    
+
     // Clear topics in preferences
     await ref.read(fcmTopicsProvider.notifier).set({});
-    
+
     // For non-past tournaments, ask about notifications if not already decided
     if (tournament.status != 'past') {
       final shouldAsk = !ref.read(notificationsPrefProvider.notifier).hasStoredValue();
@@ -163,16 +164,16 @@ class TournamentList extends ConsumerWidget {
             ],
           ),
         );
-        
+
         if (wantsNotifications != null) {
           await ref.read(notificationsPrefProvider.notifier).set(wantsNotifications);
         }
       }
     }
-    
+
     // Set new tournament
     await ref.read(tournamentIdProvider.notifier).set(tournament.id);
-    
+
     if (!context.mounted) return;
     Navigator.of(context).pushNamed(ROUTES.tournament);
   }
