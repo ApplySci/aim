@@ -109,12 +109,25 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-
 Future<void> initFirebaseMessaging() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    final prefs = await SharedPreferences.getInstance();
+    final topics = prefs.getString('fcm_topics');
+
+    // If no topics record exists (not even empty list), delete token to force fresh start
+    // this ensures that for those app users who subscribed to any topics previously,
+    // will have their subscriptions emptied. When they select a new tournament,
+    // they will build a list of subscribed topics that we can then maintain properly.
+
+    if (topics == null) {
+      Log.debug('No FCM topics record found, deleting token');
+      await FirebaseMessaging.instance.deleteToken();
+    }
+
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
