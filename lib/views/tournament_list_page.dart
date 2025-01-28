@@ -138,44 +138,64 @@ class TournamentList extends ConsumerWidget {
     // Clear topics in preferences
     await ref.read(fcmTopicsProvider.notifier).set({});
 
-    // For non-past tournaments, ask about notifications if not already decided
     if (tournament.status != 'past') {
-      final shouldAsk = !ref.read(notificationsPrefProvider.notifier).hasStoredValue();
-      if (shouldAsk) {
-        if (!context.mounted) return;
-        final wantsNotifications = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Tournament Notifications'),
-            content: const Text(
-              'Would you like to receive notifications for this tournament? '
-              'This includes round start times and important announcements.'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('No thanks'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Yes, notify me'),
-              ),
-            ],
+      if (!context.mounted) return;
+      final choice = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text(tournament.name),
+          content: const Text(
+            'Would you like to receive notifications and alarms for this tournament?'
           ),
-        );
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context, 'none'),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('No Notifications'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.tonal(
+                    onPressed: () => Navigator.pop(context, 'updates'),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('Score, schedule and seating update notifications only'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, 'all'),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('All the above notifications, plus an alarm at the start of each round'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
-        if (wantsNotifications != null) {
-          await ref.read(notificationsPrefProvider.notifier).set(wantsNotifications);
-        }
-      }
+      // Handle the case where choice is null (dialog was dismissed)
+      if (choice == null) return;
+
+      await ref.read(alarmPrefProvider.notifier).set(choice == 'all');
     }
 
-    // Set new tournament
+    // Set the tournament ID last to avoid race conditions
     await ref.read(tournamentIdProvider.notifier).set(tournament.id);
 
     if (!context.mounted) return;
-    Navigator.of(context).pushNamed(ROUTES.tournament);
+    Navigator.of(context).popAndPushNamed(ROUTES.tournament);
   }
 
   @override

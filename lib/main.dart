@@ -80,17 +80,14 @@ class _MyApp extends ConsumerWidget {
         final nextData = next.valueOrNull;
 
         if (nextData == null) return;
-        Log.debug('************* actually updating alarms');
-
+        Log.debug('actually updating alarms');
 
         alarmRunner(() async {
           final now = DateTime.now().toUtc();
           await Alarm.stopAll();
 
-          final vibratePref = ref.read(vibratePrefProvider);
-
           // set one alarm for each round
-          for (final (index, (id: _, :name, :alarm, :player)) in nextData.indexed) {
+          for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
             if (now.isBefore(alarm)) {
               final title = '$name starts in 5 minutes';
               final body = player != null

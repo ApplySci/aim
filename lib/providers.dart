@@ -17,6 +17,7 @@ typedef AlarmInfo = ({
   RoundId id,
   String name,
   TZDateTime alarm,
+  bool vibratePref,
   ({
     PlayerId id,
     String name,
@@ -47,6 +48,7 @@ final alarmScheduleProvider = StreamProvider<List<AlarmInfo>>((ref) async* {
       if (scheduleRounds.rounds.any((rnd) => rnd.id == round.id))
         (
           id: round.id,
+          vibratePref: vibratePref,
           name: scheduleRounds.rounds
               .firstWhere((rnd) => rnd.id == round.id)
               .name,

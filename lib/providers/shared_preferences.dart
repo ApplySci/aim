@@ -133,10 +133,6 @@ class SharedPreferencesBoolNotifier
     required super.key,
     required super.fallback,
   });
-
-  bool hasStoredValue() {
-    return _prefs.containsKey(_key);
-  }
 }
 
 final alarmPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
