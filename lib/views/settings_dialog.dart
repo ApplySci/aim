@@ -41,8 +41,11 @@ class SettingsDialog extends ConsumerWidget {
               value: notificationsPref,
               onChanged: (value) async {
                 final service = ref.read(notificationPreferencesProvider);
+                final currentAlarms = ref.read(alarmPrefProvider);
                 await service.updatePreferences(
-                  value ? NotificationChoice.updates : NotificationChoice.none,
+                  value 
+                    ? (currentAlarms ? NotificationChoice.all : NotificationChoice.updates)
+                    : (currentAlarms ? NotificationChoice.alarmsOnly : NotificationChoice.none),
                 );
               },
             ),
@@ -73,8 +76,11 @@ class SettingsDialog extends ConsumerWidget {
                       }
                     }
                     final service = ref.read(notificationPreferencesProvider);
+                    final currentNotifications = ref.read(notificationsPrefProvider);
                     await service.updatePreferences(
-                      value ? NotificationChoice.all : NotificationChoice.updates,
+                      value
+                        ? (currentNotifications ? NotificationChoice.all : NotificationChoice.alarmsOnly)
+                        : (currentNotifications ? NotificationChoice.updates : NotificationChoice.none),
                     );
                   },
                 );

@@ -5,10 +5,11 @@ import '/utils.dart';
 enum NotificationChoice {
   none,
   updates,
+  alarmsOnly,
   all;
 
-  bool get wantsNotifications => this != none;
-  bool get wantsAlarms => this == all;
+  bool get wantsNotifications => this == updates || this == all;
+  bool get wantsAlarms => this == alarmsOnly || this == all;
 }
 
 class NotificationPreferencesService {

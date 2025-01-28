@@ -172,6 +172,14 @@ class TournamentList extends ConsumerWidget {
                       child: Text('All the above notifications, plus an alarm at the start of each round'),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  FilledButton.tonal(
+                    onPressed: () => Navigator.pop(context, NotificationChoice.alarmsOnly),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('Alarms at the start of each round, but no other notifications'),
+                    ),
+                  ),
                 ],
               ),
             ),
