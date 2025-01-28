@@ -121,8 +121,64 @@ class TournamentList extends ConsumerWidget {
 
   final WhenTournament when;
 
+  Future<void> _handleTournamentSelection({
+    required BuildContext context,
+    required WidgetRef ref,
+    required TournamentData tournament,
+  }) async {
+    final fcm = ref.read(fcmProvider);
+    final currentTopics = ref.read(fcmTopicsProvider) ?? {};
+    
+    // Unsubscribe from all current topics
+    for (final topic in currentTopics) {
+      await fcm.unsubscribeFromTopic(topic);
+    }
+    
+    // Clear topics in preferences
+    await ref.read(fcmTopicsProvider.notifier).set({});
+    
+    // For non-past tournaments, ask about notifications if not already decided
+    if (tournament.status != 'past') {
+      final shouldAsk = !ref.read(notificationsPrefProvider.notifier).hasStoredValue();
+      if (shouldAsk) {
+        if (!context.mounted) return;
+        final wantsNotifications = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Tournament Notifications'),
+            content: const Text(
+              'Would you like to receive notifications for this tournament? '
+              'This includes round start times and important announcements.'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('No thanks'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Yes, notify me'),
+              ),
+            ],
+          ),
+        );
+        
+        if (wantsNotifications != null) {
+          await ref.read(notificationsPrefProvider.notifier).set(wantsNotifications);
+        }
+      }
+    }
+    
+    // Set new tournament
+    await ref.read(tournamentIdProvider.notifier).set(tournament.id);
+    
+    if (!context.mounted) return;
+    Navigator.of(context).pushNamed(ROUTES.tournament);
+  }
+
   @override
-  Widget build(context, ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tournamentId = ref.watch(tournamentIdProvider);
     final tournamentList = ref.watch(tournamentListProvider(when));
     final rulesFilter = ref.watch(rulesFilterProvider);
@@ -164,24 +220,11 @@ class TournamentList extends ConsumerWidget {
                   Text(tournament.rules.displayName),
                 ],
               ),
-              onTap: () async {
-                final fcm = ref.read(fcmProvider);
-                final currentTopics = ref.read(fcmTopicsProvider) ?? {};
-                
-                // Unsubscribe from all current topics
-                for (final topic in currentTopics) {
-                  await fcm.unsubscribeFromTopic(topic);
-                }
-                
-                // Clear topics in preferences
-                await ref.read(fcmTopicsProvider.notifier).set({});
-                
-                // Set new tournament
-                await ref.read(tournamentIdProvider.notifier).set(tournament.id);
-                
-                if (!context.mounted) return;
-                Navigator.of(context).pushNamed(ROUTES.tournament);
-              },
+              onTap: () => _handleTournamentSelection(
+                context: context,
+                ref: ref,
+                tournament: tournament,
+              ),
             ),
           ),
       ],

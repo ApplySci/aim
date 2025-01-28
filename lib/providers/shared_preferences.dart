@@ -133,6 +133,10 @@ class SharedPreferencesBoolNotifier
     required super.key,
     required super.fallback,
   });
+
+  bool hasStoredValue() {
+    return _prefs.containsKey(_key);
+  }
 }
 
 final alarmPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
@@ -314,4 +318,8 @@ class FcmTopicsNotifier extends SharedPreferencesValueNNotifier<Set<String>> {
 
 final fcmTopicsProvider = NotifierProvider<FcmTopicsNotifier, Set<String>?>(
   () => FcmTopicsNotifier(),
+);
+
+final notificationsPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
+  () => SharedPreferencesBoolNotifier(key: 'notifications', fallback: true),
 );

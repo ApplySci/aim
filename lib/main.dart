@@ -77,7 +77,6 @@ class _MyApp extends ConsumerWidget {
     ref.listen<AsyncValue<List<AlarmInfo>>>(
       alarmScheduleProvider,
       (prev, next) {
-        final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
 
         if (nextData == null) return;
@@ -112,6 +111,10 @@ class _MyApp extends ConsumerWidget {
           // Check if tournament is past before subscribing
           final tournamentInfo = await ref.read(tournamentInfoProvider.future);
           if (tournamentInfo.status == WhenTournament.past) return;
+
+          // Only subscribe if notifications are enabled
+          final notificationsEnabled = ref.read(notificationsPrefProvider);
+          if (!notificationsEnabled) return;
 
           await fcm.subscribeToTopic(tournamentId);
           await fcm.subscribeToTopic('$tournamentId-$playerId');
