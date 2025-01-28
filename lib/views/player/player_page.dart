@@ -34,7 +34,7 @@ class PlayerPage extends ConsumerWidget {
         if (didPop) return;
         
         if (context.mounted) {
-          await Navigator.of(context).maybePop();
+          Navigator.of(context).pop();
         }
       },
       child: Consumer(
