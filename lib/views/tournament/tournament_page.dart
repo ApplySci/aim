@@ -110,7 +110,7 @@ class TournamentPage extends ConsumerWidget {
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings),
-                    onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+                    onPressed: () => Navigator.of(context).pushNamed(ROUTES.settings),
                   ),
                 ],
               ),

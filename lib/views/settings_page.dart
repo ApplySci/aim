@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '/providers.dart';
 import '/views/app_bar.dart';
+import '/services/notification_preferences.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -13,6 +14,7 @@ class SettingsPage extends ConsumerWidget {
     final alarmPref = ref.watch(alarmPrefProvider);
     final timezonePref = ref.watch(timezonePrefProvider);
     final vibratePref = ref.watch(vibratePrefProvider);
+    final notificationsPref = ref.watch(notificationsPrefProvider);
 
     return Scaffold(
       appBar: const CustomAppBar(
@@ -20,6 +22,17 @@ class SettingsPage extends ConsumerWidget {
       ),
       body: Column(
         children: <Widget>[
+          SwitchListTile(
+            title: const Text('Tournament notifications'),
+            subtitle: const Text('Score updates, schedule changes, and seating information'),
+            value: notificationsPref,
+            onChanged: (value) async {
+              final service = ref.read(notificationPreferencesProvider);
+              await service.updatePreferences(
+                value ? NotificationChoice.updates : NotificationChoice.none,
+              );
+            },
+          ),
           FutureBuilder<bool>(
             future: Permission.scheduleExactAlarm.isPermanentlyDenied,
             builder: (context, snapshot) {
@@ -46,7 +59,10 @@ class SettingsPage extends ConsumerWidget {
                       return;
                     }
                   }
-                  ref.read(alarmPrefProvider.notifier).set(value);
+                  final service = ref.read(notificationPreferencesProvider);
+                  await service.updatePreferences(
+                    value ? NotificationChoice.all : NotificationChoice.updates,
+                  );
                 },
               );
             },

@@ -9,6 +9,7 @@ import '/utils.dart';
 import '/views/error_view.dart';
 import 'loading_view.dart';
 import 'tab_scaffold.dart';
+import '/services/notification_preferences.dart';
 
 class TournamentListPage extends ConsumerWidget {
   const TournamentListPage({super.key});
@@ -53,7 +54,7 @@ class TournamentListPage extends ConsumerWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.settings),
-              onPressed: () => Navigator.pushNamed(context, ROUTES.settings),
+              onPressed: () => Navigator.of(context).pushNamed(ROUTES.settings),
             ),
           ],
           filterBar: Padding(
@@ -122,20 +123,13 @@ class TournamentList extends ConsumerWidget {
     required WidgetRef ref,
     required TournamentData tournament,
   }) async {
-    final fcm = ref.read(fcmProvider);
-    final currentTopics = ref.read(fcmTopicsProvider) ?? {};
-
-    // Unsubscribe from all current topics
-    for (final topic in currentTopics) {
-      await fcm.unsubscribeFromTopic(topic);
-    }
-
-    // Clear topics in preferences
-    await ref.read(fcmTopicsProvider.notifier).set({});
+    // Unsubscribe from existing topics first
+    final service = ref.read(notificationPreferencesProvider);
+    await service.unsubscribeFromAllTopics();
 
     if (tournament.status != 'past') {
       if (!context.mounted) return;
-      final choice = await showDialog<String>(
+      final choice = await showDialog<NotificationChoice>(
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
@@ -151,7 +145,7 @@ class TournamentList extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   OutlinedButton(
-                    onPressed: () => Navigator.pop(context, 'none'),
+                    onPressed: () => Navigator.pop(context, NotificationChoice.none),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('No Notifications'),
@@ -159,7 +153,7 @@ class TournamentList extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
                   FilledButton.tonal(
-                    onPressed: () => Navigator.pop(context, 'updates'),
+                    onPressed: () => Navigator.pop(context, NotificationChoice.updates),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('Score, schedule and seating update notifications only'),
@@ -167,7 +161,7 @@ class TournamentList extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
-                    onPressed: () => Navigator.pop(context, 'all'),
+                    onPressed: () => Navigator.pop(context, NotificationChoice.all),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('All the above notifications, plus an alarm at the start of each round'),
@@ -183,14 +177,14 @@ class TournamentList extends ConsumerWidget {
       // Handle the case where choice is null (dialog was dismissed)
       if (choice == null) return;
 
-      await ref.read(alarmPrefProvider.notifier).set(choice == 'all');
+      await service.updatePreferences(choice);
     }
 
     // Set the tournament ID last to avoid race conditions
     await ref.read(tournamentIdProvider.notifier).set(tournament.id);
 
     if (!context.mounted) return;
-    Navigator.of(context).popAndPushNamed(ROUTES.tournament);
+    Navigator.of(context).pushReplacementNamed(ROUTES.tournament);
   }
 
   @override
@@ -301,7 +295,7 @@ class PastTournamentList extends ConsumerWidget {
                   // Navigate to tournament page
                   if (context.mounted) {
                     Navigator.pop(context); // Dismiss loading dialog
-                    Navigator.of(context).popAndPushNamed(ROUTES.tournament);
+                    Navigator.of(context).pushReplacementNamed(ROUTES.tournament);
                   }
                 } catch (e) {
                   if (context.mounted) {
