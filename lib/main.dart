@@ -79,19 +79,18 @@ class _MyApp extends ConsumerWidget {
         final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
 
-        if (nextData == null) return;
-
         // Skip if the alarms are identical
         if (prevData != null &&
+            nextData != null &&
             prevData.length == nextData.length &&
             prevData.every((prev) => nextData.any((next) =>
-              prev.id == next.id &&
-              prev.name == next.name &&
-              prev.alarm == next.alarm &&
-              prev.vibratePref == next.vibratePref &&
-              prev.player?.id == next.player?.id &&
-              prev.player?.name == next.player?.name &&
-              prev.player?.table == next.player?.table
+            prev.id == next.id &&
+                prev.name == next.name &&
+                prev.alarm == next.alarm &&
+                prev.vibratePref == next.vibratePref &&
+                prev.player?.id == next.player?.id &&
+                prev.player?.name == next.player?.name &&
+                prev.player?.table == next.player?.table
             ))) {
           return;
         }
@@ -101,14 +100,16 @@ class _MyApp extends ConsumerWidget {
           Log.debug('stopping all alarms');
           await Alarm.stopAll();
 
+          if (nextData == null) return;
+
           // set one alarm for each round
-          Log.debug('setting alarms');
           for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
             if (now.isBefore(alarm)) {
               final title = '$name starts in 5 minutes';
               final body = player != null
                   ? '${player.name} is at table ${player.table}'
                   : '';
+              Log.debug('setting alarm: $title');
               await setAlarm(alarm, title, body, index + 1, vibratePref);
             }
           }
