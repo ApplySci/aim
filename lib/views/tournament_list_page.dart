@@ -165,10 +165,20 @@ class TournamentList extends ConsumerWidget {
                 ],
               ),
               onTap: () async {
-                await ref
-                    .read(tournamentIdProvider.notifier) //
-                    .set(tournament.id);
-
+                final fcm = ref.read(fcmProvider);
+                final currentTopics = ref.read(fcmTopicsProvider) ?? {};
+                
+                // Unsubscribe from all current topics
+                for (final topic in currentTopics) {
+                  await fcm.unsubscribeFromTopic(topic);
+                }
+                
+                // Clear topics in preferences
+                await ref.read(fcmTopicsProvider.notifier).set({});
+                
+                // Set new tournament
+                await ref.read(tournamentIdProvider.notifier).set(tournament.id);
+                
                 if (!context.mounted) return;
                 Navigator.of(context).pushNamed(ROUTES.tournament);
               },

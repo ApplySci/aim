@@ -104,32 +104,23 @@ class _MyApp extends ConsumerWidget {
       },
     );
 
-    // Update firebase subscription when tournamentId changes
-    ref.listen(
-      tournamentIdProvider,
-      (prev, next) {
-        if (prev case TournamentId tournamentId) {
-          fcm.unsubscribeFromTopic(tournamentId);
-          fcm.unsubscribeFromTopic('$tournamentId-');
-        }
-        if (next case TournamentId tournamentId) {
-          fcm.subscribeToTopic(tournamentId);
-          fcm.subscribeToTopic('$tournamentId-');
-        }
-      },
-    );
-
     // Update firebase subscription when tournamentId or playerId changes
     ref.listen(
       tournamentPlayerIdProvider,
-      (prev, next) {
-        if (prev case (:TournamentId tournamentId, :PlayerId playerId)) {
-          fcm.unsubscribeFromTopic('$tournamentId-$playerId');
-          fcm.subscribeToTopic('$tournamentId-');
-        }
+      (prev, next) async {
         if (next case (:TournamentId tournamentId, :PlayerId playerId)) {
-          fcm.unsubscribeFromTopic('$tournamentId-');
-          fcm.subscribeToTopic('$tournamentId-$playerId');
+          // Check if tournament is past before subscribing
+          final tournamentInfo = await ref.read(tournamentInfoProvider.future);
+          if (tournamentInfo.status == WhenTournament.past) return;
+
+          await fcm.subscribeToTopic(tournamentId);
+          await fcm.subscribeToTopic('$tournamentId-$playerId');
+
+          // Update tracked topics
+          await ref.read(fcmTopicsProvider.notifier).set({
+            tournamentId,
+            '$tournamentId-$playerId',
+          });
         }
       },
     );

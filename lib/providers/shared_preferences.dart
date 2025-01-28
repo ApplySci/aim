@@ -251,7 +251,7 @@ final tournamentPlayerIdProvider = Provider((ref) {
   final playerId = ref.watch(selectedPlayerIdProvider);
   return (
     tournamentId: tournamentId,
-    playerId: playerId,
+    playerId: playerId ?? "",
   );
 });
 
@@ -295,3 +295,23 @@ class RulesFilterNotifier extends Notifier<Set<TournamentRules>> {
     state = value;
   }
 }
+
+class FcmTopicsNotifier extends SharedPreferencesValueNNotifier<Set<String>> {
+  FcmTopicsNotifier() : super(key: 'fcm_topics');
+
+  @override
+  Set<String>? _getValue() {
+    final String? jsonString = _prefs.getString(_key);
+    if (jsonString == null) return null;
+    return (jsonDecode(jsonString) as List<dynamic>).cast<String>().toSet();
+  }
+
+  @override
+  Future<void> _setValue(Set<String> value) async {
+    await _prefs.setString(_key, jsonEncode(value.toList()));
+  }
+}
+
+final fcmTopicsProvider = NotifierProvider<FcmTopicsNotifier, Set<String>?>(
+  () => FcmTopicsNotifier(),
+);
