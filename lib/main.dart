@@ -154,6 +154,26 @@ class _MyApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         initialRoute: ROUTES.home,
         navigatorKey: globalNavigatorKey,
+        onGenerateRoute: (settings) {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (context) {
+              return PopScope(
+                canPop: false,
+                onPopInvoked: (didPop) async {
+                  final navigator = Navigator.of(context);
+                  if (navigator.canPop()) {
+                    navigator.pop();
+                  } else {
+                    // If we can't pop, navigate to tournament list
+                    navigator.pushReplacementNamed(ROUTES.tournaments);
+                  }
+                },
+                child: _buildRoute(settings),
+              );
+            },
+          );
+        },
         title: 'All-Ireland Mahjong Tournaments',
         theme: lightTheme.copyWith(
           appBarTheme: AppBarTheme(
@@ -166,16 +186,26 @@ class _MyApp extends ConsumerWidget {
           ),
         ),
         themeMode: ThemeMode.system,
-        routes: {
-          ROUTES.home: (context) => const TournamentListPage(),
-          ROUTES.settings: (context) => const SettingsPage(),
-          ROUTES.tournaments: (context) => const TournamentListPage(),
-          ROUTES.tournament: (context) => const TournamentPage(),
-          ROUTES.player: (context) => const PlayerPage(),
-          ROUTES.round: (context) => const RoundPage(),
-        },
       ),
     );
+  }
+
+  Widget _buildRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case ROUTES.home:
+      case ROUTES.tournaments:
+        return const TournamentListPage();
+      case ROUTES.settings:
+        return const SettingsPage();
+      case ROUTES.tournament:
+        return const TournamentPage();
+      case ROUTES.player:
+        return const PlayerPage();
+      case ROUTES.round:
+        return const RoundPage();
+      default:
+        return const TournamentListPage();
+    }
   }
 }
 
