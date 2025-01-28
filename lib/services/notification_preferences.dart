@@ -20,12 +20,20 @@ class NotificationPreferencesService {
   Future<void> updatePreferences(NotificationChoice choice) async {
     Log.debug('Updating notification preferences: $choice');
     
-    // Update notification and alarm preferences
-    await ref.read(notificationsPrefProvider.notifier).set(choice.wantsNotifications);
-    await ref.read(alarmPrefProvider.notifier).set(choice.wantsAlarms);
+    final currentNotifications = ref.read(notificationsPrefProvider);
+    final currentAlarms = ref.read(alarmPrefProvider);
+    
+    // Only update if values actually changed
+    if (currentNotifications != choice.wantsNotifications) {
+      await ref.read(notificationsPrefProvider.notifier).set(choice.wantsNotifications);
+    }
+    
+    if (currentAlarms != choice.wantsAlarms) {
+      await ref.read(alarmPrefProvider.notifier).set(choice.wantsAlarms);
+    }
     
     // Handle FCM topic subscriptions
-    if (!choice.wantsNotifications) {
+    if (!choice.wantsNotifications && currentNotifications) {
       await unsubscribeFromAllTopics();
     }
   }

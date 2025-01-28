@@ -76,16 +76,33 @@ class _MyApp extends ConsumerWidget {
     ref.listen<AsyncValue<List<AlarmInfo>>>(
       alarmScheduleProvider,
       (prev, next) {
+        final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
 
         if (nextData == null) return;
-        Log.debug('actually updating alarms');
+
+        // Skip if the alarms are identical
+        if (prevData != null &&
+            prevData.length == nextData.length &&
+            prevData.every((prev) => nextData.any((next) =>
+              prev.id == next.id &&
+              prev.name == next.name &&
+              prev.alarm == next.alarm &&
+              prev.vibratePref == next.vibratePref &&
+              prev.player?.id == next.player?.id &&
+              prev.player?.name == next.player?.name &&
+              prev.player?.table == next.player?.table
+            ))) {
+          return;
+        }
 
         alarmRunner(() async {
           final now = DateTime.now().toUtc();
+          Log.debug('stopping all alarms');
           await Alarm.stopAll();
 
           // set one alarm for each round
+          Log.debug('setting alarms');
           for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
             if (now.isBefore(alarm)) {
               final title = '$name starts in 5 minutes';
