@@ -26,7 +26,7 @@
   <li><a href='https://docs.google.com/spreadsheets/d/{{ current_user.live_tournament.google_doc_id }}' target=_blank>
     Open the google score sheet
   </a></li>
-  
+
   <li>View public pages:
     <ul>
       <li><a href='{{ webroot }}projector.html' target='blank'>Live ranking for data projector</a></li>
@@ -41,7 +41,7 @@
       <div>
         <label for="sendNotifications">
           <input type="checkbox" id="sendNotifications" name="sendNotifications" {% if not is_past %}checked{% endif %}>
-          Send notifications to users on update 
+          Send notifications to users on update
           {% if is_past %}
             (tournament is marked as past, notifications off by default)
           {% else %}
@@ -63,7 +63,7 @@
     </div>
 
     <div><button id="clearButton">Clear log</button></div>
-    <div id="logMessageBox"></div>        
+    <div id="logMessageBox"></div>
 </fieldset>
 
 {% if current_status == 'past' and not current_user.live_tournament.past_data %}
@@ -80,6 +80,109 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Get schedule data from server-side template
+    const schedule = {
+        timezone: "{{ tournament_timezone }}",
+        completed_hanchan: {{ hanchan_count }},
+        rounds: {{ schedule.rounds | tojson | safe }}
+    };
+
+    // Check timing every minute
+    function checkNextHanchanTiming() {
+        const now = new Date();
+        const tournamentTZ = new Intl.DateTimeFormat('en-US', {
+            timeZone: schedule.timezone
+        });
+
+        // If we have rounds and haven't completed all of them
+        if (schedule.rounds && schedule.completed_hanchan < schedule.rounds.length) {
+            const nextRound = schedule.rounds[schedule.completed_hanchan];
+            const nextStart = new Date(nextRound.start);
+
+            // Convert both to tournament timezone for comparison
+            const nowTZ = new Date(tournamentTZ.format(now));
+            const startTZ = new Date(tournamentTZ.format(nextStart));
+
+            const minutesUntil = Math.floor((startTZ - nowTZ) / (1000 * 60));
+
+            // If we're within 10 minutes of next hanchan
+            if (minutesUntil >= 0 && minutesUntil <= 10) {
+                showTimingWarning(nextRound.name, nextStart, minutesUntil);
+            } else {
+                hideTimingWarning();
+            }
+        }
+    }
+
+    function showTimingWarning(roundName, startTime, minutesUntil) {
+        let warningDiv = document.getElementById('hanchanTimingWarning');
+        if (!warningDiv) {
+            warningDiv = document.createElement('div');
+            warningDiv.id = 'hanchanTimingWarning';
+            warningDiv.className = 'alert alert-warning';
+            document.querySelector('h3').after(warningDiv);
+        }
+
+        const timeStr = startTime.toLocaleTimeString('en-US', {
+            timeZone: schedule.timezone,
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        warningDiv.innerHTML = `
+            <p><strong>Time-sensitive warning:</strong> The next hanchan (${roundName})
+            starts in ${minutesUntil} minutes (at ${timeStr})
+            but the previous round's results haven't been published yet.</p>
+            <div class="action-group">
+                <button class="action" data-url="${updateScoresUrl}">
+                    Publish previous round's results
+                </button>
+                <button class="action" data-url="${updateScheduleUrl}">
+                    Update schedule
+                </button>
+            </div>`;
+
+        // Attach event handlers to new buttons
+        warningDiv.querySelectorAll('button.action').forEach(button => {
+            button.addEventListener('click', handleActionButton);
+        });
+    }
+
+    function hideTimingWarning() {
+        const warningDiv = document.getElementById('hanchanTimingWarning');
+        if (warningDiv) {
+            warningDiv.remove();
+        }
+    }
+
+    // Start checking timing
+    checkNextHanchanTiming();
+    setInterval(checkNextHanchanTiming, 60000); // Check every minute
+
+    // Re-use existing action button handler
+    function handleActionButton() {
+        const button = this;
+        button.disabled = true;
+        const url = button.getAttribute('data-url') +
+            '?t=' + new Date().getTime() +
+            '&sendNotifications=' + document.getElementById('sendNotifications').checked;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'processing') {
+                    pollJobStatus(data.job_id, button);
+                } else {
+                    updateLog(data.status);
+                    button.disabled = false;
+                }
+            })
+            .catch(error => {
+                updateLog('Error: ' + error);
+                button.disabled = false;
+            });
+    }
+
   let buttons = document.querySelectorAll('button.action');
   let log = document.getElementById('logMessageBox');
   document.getElementById('clearButton').addEventListener('click', () =>
@@ -175,10 +278,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!confirm('Are you sure you want to archive this tournament? This action cannot be undone.')) {
         return;
       }
-      
+
       archiveButton.disabled = true;
       archiveButton.textContent = 'Archiving...';
-      
+
       fetch('{{ url_for("run.archive_tournament") }}', {
         method: 'POST',
       })
@@ -186,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         const statusDiv = document.getElementById('archiveStatus');
         statusDiv.style.display = 'block';
-        
+
         if (data.status === 'success') {
           let details = data.details;
           let message = `<h4>Archive Complete:</h4>
@@ -195,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <li>Exact name matches: ${details.exact_matches}</li>
               <li>Fuzzy matches: ${details.fuzzy_matches.length}</li>
             </ul>`;
-          
+
           if (details.fuzzy_matches.length > 0) {
             message += '<h5>Fuzzy Matches:</h5><ul>';
             details.fuzzy_matches.forEach(match => {
@@ -203,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             message += '</ul>';
           }
-          
+
           statusDiv.innerHTML = message;
           archiveButton.style.display = 'none';
         } else {

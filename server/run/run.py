@@ -81,10 +81,9 @@ def select_tournament():
 
     grouped_tournaments = get_active_tournaments(current_user.email)
     db.session.commit()
-    
+
     return render_template(
-        "select_tournament.html", 
-        grouped_tournaments=grouped_tournaments
+        "select_tournament.html", grouped_tournaments=grouped_tournaments
     )
 
 
@@ -152,13 +151,13 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
             body=body,
         ),
         data={
-            'tournament_id': current_user.live_tournament.firebase_doc,
-            'tournament_name': current_user.live_tournament.title,
-            'notification_type': notification_type,
+            "tournament_id": current_user.live_tournament.firebase_doc,
+            "tournament_name": current_user.live_tournament.title,
+            "notification_type": notification_type,
         },
         topic=topic,
     )
-    
+
     try:
         response = messaging.send(message)
     except Exception as e:
@@ -170,9 +169,6 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
 @tournament_required
 @login_required
 def run_tournament():
-    # TODO add a timer and a way to catch it, to tell the manager to change the schedule,
-    # and offer a button to do it quickly, if an alarm is due soon, but the previous
-    # hanchan hasn't been published yet
     tournament = current_user.live_tournament
     sheet = _get_sheet()
     schedule = googlesheet.get_schedule(sheet)
@@ -194,7 +190,7 @@ def run_tournament():
         expected_status = "past"
 
     current_status = tournament.status
-    status_mismatch = current_status != expected_status  # and current_status != 'test'
+    status_mismatch = current_status != expected_status  and current_status != 'test'
 
     return render_template(
         "run_tournament.html",
@@ -208,6 +204,9 @@ def run_tournament():
         tournament_timezone=schedule["timezone"],
         hanchan_count=hanchan_count,
         is_past=(current_status == "past"),
+        schedule=schedule,  # Add this line
+        updateScoresUrl=url_for("run.update_ranking_and_scores"),
+        updateScheduleUrl=url_for("run.update_schedule"),
     )
 
 
@@ -249,8 +248,11 @@ def update_schedule():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("seating & schedule updated", 'seating')
-        return jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}), 200
+        _send_messages("seating & schedule updated", "seating")
+        return (
+            jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
+            200,
+        )
     else:
         return (
             jsonify({"status": "SEATING & SCHEDULE updated, NO notifications"}),
@@ -295,7 +297,7 @@ def update_players():
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("player list updated", 'players')
+        _send_messages("player list updated", "players")
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
         return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
@@ -304,7 +306,9 @@ def update_players():
 @login_required
 def _send_messages(msg: str, notification_type: str):
     firebase_id = current_user.live_tournament.firebase_doc
-    _send_topic_fcm(firebase_id, msg, current_user.live_tournament.title, notification_type)
+    _send_topic_fcm(
+        firebase_id, msg, current_user.live_tournament.title, notification_type
+    )
 
 
 @login_required
@@ -315,22 +319,26 @@ def _message_player_topics(scores: dict, done: int, players):
     """
     if done == 0:
         return
-    
+
     firebase_id = current_user.live_tournament.firebase_doc
-    
+
     # Send general tournament update notification
     topic = f"{firebase_id}-"
     title = f"Scores updated after round {done}"
     body = f"Tournament scores have been updated"
     try:
-        _send_topic_fcm(topic, title, body, 'scores')
+        _send_topic_fcm(topic, title, body, "scores")
     except Exception as e:
-        logging.error(f"Failed to send tournament notification: {str(e)}", exc_info=True)
-    
+        logging.error(
+            f"Failed to send tournament notification: {str(e)}", exc_info=True
+        )
+
     # Get the player map with registration IDs
     raw_players = googlesheet.get_players(_get_sheet())
-    reg_id_map = {p[0]: p[1] for p in raw_players if p[0] != ""}  # map seating_id to registration_id
-    
+    reg_id_map = {
+        p[0]: p[1] for p in raw_players if p[0] != ""
+    }  # map seating_id to registration_id
+
     for k, v in scores.items():
         name = players[int(k)]
         reg_id = reg_id_map.get(int(k))
@@ -338,11 +346,13 @@ def _message_player_topics(scores: dict, done: int, players):
             topic = f"{firebase_id}-{reg_id}"
             title = f"{name} is now in position {('','=')[v['t']]}{v['r']}"
             body = f"with {v['total']/10} points after {done} round(s)"
-            
+
             try:
-                _send_topic_fcm(topic, title, body, 'scores')
+                _send_topic_fcm(topic, title, body, "scores")
             except Exception as e:
-                logging.error(f"Failed to send notification to {name}: {str(e)}", exc_info=True)
+                logging.error(
+                    f"Failed to send notification to {name}: {str(e)}", exc_info=True
+                )
 
 
 @login_required
