@@ -161,12 +161,17 @@ class _MyApp extends ConsumerWidget {
               return PopScope(
                 canPop: false,
                 onPopInvoked: (didPop) async {
+                  if (didPop) return;
+                  
                   final navigator = Navigator.of(context);
                   if (navigator.canPop()) {
-                    navigator.pop();
+                    // Use maybePop instead of pop for safer navigation
+                    await navigator.maybePop();
                   } else {
                     // If we can't pop, navigate to tournament list
-                    navigator.pushReplacementNamed(ROUTES.tournaments);
+                    if (context.mounted) {
+                      await navigator.pushReplacementNamed(ROUTES.tournaments);
+                    }
                   }
                 },
                 child: _buildRoute(settings),

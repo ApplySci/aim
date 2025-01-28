@@ -16,72 +16,80 @@ class SettingsPage extends ConsumerWidget {
     final vibratePref = ref.watch(vibratePrefProvider);
     final notificationsPref = ref.watch(notificationsPrefProvider);
 
-    return Scaffold(
-      appBar: const CustomAppBar(
-        title: Text('Settings'),
-      ),
-      body: Column(
-        children: <Widget>[
-          SwitchListTile(
-            title: const Text('Tournament notifications'),
-            subtitle: const Text('Score updates, schedule changes, and seating information'),
-            value: notificationsPref,
-            onChanged: (value) async {
-              final service = ref.read(notificationPreferencesProvider);
-              await service.updatePreferences(
-                value ? NotificationChoice.updates : NotificationChoice.none,
-              );
-            },
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: const Text('Settings'),
+          showHomeButton: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          FutureBuilder<bool>(
-            future: Permission.scheduleExactAlarm.isPermanentlyDenied,
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!) {
-                return ListTile(
-                  title: const Text('Alarms for start of hanchan'),
-                  subtitle: const Text(
-                    'Alarm permission permanently denied. Enable in system settings to use alarms.',
-                  ),
-                  trailing: TextButton(
-                    onPressed: openAppSettings,
-                    child: const Text('Open Settings'),
-                  ),
+        ),
+        body: Column(
+          children: <Widget>[
+            SwitchListTile(
+              title: const Text('Tournament notifications'),
+              subtitle: const Text('Score updates, schedule changes, and seating information'),
+              value: notificationsPref,
+              onChanged: (value) async {
+                final service = ref.read(notificationPreferencesProvider);
+                await service.updatePreferences(
+                  value ? NotificationChoice.updates : NotificationChoice.none,
                 );
-              }
-              return SwitchListTile(
-                title: const Text('Alarms for start of hanchan'),
-                value: alarmPref,
-                onChanged: (value) async {
-                  if (value) {
-                    final status = await Permission.scheduleExactAlarm.request();
-                    if (status.isDenied) {
-                      ref.read(alarmPrefProvider.notifier).set(false);
-                      return;
-                    }
-                  }
-                  final service = ref.read(notificationPreferencesProvider);
-                  await service.updatePreferences(
-                    value ? NotificationChoice.all : NotificationChoice.updates,
+              },
+            ),
+            FutureBuilder<bool>(
+              future: Permission.scheduleExactAlarm.isPermanentlyDenied,
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!) {
+                  return ListTile(
+                    title: const Text('Alarms for start of hanchan'),
+                    subtitle: const Text(
+                      'Alarm permission permanently denied. Enable in system settings to use alarms.',
+                    ),
+                    trailing: TextButton(
+                      onPressed: openAppSettings,
+                      child: const Text('Open Settings'),
+                    ),
                   );
-                },
-              );
-            },
-          ),
-          SwitchListTile(
-            title: const Text('Vibrate on alarm'),
-            value: vibratePref,
-            onChanged: (value) => ref
-                .read(vibratePrefProvider.notifier)
-                .set(value),
-          ),
-          SwitchListTile(
-            title: const Text('Use event timezone (rather than device timezone)'),
-            value: timezonePref,
-            onChanged: (value) => ref
-                .read(timezonePrefProvider.notifier)
-                .set(value),
-          ),
-        ],
+                }
+                return SwitchListTile(
+                  title: const Text('Alarms for start of hanchan'),
+                  value: alarmPref,
+                  onChanged: (value) async {
+                    if (value) {
+                      final status = await Permission.scheduleExactAlarm.request();
+                      if (status.isDenied) {
+                        ref.read(alarmPrefProvider.notifier).set(false);
+                        return;
+                      }
+                    }
+                    final service = ref.read(notificationPreferencesProvider);
+                    await service.updatePreferences(
+                      value ? NotificationChoice.all : NotificationChoice.updates,
+                    );
+                  },
+                );
+              },
+            ),
+            SwitchListTile(
+              title: const Text('Vibrate on alarm'),
+              value: vibratePref,
+              onChanged: (value) => ref
+                  .read(vibratePrefProvider.notifier)
+                  .set(value),
+            ),
+            SwitchListTile(
+              title: const Text('Use event timezone (rather than device timezone)'),
+              value: timezonePref,
+              onChanged: (value) => ref
+                  .read(timezonePrefProvider.notifier)
+                  .set(value),
+            ),
+          ],
+        ),
       ),
     );
   }

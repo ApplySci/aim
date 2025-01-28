@@ -6,12 +6,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.showHomeButton = true,
     this.actions,
+    this.leading,
     super.key,
   });
 
   final Widget title;
   final bool showHomeButton;
   final List<Widget>? actions;
+  final Widget? leading;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -21,7 +23,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       automaticallyImplyLeading: false,
       title: title,
-      leading: showHomeButton
+      leading: leading ?? (showHomeButton
           ? IconButton(
               icon: const Icon(Icons.home),
               onPressed: () {
@@ -31,7 +33,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 );
               },
             )
-          : null,
+          : null),
       actions: actions,
     );
   }
