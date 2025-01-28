@@ -5,11 +5,12 @@ import 'package:intl/intl.dart';
 
 import '/models.dart';
 import '/providers.dart';
+import 'loading_view.dart';
+import '/services/notification_preferences.dart';
+import 'tab_scaffold.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
-import 'loading_view.dart';
-import 'tab_scaffold.dart';
-import '/services/notification_preferences.dart';
+import '/views/settings_dialog.dart';
 
 class TournamentListPage extends ConsumerWidget {
   const TournamentListPage({super.key});
@@ -20,92 +21,96 @@ class TournamentListPage extends ConsumerWidget {
     final testMode = ref.watch(testModePrefProvider);
     final rulesFilter = ref.watch(rulesFilterProvider);
 
-    return allTournamentsAsync.when(
-      loading: () => const LoadingView(),
-      error: (error, stackTrace) => ErrorView(
-        error: error,
-        stackTrace: stackTrace,
-      ),
-      data: (_) {
-        return TabScaffold(
-          title: GestureDetector(
-            onTap: () {
-              // Toggle test mode on triple tap
-              if (DateTime.now().difference(_lastTap).inMilliseconds < 500) {
-                _tapCount++;
-                if (_tapCount > 2) {
-                  ref.read(testModePrefProvider.notifier).set(!testMode);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Test mode ${testMode ? 'disabled' : 'enabled'}'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  _tapCount = 0;
+    return PopScope(
+      canPop: false,
+      child: allTournamentsAsync.when(
+        loading: () => const LoadingView(),
+        error: (error, stackTrace) => ErrorView(
+          error: error,
+          stackTrace: stackTrace,
+        ),
+        data: (_) {
+          return TabScaffold(
+            title: GestureDetector(
+              onTap: () {
+                // Toggle test mode on triple tap
+                if (DateTime.now().difference(_lastTap).inMilliseconds < 500) {
+                  _tapCount++;
+                  if (_tapCount > 2) {
+                    ref.read(testModePrefProvider.notifier).set(!testMode);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Test mode ${testMode ? 'disabled' : 'enabled'}'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                    _tapCount = 0;
+                  }
+                } else {
+                  _tapCount = 1;
                 }
-              } else {
-                _tapCount = 1;
-              }
-              _lastTap = DateTime.now();
-            },
-            child: const Text('Tournaments'),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => Navigator.of(context).pushNamed(ROUTES.settings),
+                _lastTap = DateTime.now();
+              },
+              child: const Text('Tournaments'),
             ),
-          ],
-          filterBar: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Wrap(
-              spacing: 4.0,
-              children: [
-                for (final rules in TournamentRules.values)
-                  FilterChip(
-                    selected: rulesFilter.contains(rules),
-                    showCheckmark: false,
-                    label: Text(rules.displayName),
-                    labelStyle: TextStyle(
-                      color: rulesFilter.contains(rules)
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => SettingsDialog.show(context),
+              ),
+            ],
+            filterBar: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Wrap(
+                spacing: 4.0,
+                children: [
+                  for (final rules in TournamentRules.values)
+                    FilterChip(
+                      selected: rulesFilter.contains(rules),
+                      showCheckmark: false,
+                      label: Text(rules.displayName),
+                      labelStyle: TextStyle(
+                        color: rulesFilter.contains(rules)
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      onSelected: (selected) {
+                        final newFilter =
+                            Set<TournamentRules>.from(rulesFilter);
+                        if (selected) {
+                          newFilter.add(rules);
+                        } else {
+                          newFilter.remove(rules);
+                        }
+                        ref.read(rulesFilterProvider.notifier).state =
+                            newFilter;
+                        ref
+                            .read(rulesFilterPrefProvider.notifier)
+                            .set(newFilter);
+                      },
                     ),
-                    selectedColor: Theme.of(context).colorScheme.primary,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    onSelected: (selected) {
-                      final newFilter =
-                          Set<TournamentRules>.from(rulesFilter);
-                      if (selected) {
-                        newFilter.add(rules);
-                      } else {
-                        newFilter.remove(rules);
-                      }
-                      ref.read(rulesFilterProvider.notifier).state =
-                          newFilter;
-                      ref
-                          .read(rulesFilterPrefProvider.notifier)
-                          .set(newFilter);
-                    },
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          tabs: [
-            const Tab(text: 'Live'),
-            const Tab(text: 'Upcoming'),
-            const Tab(text: 'Past'),
-            if (testMode) const Tab(text: 'Test'),
-          ],
-          children: [
-            const TournamentList(when: WhenTournament.live),
-            const TournamentList(when: WhenTournament.upcoming),
-            const PastTournamentList(),
-            if (testMode) const TournamentList(when: WhenTournament.test),
-          ],
-        );
-      },
+            tabs: [
+              const Tab(text: 'Live'),
+              const Tab(text: 'Upcoming'),
+              const Tab(text: 'Past'),
+              if (testMode) const Tab(text: 'Test'),
+            ],
+            children: [
+              const TournamentList(when: WhenTournament.live),
+              const TournamentList(when: WhenTournament.upcoming),
+              const PastTournamentList(),
+              if (testMode) const TournamentList(when: WhenTournament.test),
+            ],
+          );
+        },
+      ),
     );
   }
 

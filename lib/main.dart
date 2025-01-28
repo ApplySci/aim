@@ -17,7 +17,6 @@ import 'utils.dart';
 import 'views/alarm_page.dart';
 import 'views/player/player_page.dart';
 import 'views/round/round_page.dart';
-import 'views/settings_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament/tournament_page.dart';
 
@@ -162,7 +161,7 @@ class _MyApp extends ConsumerWidget {
                 canPop: false,
                 onPopInvoked: (didPop) async {
                   if (didPop) return;
-                  
+
                   final navigator = Navigator.of(context);
                   if (navigator.canPop()) {
                     // Use maybePop instead of pop for safer navigation
@@ -200,8 +199,6 @@ class _MyApp extends ConsumerWidget {
       case ROUTES.home:
       case ROUTES.tournaments:
         return const TournamentListPage();
-      case ROUTES.settings:
-        return const SettingsPage();
       case ROUTES.tournament:
         return const TournamentPage();
       case ROUTES.player:

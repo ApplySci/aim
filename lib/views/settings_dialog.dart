@@ -3,31 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '/providers.dart';
-import '/views/app_bar.dart';
 import '/services/notification_preferences.dart';
 
-class SettingsPage extends ConsumerWidget {
-  const SettingsPage({super.key});
+class SettingsDialog extends ConsumerWidget {
+  const SettingsDialog({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const SettingsDialog(),
+    );
+  }
 
   @override
-  Widget build(context, ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final alarmPref = ref.watch(alarmPrefProvider);
     final timezonePref = ref.watch(timezonePrefProvider);
     final vibratePref = ref.watch(vibratePrefProvider);
     final notificationsPref = ref.watch(notificationsPrefProvider);
 
-    return PopScope(
-      canPop: true,
+    return Dialog(
       child: Scaffold(
-        appBar: CustomAppBar(
+        appBar: AppBar(
           title: const Text('Settings'),
-          showHomeButton: false,
+          automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        body: Column(
+        body: ListView(
           children: <Widget>[
             SwitchListTile(
               title: const Text('Tournament notifications'),
@@ -93,4 +99,4 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
-}
+} 

@@ -7,6 +7,7 @@ class TabScaffold extends StatelessWidget {
     required this.children,
     this.actions,
     this.filterBar,
+    this.automaticallyImplyLeading = true,
     super.key,
   }) : assert(tabs.length == children.length);
 
@@ -15,6 +16,7 @@ class TabScaffold extends StatelessWidget {
   final List<Widget> children;
   final List<Widget>? actions;
   final Widget? filterBar;
+  final bool automaticallyImplyLeading;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +24,7 @@ class TabScaffold extends StatelessWidget {
       length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: automaticallyImplyLeading,
           title: title,
           actions: actions,
           bottom: TabBar(tabs: tabs),

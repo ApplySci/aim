@@ -10,6 +10,7 @@ import 'tabs/info_tab.dart';
 import 'tabs/player_list_tab.dart';
 import 'tabs/round_list_tab.dart';
 import 'tabs/score_tab.dart';
+import '/views/settings_dialog.dart';
 
 final pageProvider = StateProvider((ref) => 0);
 
@@ -104,31 +105,41 @@ class TournamentPage extends ConsumerWidget {
             stackTrace: stackTrace,
           ),
           data: (tournament) {
-            return Scaffold(
-              appBar: CustomAppBar(
-                title: Text(tournament.name),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () => Navigator.of(context).pushNamed(ROUTES.settings),
-                  ),
-                ],
-              ),
-              body: IndexedStack(
-                index: page,
-                children: [
-                  if (info.status != WhenTournament.upcoming)
-                    const ScoreTable(),
-                  const TournamentInfo(),
-                  const Seating(),
-                  const Players(),
-                ],
-              ),
-              bottomNavigationBar: BottomNavigationBar(
-                type: BottomNavigationBarType.fixed,
-                currentIndex: page,
-                onTap: (index) => ref.read(pageProvider.notifier).state = index,
-                items: navItems,
+            return PopScope(
+              canPop: true,
+              onPopInvoked: (didPop) async {
+                if (didPop) return;
+
+                if (context.mounted) {
+                  await Navigator.of(context).pushReplacementNamed(ROUTES.tournaments);
+                }
+              },
+              child: Scaffold(
+                appBar: CustomAppBar(
+                  title: Text(tournament.name),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => SettingsDialog.show(context),
+                    ),
+                  ],
+                ),
+                body: IndexedStack(
+                  index: page,
+                  children: [
+                    if (info.status != WhenTournament.upcoming)
+                      const ScoreTable(),
+                    const TournamentInfo(),
+                    const Seating(),
+                    const Players(),
+                  ],
+                ),
+                bottomNavigationBar: BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed,
+                  currentIndex: page,
+                  onTap: (index) => ref.read(pageProvider.notifier).state = index,
+                  items: navItems,
+                ),
               ),
             );
           },

@@ -38,25 +38,35 @@ class RoundPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final round = ref.watch(roundProvider(roundId(context)));
-    return round.when(
-      loading: () => const LoadingScaffold(
-        title: Text('Round'),
-      ),
-      error: (error, stackTrace) => ErrorScaffold(
-        title: const Text('Round'),
-        error: error,
-        stackTrace: stackTrace,
-      ),
-      data: (round) => TabScaffold(
-        title: Text(round.name),
-        tabs: const [
-          Tab(text: 'Games'),
-          Tab(text: 'Scores'),
-        ],
-        children: [
-          RoundGamesTab(round: round),
-          RoundScoresTab(round: round),
-        ],
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        if (context.mounted) {
+          await Navigator.of(context).maybePop();
+        }
+      },
+      child: round.when(
+        loading: () => const LoadingScaffold(
+          title: Text('Round'),
+        ),
+        error: (error, stackTrace) => ErrorScaffold(
+          title: const Text('Round'),
+          error: error,
+          stackTrace: stackTrace,
+        ),
+        data: (round) => TabScaffold(
+          title: Text(round.name),
+          tabs: const [
+            Tab(text: 'Games'),
+            Tab(text: 'Scores'),
+          ],
+          children: [
+            RoundGamesTab(round: round),
+            RoundScoresTab(round: round),
+          ],
+        ),
       ),
     );
   }

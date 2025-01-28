@@ -28,90 +28,104 @@ class PlayerPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final args = ModalRoute.of(context)!.settings.arguments as Map;
-    PlayerId? playerId = args['playerId'];
-    int? seat = args['seat'];
-    PlayerData? playerData;
-    AsyncValue<PlayerRankings> playerScore;
-
-    if (playerId == null) {
-      if (seat == null) {
-        abortBuild(context, 'No way to identify this player');
-      } else {
-        final seatMap = ref.watch(seatMapProvider).valueOrNull;
-        if (seatMap != null && seatMap.containsKey(seat)) {
-          playerId = seatMap[seat]!.id;
-        } else {
-          abortBuild(context, 'No seating available yet');
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        if (context.mounted) {
+          await Navigator.of(context).maybePop();
         }
-      }
-    }
+      },
+      child: Consumer(
+        builder: (context, ref, child) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map;
+          PlayerId? playerId = args['playerId'];
+          int? seat = args['seat'];
+          PlayerData? playerData;
+          AsyncValue<PlayerRankings> playerScore;
 
-    final playerMap = ref.watch(playerMapProvider).valueOrNull;
-    if (playerMap != null && playerMap.containsKey(playerId)) {
-      playerData = playerMap[playerId];
-    }
-    if (seat == null) {
-      try {
-        seat = playerData!.seat;
-      } catch(e) {
-        abortBuild(context, 'Player not found');
-      }
-    }
+          if (playerId == null) {
+            if (seat == null) {
+              abortBuild(context, 'No way to identify this player');
+            } else {
+              final seatMap = ref.watch(seatMapProvider).valueOrNull;
+              if (seatMap != null && seatMap.containsKey(seat)) {
+                playerId = seatMap[seat]!.id;
+              } else {
+                abortBuild(context, 'No seating available yet');
+              }
+            }
+          }
 
-    try {
-      playerScore = ref.watch(playerScoreProvider(seat!));
-    } catch(e) {
-      abortBuild(context, 'Scores not available');
-      return const Text('failed');
-    }
+          final playerMap = ref.watch(playerMapProvider).valueOrNull;
+          if (playerMap != null && playerMap.containsKey(playerId)) {
+            playerData = playerMap[playerId];
+          }
+          if (seat == null) {
+            try {
+              seat = playerData!.seat;
+            } catch(e) {
+              abortBuild(context, 'Player not found');
+            }
+          }
 
-    return playerScore.when(
-      skipLoadingOnReload: true,
-      loading: () => const LoadingScaffold(
-            title: Text('Player'),
-          ),
-      error: (error, stackTrace) => ErrorScaffold(
-            title: const Text('Player'),
-            error: error,
-            stackTrace: stackTrace,
-          ),
-      data: (player) {
-        final isSelected = ref.watch(
-          selectedPlayerIdProvider.select((id) => id == playerId),
-        );
+          try {
+            playerScore = ref.watch(playerScoreProvider(seat!));
+          } catch(e) {
+            abortBuild(context, 'Scores not available');
+            return const Text('failed');
+          }
 
-        return TabScaffold(
-          title: Text(playerData!.name),
-          actions: [
-            IconButton(
-              onPressed: () {
-                final selectedPlayerIdNotifier =
-                    ref.read(selectedPlayerIdProvider.notifier);
-                if (isSelected) {
-                  selectedPlayerIdNotifier.set(null);
-                } else {
-                  selectedPlayerIdNotifier.set(playerId);
-                }
-              },
-              icon: isSelected
-                  ? const Icon(Icons.favorite)
-                  : const Icon(Icons.favorite_border),
-            ),
-          ],
-          tabs: const [
-            Tab(text: 'Stats'),
-            Tab(text: 'Schedule'),
-            Tab(text: 'Scores'),
-            Tab(text: 'Games'),
-          ],
-          children: [
-            PlayerStatsTab(player: player),
-            PlayerScheduleTab(player: player.games),
-            PlayerScoreTab(player: player.games),
-            PlayerGameTab(player: player.games),
-          ],
-        );
-      });
+          return playerScore.when(
+            skipLoadingOnReload: true,
+            loading: () => const LoadingScaffold(
+                  title: Text('Player'),
+                ),
+            error: (error, stackTrace) => ErrorScaffold(
+                  title: const Text('Player'),
+                  error: error,
+                  stackTrace: stackTrace,
+                ),
+            data: (player) {
+              final isSelected = ref.watch(
+                selectedPlayerIdProvider.select((id) => id == playerId),
+              );
+
+              return TabScaffold(
+                title: Text(playerData!.name),
+                actions: [
+                  IconButton(
+                    onPressed: () {
+                      final selectedPlayerIdNotifier =
+                          ref.read(selectedPlayerIdProvider.notifier);
+                      if (isSelected) {
+                        selectedPlayerIdNotifier.set(null);
+                      } else {
+                        selectedPlayerIdNotifier.set(playerId);
+                      }
+                    },
+                    icon: isSelected
+                        ? const Icon(Icons.favorite)
+                        : const Icon(Icons.favorite_border),
+                  ),
+                ],
+                tabs: const [
+                  Tab(text: 'Stats'),
+                  Tab(text: 'Schedule'),
+                  Tab(text: 'Scores'),
+                  Tab(text: 'Games'),
+                ],
+                children: [
+                  PlayerStatsTab(player: player),
+                  PlayerScheduleTab(player: player.games),
+                  PlayerScoreTab(player: player.games),
+                  PlayerGameTab(player: player.games),
+                ],
+              );
+            });
+        },
+      ),
+    );
   }
 }
