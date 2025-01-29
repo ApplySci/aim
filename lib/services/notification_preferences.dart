@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_app_installations/firebase_app_installations.dart';
+import 'package:restart_app/restart_app.dart';
+
 import '/providers.dart';
 import '/utils.dart';
 
@@ -25,7 +28,8 @@ class NotificationPreferencesService {
     // Only update if values actually changed
     if (currentNotifications != choice.wantsNotifications) {
       Log.debug('setting notificationsPrefProvider');
-      await ref.read(notificationsPrefProvider.notifier).set(choice.wantsNotifications);
+      await ref.read(notificationsPrefProvider.notifier).set(
+          choice.wantsNotifications);
     }
 
     if (currentAlarms != choice.wantsAlarms) {
@@ -85,18 +89,47 @@ class NotificationPreferencesService {
   }
 
   Future<void> resetNotifications() async {
-    // Turn off notifications preference
-    await ref.read(notificationsPrefProvider.notifier).set(false);
-
-    // Unsubscribe from all topics
     await unsubscribeFromAllTopics();
 
-    // Delete FCM token to force new token generation
+    // Delete FCM token
     final fcm = ref.read(fcmProvider);
     await fcm.deleteToken();
 
-    // Get new FCM token by re-initializing Firebase Messaging
-    await initFirebaseMessaging();
+    // Delete Firebase instance, forcing creation of a new FID, to
+    // properly wipe out all old topic subscriptions
+    FirebaseInstallations.instance.delete();
+
+    Restart.restartApp(
+      // Customizing the restart notification message (only needed on iOS)
+      notificationTitle: 'Restarting the World Riichi App',
+      notificationBody: 'Please tap here to open the app again.',
+    );
+
+    /*
+    https://pub.dev/packages/restart_app
+
+    Add the following to the project /ios/Runner/Info.plist file.
+    This will allow the app to send local notifications.
+    Replace PRODUCT_BUNDLE_IDENTIFIER and example with your actual bundle identifier and URL scheme:
+
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLName</key>
+	<!-- You can find it on /ios/project.pbxproj - 'PRODUCT_BUNDLE_IDENTIFIER' -->
+    <string>[Your project PRODUCT_BUNDLE_IDENTIFIER value]</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <!-- Your app title -->
+      <string>example</string>
+    </array>
+  </dict>
+</array>
+
+*/
+
   }
 }
 

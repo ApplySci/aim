@@ -123,7 +123,9 @@ Future<void> initFirebaseMessaging() async {
     // will have their subscriptions emptied. When they select a new tournament,
     // they will build a list of subscribed topics that we can then maintain properly.
 
-    if (topics == null) {
+    if (topics == null) { // TODO we actually want to resetNotifications here.
+      // Once it's working properly.
+      // And we'll set fcm_topics first, to prevent an infinite loop
       Log.debug('No FCM topics record found, deleting token');
       await FirebaseMessaging.instance.deleteToken();
     }

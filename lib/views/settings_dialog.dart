@@ -100,25 +100,65 @@ class SettingsDialog extends ConsumerWidget {
                   .read(timezonePrefProvider.notifier)
                   .set(value),
             ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () async {
-                final service = ref.read(notificationPreferencesProvider);
-                await service.resetNotifications();
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Notifications are off, until you turn them on again.'),
+            const SizedBox(height: 96),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                ),
+                icon: const Icon(Icons.warning),
+                onPressed: () async {
+                  // Show loading overlay
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => PopScope(
+                      onPopInvokedWithResult: null,
+                      child: const Center(
+                        child: Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text('Resetting notification settings...'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   );
-                }
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: Text('Reset All Notification Settings'),
+
+                  try {
+                    final service = ref.read(notificationPreferencesProvider);
+                    await service.resetNotifications();
+                  } finally {
+                    // Close loading overlay if context is still mounted
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Notifications are off, until you turn them on again.'),
+                      ),
+                    );
+                  }
+                },
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text('Reset All Notification Settings (restarts the app)'),
+                ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
