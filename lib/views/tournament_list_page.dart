@@ -128,10 +128,6 @@ class TournamentList extends ConsumerWidget {
     required WidgetRef ref,
     required TournamentData tournament,
   }) async {
-    // Unsubscribe from existing topics first
-    final service = ref.read(notificationPreferencesProvider);
-    await service.unsubscribeFromAllTopics();
-
     if (tournament.status != 'past') {
       if (!context.mounted) return;
       final choice = await showDialog<NotificationChoice>(
@@ -190,11 +186,16 @@ class TournamentList extends ConsumerWidget {
       // Handle the case where choice is null (dialog was dismissed)
       if (choice == null) return;
 
+      // Set the tournament ID first to ensure proper state
+      await ref.read(tournamentIdProvider.notifier).set(tournament.id);
+      
+      // Then update notification preferences
+      final service = ref.read(notificationPreferencesProvider);
       await service.updatePreferences(choice);
+    } else {
+      // For past tournaments, just set the ID
+      await ref.read(tournamentIdProvider.notifier).set(tournament.id);
     }
-
-    // Set the tournament ID last to avoid race conditions
-    await ref.read(tournamentIdProvider.notifier).set(tournament.id);
 
     if (!context.mounted) return;
     Navigator.of(context).pushReplacementNamed(ROUTES.tournament);

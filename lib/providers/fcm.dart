@@ -103,7 +103,7 @@ void handleNotificationOpen(RemoteMessage message) {
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    Log.debug('in firebaseMessagingBackgroundHandler:');
+    Log.debug('in firebaseMessagingBackgroundHandler: ${message.from}');
   } catch (e) {
     Log.warn('Error in background handler: $e');
   }

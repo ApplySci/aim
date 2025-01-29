@@ -13,6 +13,7 @@ import 'package:timezone/data/latest_10y.dart';
 
 import 'models.dart';
 import 'providers.dart';
+import 'services/notification_preferences.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
 import 'views/player/player_page.dart';
@@ -122,22 +123,8 @@ class _MyApp extends ConsumerWidget {
       tournamentPlayerIdProvider,
       (prev, next) async {
         if (next case (:TournamentId tournamentId, :PlayerId playerId)) {
-          // Check if tournament is past before subscribing
-          final tournamentInfo = await ref.read(tournamentInfoProvider.future);
-          if (tournamentInfo.status == WhenTournament.past) return;
-
-          // Only subscribe if notifications are enabled
-          final notificationsEnabled = ref.read(notificationsPrefProvider);
-          if (!notificationsEnabled) return;
-
-          await fcm.subscribeToTopic(tournamentId);
-          await fcm.subscribeToTopic('$tournamentId-$playerId');
-
-          // Update tracked topics
-          await ref.read(fcmTopicsProvider.notifier).set({
-            tournamentId,
-            '$tournamentId-$playerId',
-          });
+          final service = ref.read(notificationPreferencesProvider);
+          await service.refreshSubscriptions();
         }
       },
     );

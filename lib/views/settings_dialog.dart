@@ -43,7 +43,7 @@ class SettingsDialog extends ConsumerWidget {
                 final service = ref.read(notificationPreferencesProvider);
                 final currentAlarms = ref.read(alarmPrefProvider);
                 await service.updatePreferences(
-                  value 
+                  value
                     ? (currentAlarms ? NotificationChoice.all : NotificationChoice.updates)
                     : (currentAlarms ? NotificationChoice.alarmsOnly : NotificationChoice.none),
                 );
@@ -100,9 +100,28 @@ class SettingsDialog extends ConsumerWidget {
                   .read(timezonePrefProvider.notifier)
                   .set(value),
             ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: () async {
+                final service = ref.read(notificationPreferencesProvider);
+                await service.resetNotifications();
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Notifications are off, until you turn them on again.'),
+                    ),
+                  );
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('Reset All Notification Settings'),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-} 
+}
