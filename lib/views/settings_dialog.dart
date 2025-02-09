@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '/providers.dart';
 import '/services/notification_preferences.dart';
+import 'loading_overlay.dart';
 
 class SettingsDialog extends ConsumerWidget {
   const SettingsDialog({super.key});
@@ -110,46 +111,31 @@ class SettingsDialog extends ConsumerWidget {
                 ),
                 icon: const Icon(Icons.warning),
                 onPressed: () async {
-                  // Show loading overlay
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => PopScope(
-                      onPopInvokedWithResult: null,
-                      child: const Center(
-                        child: Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(),
-                                SizedBox(height: 16),
-                                Text('Resetting notification settings...'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
+                  OverlayEntry? overlayEntry;
 
                   try {
-                    final service = ref.read(notificationPreferencesProvider);
-                    await service.resetNotifications();
-                  } finally {
-                    // Close loading overlay if context is still mounted
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                    }
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifications are off, until you turn them on again.'),
+                    overlayEntry = OverlayEntry(
+                      builder: (context) => Container(
+                        color: Colors.black54,
+                        child: const LoadingOverlay(
+                          message: 'Resetting notification settings...',
+                        ),
                       ),
                     );
+                    Overlay.of(context).insert(overlayEntry);
+
+                    final service = ref.read(notificationPreferencesProvider);
+                    await service.resetNotifications();
+                  } catch (e) {
+                    overlayEntry?.remove();
+                    if (context.mounted) {
+                      Navigator.of(context).pop(); // Dismiss settings dialog
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error resetting notifications: $e'),
+                        ),
+                      );
+                    }
                   }
                 },
                 label: const Padding(

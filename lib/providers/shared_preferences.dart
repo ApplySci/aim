@@ -319,3 +319,19 @@ final fcmTopicsProvider = NotifierProvider<FcmTopicsNotifier, Set<String>?>(
 final notificationsPrefProvider = NotifierProvider<SharedPreferencesBoolNotifier, bool>(
   () => SharedPreferencesBoolNotifier(key: 'notifications', fallback: true),
 );
+
+final appVersionProvider = NotifierProvider<SharedPreferencesStringNotifier, String>(
+  () => SharedPreferencesStringNotifier(
+    key: 'app_version',
+    fallback: '0.0.0', // This ensures we'll detect first run of new version
+  ),
+);
+
+final hasLegacyPreferencesProvider = Provider<bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  // Check for any old preferences that would indicate a previous install
+  return prefs.getKeys().any((key) => 
+    key != 'app_version' && 
+    !key.startsWith('flutter.')  // Skip Flutter's internal preferences
+  );
+});

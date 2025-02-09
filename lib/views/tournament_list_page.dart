@@ -11,6 +11,7 @@ import 'tab_scaffold.dart';
 import '/utils.dart';
 import '/views/error_view.dart';
 import '/views/settings_dialog.dart';
+import '/views/loading_overlay.dart';
 
 class TournamentListPage extends ConsumerWidget {
   const TournamentListPage({super.key});
@@ -183,22 +184,80 @@ class TournamentList extends ConsumerWidget {
         ),
       );
 
-      // Handle the case where choice is null (dialog was dismissed)
       if (choice == null) return;
 
-      // Set the tournament ID first to ensure proper state
-      await ref.read(tournamentIdProvider.notifier).set(tournament.id);
-      
-      // Then update notification preferences
-      final service = ref.read(notificationPreferencesProvider);
-      await service.updatePreferences(choice);
-    } else {
-      // For past tournaments, just set the ID
-      await ref.read(tournamentIdProvider.notifier).set(tournament.id);
-    }
+      if (!context.mounted) return;
 
-    if (!context.mounted) return;
-    Navigator.of(context).pushReplacementNamed(ROUTES.tournament);
+      OverlayEntry? overlayEntry;
+
+      try {
+        overlayEntry = OverlayEntry(
+          builder: (context) => Container(
+            color: Colors.black54,
+            child: const LoadingOverlay(
+              message: 'Loading tournament data...',
+            ),
+          ),
+        );
+        Overlay.of(context).insert(overlayEntry);
+
+        await ref.read(tournamentIdProvider.notifier).set(tournament.id);
+        final service = ref.read(notificationPreferencesProvider);
+        await service.updatePreferences(choice);
+
+        if (!context.mounted) {
+          overlayEntry.remove();
+          return;
+        }
+
+        overlayEntry.remove();
+        overlayEntry = null;
+
+        await Navigator.of(context).pushReplacementNamed(ROUTES.tournament);
+      } catch (e) {
+        overlayEntry?.remove();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading tournament: $e')),
+          );
+        }
+      }
+    } else {
+      if (!context.mounted) return;
+
+      OverlayEntry? overlayEntry;
+
+      try {
+        overlayEntry = OverlayEntry(
+          builder: (context) => Container(
+            color: Colors.black54,
+            child: const LoadingOverlay(
+              message: 'Loading tournament data...',
+            ),
+          ),
+        );
+        Overlay.of(context).insert(overlayEntry);
+
+        await ref.read(tournamentIdProvider.notifier).set(tournament.id);
+
+        if (!context.mounted) {
+          overlayEntry.remove();
+          return;
+        }
+
+        overlayEntry.remove();
+        overlayEntry = null;
+
+        await Navigator.of(context).pushReplacementNamed(ROUTES.tournament);
+      } catch (e) {
+        overlayEntry?.remove();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading tournament: $e')),
+          );
+        }
+      }
+    }
   }
 
   @override

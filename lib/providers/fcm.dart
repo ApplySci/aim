@@ -118,16 +118,13 @@ Future<void> initFirebaseMessaging() async {
     final prefs = await SharedPreferences.getInstance();
     final topics = prefs.getString('fcm_topics');
 
-    // If no topics record exists (not even empty list), delete token to force fresh start
+    // If no topics record exists (not even empty list), reset notifications
     // this ensures that for those app users who subscribed to any topics previously,
     // will have their subscriptions emptied. When they select a new tournament,
     // they will build a list of subscribed topics that we can then maintain properly.
-
-    if (topics == null) { // TODO we actually want to resetNotifications here.
-      // Once it's working properly.
-      // And we'll set fcm_topics first, to prevent an infinite loop
-      Log.debug('No FCM topics record found, deleting token');
-      await FirebaseMessaging.instance.deleteToken();
+    if (topics == null) {
+      Log.debug('No FCM topics record found, but will handle this in migration');
+      return;
     }
 
     await FirebaseMessaging.instance.requestPermission(

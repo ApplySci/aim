@@ -5,7 +5,6 @@ import 'models.dart';
 import 'providers/firestore.dart';
 import 'providers/location.dart';
 import 'providers/shared_preferences.dart';
-import '/utils.dart';
 
 export 'providers/fcm.dart';
 export 'providers/firestore.dart';

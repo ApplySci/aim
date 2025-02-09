@@ -10,9 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_10y.dart';
+import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_options.dart';
 import 'models.dart';
 import 'providers.dart';
+import 'providers/migration.dart';
 import 'services/notification_preferences.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
@@ -28,9 +31,9 @@ Future<void> main() async {
 
   // Initialize Firebase core before anything else
   try {
-    // and initialize messaging
-    await initFirebaseMessaging();
-
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e, stack) {
     Log.debug('Firebase initialization error: $e');
     Log.debug('Stack trace: $stack');
@@ -67,9 +70,12 @@ Future<void> main() async {
 }
 
 class _MyApp extends ConsumerWidget {
-
   @override
-  Widget build(context, ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Check migration on first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(migrationProvider).checkMigration(context);
+    });
 
     final fcm = ref.watch(fcmProvider);
 
