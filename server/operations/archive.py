@@ -209,7 +209,8 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
         db.session.commit()
 
         # After successful archival, update the JSON file
-        update_past_tournaments_json()
+        past_tournaments = get_past_tournament_summaries()
+        update_past_tournaments_json(past_tournaments)
 
         return stats
 
