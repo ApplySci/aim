@@ -14,10 +14,9 @@ class MigrationService {
 
   Future<void> checkMigration(BuildContext context) async {
     final storedVersion = ref.read(appVersionProvider);
-    final hasLegacyPrefs = ref.read(hasLegacyPreferencesProvider);
 
     // If we have legacy prefs, but no version number, reset FCM notifications
-    if (hasLegacyPrefs && storedVersion == "0.0.0") {
+    if (storedVersion == "0.0.0") {
       await showDialog<bool>(
         context: context,
         barrierDismissible: false,

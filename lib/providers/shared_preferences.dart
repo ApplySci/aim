@@ -326,12 +326,3 @@ final appVersionProvider = NotifierProvider<SharedPreferencesStringNotifier, Str
     fallback: '0.0.0', // This ensures we'll detect first run of new version
   ),
 );
-
-final hasLegacyPreferencesProvider = Provider<bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  // Check for any old preferences that would indicate a previous install
-  return prefs.getKeys().any((key) => 
-    key != 'app_version' && 
-    !key.startsWith('flutter.')  // Skip Flutter's internal preferences
-  );
-});

@@ -15,7 +15,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'models.dart';
 import 'providers.dart';
-import 'providers/migration.dart';
 import 'services/notification_preferences.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
@@ -23,6 +22,7 @@ import 'views/player/player_page.dart';
 import 'views/round/round_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament/tournament_page.dart';
+import 'views/initialization_page.dart';
 
 StreamSubscription<AlarmSettings>? ringSubscription;
 
@@ -72,11 +72,6 @@ Future<void> main() async {
 class _MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Check migration on first build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(migrationProvider).checkMigration(context);
-    });
-
     final fcm = ref.watch(fcmProvider);
 
     // Set alarms when alarm schedule updates
@@ -162,7 +157,7 @@ class _MyApp extends ConsumerWidget {
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: ROUTES.home,
+        initialRoute: ROUTES.initialization,
         navigatorKey: globalNavigatorKey,
         onGenerateRoute: (settings) {
           return MaterialPageRoute(
@@ -175,10 +170,8 @@ class _MyApp extends ConsumerWidget {
 
                   final navigator = Navigator.of(context);
                   if (navigator.canPop()) {
-                    // Use maybePop instead of pop for safer navigation
                     await navigator.maybePop();
                   } else {
-                    // If we can't pop, navigate to tournament list
                     if (context.mounted) {
                       await navigator.pushReplacementNamed(ROUTES.tournaments);
                     }
@@ -207,6 +200,8 @@ class _MyApp extends ConsumerWidget {
 
   Widget _buildRoute(RouteSettings settings) {
     switch (settings.name) {
+      case ROUTES.initialization:
+        return const InitializationPage();
       case ROUTES.home:
       case ROUTES.tournaments:
         return const TournamentListPage();

@@ -87,6 +87,7 @@ String dateRange(Timestamp? startDT, Timestamp? endDT) {
 }
 
 class ROUTES {
+  static const initialization = '/initialization';
   static const String home = '/home';
   static const String privacyPolicy = '/privacyPolicy';
   static const String tournaments = '/tournaments';

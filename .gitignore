@@ -66,3 +66,4 @@ app.*.map.json
 /server/seating/gams/cplex.opt
 /server/seating/gams/seats/*
 /server/seating/gams/2*
+/android/app/.cxx/*
