@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'dart:collection';
 
 import 'package:alarm/alarm.dart';
+import 'package:alarm/utils/alarm_set.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_fgbg/flutter_fgbg.dart';
@@ -24,10 +25,12 @@ import 'views/tournament_list_page.dart';
 import 'views/tournament/tournament_page.dart';
 import 'views/initialization_page.dart';
 
-StreamSubscription<AlarmSettings>? ringSubscription;
+StreamSubscription<AlarmSet>? ringSubscription;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Log.init();
 
   // Initialize Firebase core before anything else
   try {
@@ -52,7 +55,12 @@ Future<void> main() async {
   await initPermissions();
   try {
     await Alarm.init();
-    ringSubscription = Alarm.ringStream.stream.listen(openAlarmPage);
+    ringSubscription = Alarm.ringing.listen((AlarmSet alarmSet) {
+      for (final AlarmSettings alarm in alarmSet.alarms) {
+        // TODO catch if multiple alarms, kill all except newest
+        openAlarmPage(alarm);
+      }
+    });
     checkAlarms();
   } catch (e) {
     Log.error('Failed to initialize Alarm: $e');
@@ -77,7 +85,7 @@ class _MyApp extends ConsumerWidget {
     // Set alarms when alarm schedule updates
     ref.listen<AsyncValue<List<AlarmInfo>>>(
       alarmScheduleProvider,
-      (prev, next) {
+      (prev, next) async {
         final prevData = prev?.valueOrNull;
         final nextData = next.valueOrNull;
 
@@ -97,25 +105,28 @@ class _MyApp extends ConsumerWidget {
           return;
         }
 
-        alarmRunner(() async {
-          final now = DateTime.now().toUtc();
-          Log.debug('stopping all alarms');
+        final now = DateTime.now().toUtc();
+        Log.debug('stopping all alarms');
+
+        try {
           await Alarm.stopAll();
+        } catch (e) {
+          Log.warn('exception when stopping all alarms');
+        }
 
-          if (nextData == null) return;
+        if (nextData == null) return;
 
-          // set one alarm for each round
-          for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
-            if (now.isBefore(alarm)) {
-              final title = '$name starts in 5 minutes';
-              final body = player != null
-                  ? '${player.name} is at table ${player.table}'
-                  : '';
-              Log.debug('setting alarm: $title');
-              await setAlarm(alarm, title, body, index + 1, vibratePref);
-            }
+        // set one alarm for each round
+        for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
+          if (now.isBefore(alarm)) {
+            final title = '$name starts in 5 minutes';
+            final body = player != null
+                ? '${player.name} is at table ${player.table}'
+                : '';
+            Log.debug('setting alarm: $title');
+            await setAlarm(alarm, title, body, index + 1, vibratePref);
           }
-        });
+        }
       },
     );
 

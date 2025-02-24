@@ -66,23 +66,48 @@ final tournamentListProvider = Provider.family<List<TournamentData>, WhenTournam
 
 final tournamentProvider = StreamProvider<TournamentData>((ref) async* {
   final info = ref.watch(tournamentInfoProvider).valueOrNull;
-  if (info == null || info.id == null) return;
-
-  if (info.status == WhenTournament.past) {
-    yield await ref.watch(pastTournamentDetailsProvider(info.id!).future);
+  if (info == null || info.id == null) {
+    Log.warn('No tournament info available');
     return;
   }
 
-  final db = ref.watch(firebaseProvider);
-  yield* db
-      .collection('tournaments')
-      .doc(info.id!)
-      .snapshots()
-      .map((snapshot) => TournamentData.fromMap({
+  if (info.status == WhenTournament.past) {
+    try {
+      final data = await ref.watch(pastTournamentDetailsProvider(info.id!).future);
+      yield data;
+      return;
+    } catch (e) {
+      Log.warn('Error loading past tournament: $e');
+      rethrow;
+    }
+  }
+
+  try {
+    final db = ref.watch(firebaseProvider);
+
+    yield* db
+        .collection('tournaments')
+        .doc(info.id!)
+        .snapshots()
+        .handleError((error) {
+          Log.warn('Firestore stream error: $error');
+          throw error;
+        })
+        .map((snapshot) {
+          if (!snapshot.exists) {
+            Log.warn('Tournament document does not exist');
+            throw Exception('Tournament not found');
+          }
+          return TournamentData.fromMap({
             'id': snapshot.id,
             'address': '',
             ...(snapshot.data() as Map).cast(),
-          }));
+          });
+        });
+  } catch (e) {
+    Log.warn('Error in tournament provider: $e');
+    rethrow;
+  }
 });
 
 final tournamentCollectionProvider = Provider((ref) {

@@ -24,7 +24,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  alarm: ^5.0.0-dev.8
+  alarm: ^5.0.2
   cached_network_image: ^3.4.1
   cloud_firestore: ^5.6.4
   collection: ^1.18.0

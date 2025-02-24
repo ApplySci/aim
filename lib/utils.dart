@@ -7,12 +7,14 @@
 
  */
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/volume_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum LOG {
   debug,
@@ -98,15 +100,39 @@ class ROUTES {
 
 class Log {
   static List<List<dynamic>> logs = [];
+  static bool _initialized = false;
+  static late SharedPreferences _prefs;
+
+  static Future<void> init() async {
+    if (_initialized) return;
+    _prefs = await SharedPreferences.getInstance();
+    _initialized = true;
+  }
 
   static void debug(String text) {
-    debugPrint(text);
+    _saveLog(LOG.debug, text);
   }
 
   static void _saveLog(LOG type, String text) {
     final typeString = type.name;
-    logs.add([DateTime.now().toIso8601String(), typeString, text]);
-    debug('$typeString : $text');
+    final logEntry = [DateTime.now().toIso8601String(), typeString, text];
+    logs.add(logEntry);
+    
+    // Store in SharedPreferences
+    if (_initialized) {
+      final currentLogs = _prefs.getStringList('debug_logs') ?? [];
+      currentLogs.add(jsonEncode(logEntry));
+      // Keep only last 100 logs
+      if (currentLogs.length > 100) {
+        currentLogs.removeAt(0);
+      }
+      _prefs.setStringList('debug_logs', currentLogs);
+    }
+  }
+
+  static List<String> getLogs() {
+    if (!_initialized) return [];
+    return _prefs.getStringList('debug_logs') ?? [];
   }
 
   static void unusual(String text) {

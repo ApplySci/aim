@@ -42,36 +42,63 @@ class NotificationPreferencesService {
 
   Future<void> refreshSubscriptions() async {
     Log.debug('refreshing FCM subscriptions');
-    // Always unsubscribe first
-    await unsubscribeFromAllTopics();
+    try {
+      // Check if notifications are enabled first
+      final notificationsEnabled = ref.read(notificationsPrefProvider);
+      if (!notificationsEnabled) {
+        Log.debug('Notifications disabled, skipping subscription');
+        return;
+      }
 
-    // Check if notifications are enabled
-    final notificationsEnabled = ref.read(notificationsPrefProvider);
-    if (!notificationsEnabled) return;
+      // Get current tournament and player
+      final tournamentId = ref.read(tournamentIdProvider);
+      if (tournamentId == null) {
+        Log.debug('No tournament selected, skipping subscription');
+        return;
+      }
 
-    // Get current tournament and player
-    final tournamentId = ref.read(tournamentIdProvider);
-    final playerId = ref.read(selectedPlayerIdProvider);
-    if (tournamentId == null) return;
+      // Check if tournament is past before doing any unsubscribe operations
+      final tournamentInfo = await ref.read(tournamentInfoProvider.future);
+      if (tournamentInfo.status == WhenTournament.past) {
+        Log.debug('Tournament is past, skipping subscription');
+        return;
+      }
 
-    // Check if tournament is past
-    final tournamentInfo = await ref.read(tournamentInfoProvider.future);
-    if (tournamentInfo.status == WhenTournament.past) return;
+      // Handle subscriptions in the background
+      Future(() async {
+        try {
+          // Unsubscribe from old topics
+          await unsubscribeFromAllTopics();
 
-    // Subscribe to new topics
-    final fcm = ref.read(fcmProvider);
-    final topics = <String>{tournamentId};
-    if (playerId != null) {
-      topics.add('$tournamentId-$playerId');
+          final playerId = ref.read(selectedPlayerIdProvider);
+          
+          // Subscribe to new topics
+          final fcm = ref.read(fcmProvider);
+          final topics = <String>{tournamentId};
+          if (playerId != null) {
+            topics.add('$tournamentId-$playerId');
+          }
+
+          for (final topic in topics) {
+            try {
+              await fcm.subscribeToTopic(topic);
+            } catch (e) {
+              Log.debug('Error subscribing to topic $topic: $e');
+              // Continue with other topics even if one fails
+            }
+          }
+
+          // Update tracked topics
+          await ref.read(fcmTopicsProvider.notifier).set(topics);
+          Log.debug('subscribed to topics: $topics');
+        } catch (e) {
+          Log.debug('Background subscription error: $e');
+        }
+      });
+    } catch (e) {
+      Log.debug('Error in refreshSubscriptions: $e');
+      // Don't rethrow - we don't want FCM errors to break the app
     }
-
-    for (final topic in topics) {
-      await fcm.subscribeToTopic(topic);
-    }
-
-    // Update tracked topics
-    await ref.read(fcmTopicsProvider.notifier).set(topics);
-    Log.debug('subscribed to topics: $topics');
   }
 
   Future<void> unsubscribeFromAllTopics() async {

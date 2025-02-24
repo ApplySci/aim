@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/providers.dart';
 import '/services/notification_preferences.dart';
 import 'loading_overlay.dart';
+import '/utils.dart';
 
 class SettingsDialog extends ConsumerWidget {
   const SettingsDialog({super.key});
@@ -23,6 +25,7 @@ class SettingsDialog extends ConsumerWidget {
     final timezonePref = ref.watch(timezonePrefProvider);
     final vibratePref = ref.watch(vibratePrefProvider);
     final notificationsPref = ref.watch(notificationsPrefProvider);
+    final testMode = ref.watch(testModePrefProvider);
 
     return Dialog(
       child: Scaffold(
@@ -145,6 +148,42 @@ class SettingsDialog extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
+            if (testMode) ...[
+              ListTile(
+                title: const Text('View Debug Logs'),
+                trailing: TextButton(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setStringList('debug_logs', []);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Debug logs cleared')),
+                      );
+                    }
+                  },
+                  child: const Text('Clear Logs'),
+                ),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Debug Logs'),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          Log.getLogs().join('\n'),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
