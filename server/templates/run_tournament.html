@@ -105,8 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const minutesUntil = Math.floor((startTZ - nowTZ) / (1000 * 60));
 
-            // If we're within 10 minutes of next hanchan
-            if (minutesUntil >= 0 && minutesUntil <= 10) {
+            // If we're within 10 minutes of next hanchan and we're not on round 1!
+            if (minutesUntil >= 0 && minutesUntil <= 10 && nextRound > 1) {
                 showTimingWarning(nextRound.name, nextStart, minutesUntil);
             } else {
                 hideTimingWarning();
