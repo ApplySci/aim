@@ -111,6 +111,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> initFirebaseMessaging() async {
   try {
+    Log.debug('initializing firebase');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -150,10 +151,12 @@ Future<void> initFirebaseMessaging() async {
       Log.debug('FCM Token: $token');
 
       // Register background handler
+      Log.debug('Register background handler');
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
 
       // Configure how to handle notifications when app is in foreground
+      Log.debug('Handle foreground notifications');
       FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
@@ -208,4 +211,5 @@ Future<void> initFirebaseMessaging() async {
     Log.debug('Firebase Messaging initialization failed: $e');
     // Continue app initialization even if FCM fails
   }
+  Log.debug('finished initializing firebase');
 }

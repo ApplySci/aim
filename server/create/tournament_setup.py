@@ -198,6 +198,7 @@ def poll_new_sheet():
 @blueprint.route("/create/copy_made")
 @login_required
 def get_their_copy():
+    # TODO TOFIX this doesn't seem to be working properly
     docs = googlesheet.list_sheets(current_user.email)
     their_docs = []
     for doc in docs:

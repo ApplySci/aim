@@ -68,6 +68,7 @@ class NotificationPreferencesService {
       Future(() async {
         try {
           // Unsubscribe from old topics
+          Log.debug('awaiting unsubscribeFromAllTopics');
           await unsubscribeFromAllTopics();
 
           final playerId = ref.read(selectedPlayerIdProvider);
@@ -81,6 +82,7 @@ class NotificationPreferencesService {
 
           for (final topic in topics) {
             try {
+              Log.debug('awaiting subscribeToTopic $topic');
               await fcm.subscribeToTopic(topic);
             } catch (e) {
               Log.debug('Error subscribing to topic $topic: $e');

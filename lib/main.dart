@@ -11,9 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_10y.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-import 'firebase_options.dart';
 import 'models.dart';
 import 'providers.dart';
 import 'services/notification_preferences.dart';
@@ -31,16 +29,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Log.init();
-
-  // Initialize Firebase core before anything else
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e, stack) {
-    Log.debug('Firebase initialization error: $e');
-    Log.debug('Stack trace: $stack');
-  }
+  await initFirebaseMessaging();
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black,

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import '/services/notification_preferences.dart';
+
 import '/providers.dart';
+import '/services/notification_preferences.dart';
+import '/utils.dart';
 
 const currentAppVersion = '1.0.0'; // Update this with your actual version
 
@@ -14,6 +16,7 @@ class MigrationService {
 
   Future<void> checkMigration(BuildContext context) async {
     final storedVersion = ref.read(appVersionProvider);
+    Log.debug('Checking migration. Stored version: $storedVersion');
 
     // If we have legacy prefs, but no version number, reset FCM notifications
     if (storedVersion == "0.0.0") {
