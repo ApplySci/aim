@@ -99,7 +99,7 @@ def confirm_substitutions():
     session["last_seating"] = googlesheet.get_seating(sheet)
     googlesheet.update_seating(sheet, seatlist)
     from .run import update_ranking_and_scores
-    update_ranking_and_scores(sheet)
+    update_ranking_and_scores()
     return jsonify({"status": "success"})
 
 

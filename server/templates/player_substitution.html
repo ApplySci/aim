@@ -275,10 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please select players to substitute');
                 return;
             }
-
+            
             // Setup UI for calculation
             const selectedTime = parseInt(timeLimit.value);
-            optimizationProgress.textContent = `Starting calculation (${selectedTime} seconds)...\n`;
+            optimizationProgress.textContent = "";
             previewContent.textContent = "";
             substitutionPreview.style.display = 'block';
             calculateButton.disabled = true;
@@ -290,6 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
             currentStats.textContent = '';
             newStats.textContent = '';
             statsContainer.style.display = 'none';
+            confirmButton.scrollIntoView({behavior: 'smooth', block: 'center'});
+
 
             // Run optimization
             const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
@@ -311,13 +313,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         {length: 4}, 
                         (_, i) => Math.max(...seating[0].flat()) + 1 + i
                     ),
-                    timeLimit: selectedTime  // Add this line
+                    timeLimit: selectedTime
                 });
             });
 
             // Generate and display preview
             const preview = generateSubstitutionPreview(seating, newSeating);
             previewContent.textContent = "Substitution Changes:\n\n" + preview.join('\n');
+            
+            // Scroll to the confirmation button
+            confirmButton.scrollIntoView({behavior: 'smooth', block: 'center'});
 
             // Store results
             const response = await fetch('{{ url_for("run.sub.store_seating") }}', {
@@ -362,6 +367,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     confirmButton.addEventListener('click', function() {
+        // Disable buttons and show processing state
+        confirmButton.disabled = true;
+        cancelButton.disabled = true;
+        confirmButton.textContent = "Processing...";
+        document.body.style.cursor = 'wait';
+        
         fetch('{{ url_for("run.sub.confirm_substitutions") }}', {
             method: 'POST',
         })
@@ -369,12 +380,24 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'success') {
                 alert('Substitutions applied successfully');
-                undoButton.style.display = 'block';
-                substitutionPreview.style.display = 'none';
-                location.reload();
+                window.location.href = "{{ url_for('run.run_tournament') }}";
             } else {
+                // Re-enable buttons and restore cursor if there's an error
+                confirmButton.disabled = false;
+                cancelButton.disabled = false;
+                confirmButton.textContent = "Do these Substitutions and update the webpage & app";
+                document.body.style.cursor = 'default';
                 alert('Error applying substitutions');
             }
+        })
+        .catch(error => {
+            // Also handle network errors
+            confirmButton.disabled = false;
+            cancelButton.disabled = false;
+            confirmButton.textContent = "Do these Substitutions and update the webpage & app";
+            document.body.style.cursor = 'default';
+            alert('Network error occurred. Please try again.');
+            console.error('Error:', error);
         });
     });
 

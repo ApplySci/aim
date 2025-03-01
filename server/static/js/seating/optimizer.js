@@ -168,11 +168,11 @@ class SeatingOptimizer {
         const endTime = startTime + (this.timeLimit * 1000);
         
         // Initial status report
-        this.log("\nOptimization Status:");
-        this.log(`• Current seating score (lower is better): ${this.baselineScore}`);
-        this.log(`• Players to substitute: ${this.omitPlayers.length}`);
-        this.log(`• Time limit: ${this.timeLimit} seconds`);
-        this.log("\nStarting optimization...\n");
+        this.log("Optimization Status:\n");
+        this.log(`• Current seating score (lower is better): ${this.baselineScore}\n`);
+        this.log(`• Players to substitute: ${this.omitPlayers.length}\n`);
+        this.log(`• Time limit: ${this.timeLimit} seconds\n`);
+        this.log("\nStarting genetic algorithm ...\n");
 
         // Initialize gaps array
         const gaps = Array(this.seats.length).fill().map(() => []);
@@ -259,17 +259,17 @@ class SeatingOptimizer {
         // Final status report
         this.log("\n\nOptimization Complete");
         this.log("\n-------------------\n");
-        this.log(`• Score before substitutions: ${this.baselineScore}`);
-        this.log(`• Final score: ${bestScore}`);
-        this.log(`• Generations: ${generation}`);
+        this.log(`• Score before substitutions: ${this.baselineScore}\n`);
+        this.log(`• Final score: ${bestScore}\n`);
+        this.log(`• Generations: ${generation}\n`);
         
         // Report termination reason
         if (Date.now() >= endTime) {
-            this.log(`• Terminated: Time limit (${this.timeLimit}s) reached`);
+            this.log(`• Terminated: Time limit (${this.timeLimit}s) reached\n`);
         } else if (bestScore <= this.targetScore) {
-            this.log(`• Terminated: Found solution better than target (${this.targetScore})`);
+            this.log(`• Terminated: Found solution better than target (${this.targetScore})\n`);
         } else if (bestScore === 0) {
-            this.log(`• Terminated: Found perfect solution`);
+            this.log(`• Terminated: Found perfect solution\n`);
         }
 
         const timeSpent = ((Date.now() - startTime) / 1000).toFixed(0);
