@@ -656,6 +656,8 @@ class GSP:
         Raises:
             Exception: If seating plan cannot be found or sheet update fails
         """
+        # TODO  not yet used anywhere. Should be used to change number of tables at the 
+        # start of a tournament. Probably needs more work
         try:
             # Get current tournament settings
             schedule = self.get_schedule(live)

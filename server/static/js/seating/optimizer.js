@@ -169,7 +169,7 @@ class SeatingOptimizer {
         
         // Initial status report
         this.log("\nOptimization Status:");
-        this.log(`• Current seating score: ${this.baselineScore}`);
+        this.log(`• Current seating score (lower is better): ${this.baselineScore}`);
         this.log(`• Players to substitute: ${this.omitPlayers.length}`);
         this.log(`• Time limit: ${this.timeLimit} seconds`);
         this.log("\nStarting optimization...\n");
@@ -238,7 +238,7 @@ class SeatingOptimizer {
             const now = Date.now();
             if (now - lastProgressUpdate > 5000) { // Update every 5 seconds
                 const timeLeft = Math.round((endTime - now) / 1000);
-                this.log(`\nGeneration ${generation}: Current best ${bestScore} (${timeLeft}s remaining)`, "\r");
+                this.log(`\nGeneration ${generation}: Current score ${bestScore} (${timeLeft}s remaining)`, "\r");
                 lastProgressUpdate = now;
             }
 
