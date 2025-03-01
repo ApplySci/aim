@@ -204,7 +204,7 @@ def run_tournament():
         tournament_timezone=schedule["timezone"],
         hanchan_count=hanchan_count,
         is_past=(current_status == "past"),
-        schedule=schedule,  # Add this line
+        schedule=schedule,
         updateScoresUrl=url_for("run.update_ranking_and_scores"),
         updateScheduleUrl=url_for("run.update_schedule"),
     )

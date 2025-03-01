@@ -134,10 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
             starts in ${minutesUntil} minutes (at ${timeStr})
             but the previous round's results haven't been published yet.</p>
             <div class="action-group">
-                <button class="action" data-url="${updateScoresUrl}">
+                <button class="action" data-url="${{updateScoresUrl}}">
                     Publish previous round's results
                 </button>
-                <button class="action" data-url="${updateScheduleUrl}">
+                <button class="action" data-url="${{updateScheduleUrl}}">
                     Update schedule
                 </button>
             </div>`;
