@@ -81,6 +81,7 @@ Future<void> main() async {
 
 class _MyApp extends ConsumerWidget {
   @override
+  // TODO TOFIX somehow we've reverted to the bug where we're trying to show a modal before MaterialPageRoute is in the tree
   Widget build(BuildContext context, WidgetRef ref) {
     // Check migration on first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
