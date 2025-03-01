@@ -89,7 +89,6 @@ String dateRange(Timestamp? startDT, Timestamp? endDT) {
 }
 
 class ROUTES {
-  static const initialization = '/initialization';
   static const String home = '/home';
   static const String privacyPolicy = '/privacyPolicy';
   static const String tournaments = '/tournaments';
@@ -117,7 +116,7 @@ class Log {
     final typeString = type.name;
     final logEntry = [DateTime.now().toIso8601String(), typeString, text];
     logs.add(logEntry);
-    
+
     // Store in SharedPreferences
     if (_initialized) {
       final currentLogs = _prefs.getStringList('debug_logs') ?? [];

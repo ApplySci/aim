@@ -24,7 +24,6 @@ import 'views/player/player_page.dart';
 import 'views/round/round_page.dart';
 import 'views/tournament_list_page.dart';
 import 'views/tournament/tournament_page.dart';
-import 'views/initialization_page.dart';
 
 StreamSubscription<AlarmSet>? ringSubscription;
 
@@ -79,17 +78,22 @@ Future<void> main() async {
   ));
 }
 
-class _MyApp extends ConsumerWidget {
+class _MyApp extends ConsumerStatefulWidget {
   @override
-  // TODO TOFIX somehow we've reverted to the bug where we're trying to show a modal before MaterialPageRoute is in the tree
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Check migration on first build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(migrationProvider).checkMigration(context);
-      // Also verify FCM is properly initialized
-      _ensureFcmInitialized();
-    });
+  ConsumerState<_MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends ConsumerState<_MyApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    ref.read(migrationProvider).checkMigration(context);
+    _ensureFcmInitialized();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final fcm = ref.watch(fcmProvider);
 
     // Set alarms when alarm schedule updates
@@ -178,7 +182,7 @@ class _MyApp extends ConsumerWidget {
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: ROUTES.initialization,
+        initialRoute: ROUTES.home,
         navigatorKey: globalNavigatorKey,
         onGenerateRoute: (settings) {
           return MaterialPageRoute(
@@ -258,8 +262,6 @@ class _MyApp extends ConsumerWidget {
 
   Widget _buildRoute(RouteSettings settings) {
     switch (settings.name) {
-      case ROUTES.initialization:
-        return const InitializationPage();
       case ROUTES.home:
       case ROUTES.tournaments:
         return const TournamentListPage();

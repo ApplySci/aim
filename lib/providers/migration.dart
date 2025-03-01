@@ -23,18 +23,23 @@ class MigrationService {
       await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('App Update'),
-          content: const Text(
-            'The app needs to reset notification settings.'
-            'We need to restart.'
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('OK'),
+        builder: (dialogContext) => MaterialApp(
+          home: Builder(
+            builder: (innerContext) => AlertDialog(
+              title: const Text('App Update'),
+              content: const Text(
+                'The app needs to reset notification settings. '
+                'We need to restart.'
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('OK'),
+                ),
+              ],
             ),
-          ],
+          ),
+          debugShowCheckedModeBanner: false,
         ),
       );
 

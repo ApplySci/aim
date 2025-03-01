@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:restart_app/restart_app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io' show Platform;
 
 import '/providers.dart';
 import '/utils.dart';
@@ -74,7 +72,7 @@ class NotificationPreferencesService {
           await unsubscribeFromAllTopics();
 
           final playerId = ref.read(selectedPlayerIdProvider);
-          
+
           // Subscribe to new topics
           final fcm = ref.read(fcmProvider);
           final topics = <String>{tournamentId};
@@ -128,16 +126,16 @@ class NotificationPreferencesService {
 
     // TEMPORARILY MODIFIED: We're commenting out the destructive parts to diagnose Android issues
     // Once we confirm if this is part of the problem, we'll restore the proper reset logic
-    
+
     // Set a flag to force reinitialization on next startup
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('fcm_needs_init', true);
     Log.debug('Setting FCM reinit flag for all platforms');
-    
-    /* 
+
+    /*
     // COMMENTED OUT TEMPORARILY FOR TESTING - Will be restored later
     // This is the full destructive reset needed for proper subscription flushing
-    
+
     if (Platform.isIOS) {
       // Delete Firebase instance, forcing creation of a new FID, to
       // properly wipe out all old topic subscriptions on iOS
