@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:collection';
+import 'dart:math' show min;
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/utils/alarm_set.dart';
@@ -11,7 +12,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_10y.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'providers/migration.dart';
 import 'models.dart';
 import 'providers.dart';
 import 'services/notification_preferences.dart';
@@ -29,7 +32,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Log.init();
-  await initFirebaseMessaging();
+
+  // Add a try-catch specifically for Firebase initialization to better log errors
+  try {
+    Log.debug('Initializing Firebase and FCM');
+    await initFirebaseMessaging();
+    Log.debug('Firebase and FCM initialization completed');
+  } catch (e, stack) {
+    Log.debug('Error during Firebase/FCM initialization: $e');
+    Log.debug('Stack trace: $stack');
+    // Continue app initialization even if Firebase fails
+  }
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.black,
@@ -69,6 +82,13 @@ Future<void> main() async {
 class _MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Check migration on first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(migrationProvider).checkMigration(context);
+      // Also verify FCM is properly initialized
+      _ensureFcmInitialized();
+    });
+
     final fcm = ref.watch(fcmProvider);
 
     // Set alarms when alarm schedule updates
@@ -196,6 +216,43 @@ class _MyApp extends ConsumerWidget {
         themeMode: ThemeMode.system,
       ),
     );
+  }
+
+  // Helper method to ensure FCM is properly initialized after restart
+  Future<void> _ensureFcmInitialized() async {
+    try {
+      Log.debug('Running FCM initialization check on platform: ${Platform.operatingSystem}');
+      final prefs = await SharedPreferences.getInstance();
+      final needsInit = prefs.getBool('fcm_needs_init') ?? false;
+
+      if (needsInit) {
+        Log.debug('FCM needs re-initialization after reset');
+        await prefs.setBool('fcm_needs_init', false);
+        await initFirebaseMessaging();
+
+        // Verify initialization was successful
+        final verificationToken = await FirebaseMessaging.instance.getToken();
+        Log.debug('FCM re-initialization ${verificationToken != null ? 'successful' : 'failed'}');
+        return;
+      }
+
+      // Request a token to trigger any initialization that might have been missed
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        Log.debug('FCM initialized with token: ${token.substring(0, min(10, token.length))}...');
+
+        // Log topics if available
+        final topics = prefs.getString('fcm_topics');
+        Log.debug('Current FCM topics: $topics');
+      } else {
+        Log.debug('FCM token is null, attempting re-initialization');
+        // Try to force re-initialization
+        await initFirebaseMessaging();
+      }
+    } catch (e, stack) {
+      Log.debug('Error verifying FCM initialization: $e');
+      Log.debug('Stack trace: $stack');
+    }
   }
 
   Widget _buildRoute(RouteSettings settings) {
