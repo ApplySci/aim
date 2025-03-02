@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '/providers.dart';
 import '/services/notification_preferences.dart';
@@ -153,8 +152,7 @@ class SettingsDialog extends ConsumerWidget {
                 title: const Text('View Debug Logs'),
                 trailing: TextButton(
                   onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setStringList('debug_logs', []);
+                    await Log.clearAllLogs();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Debug logs cleared')),
@@ -174,6 +172,18 @@ class SettingsDialog extends ConsumerWidget {
                         ),
                       ),
                       actions: [
+                        TextButton(
+                          onPressed: () async {
+                            await Log.cleanupOldLogs();
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Cleaned up old logs')),
+                              );
+                            }
+                          },
+                          child: const Text('Clean Old Logs'),
+                        ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Close'),

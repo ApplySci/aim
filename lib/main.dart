@@ -87,7 +87,6 @@ class _MyAppState extends ConsumerState<_MyApp> {
   @override
   void initState() {
     super.initState();
-
     ref.read(migrationProvider).checkMigration(context);
     _ensureFcmInitialized();
   }
@@ -179,6 +178,8 @@ class _MyAppState extends ConsumerState<_MyApp> {
       onEvent: (event) async {
         if (event != FGBGType.foreground) return;
         checkAlarms();
+        // Clean up old logs when app comes to foreground
+        await Log.onAppResume();
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

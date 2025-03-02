@@ -101,37 +101,88 @@ class Log {
   static List<List<dynamic>> logs = [];
   static bool _initialized = false;
   static late SharedPreferences _prefs;
+  static const String _currentRunKey = 'debug_logs_current';
+  static const String _previousRunKey = 'debug_logs_previous';
+  static const String _lastCleanupKey = 'debug_logs_last_cleanup';
 
   static Future<void> init() async {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();
+    
+    // On startup, move current run logs to previous run
+    final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
+    if (currentRunLogs.isNotEmpty) {
+      await _prefs.setStringList(_previousRunKey, currentRunLogs);
+      await _prefs.setStringList(_currentRunKey, []);
+    }
+    
+    // Check if we need to clean up old logs (once per day)
+    await _cleanupOldLogsIfNeeded();
+    
     _initialized = true;
+  }
+
+  /// Removes log entries older than 24 hours if it hasn't been checked in the last day
+  static Future<void> _cleanupOldLogsIfNeeded() async {
+    final now = DateTime.now();
+    final lastCleanupString = _prefs.getString(_lastCleanupKey);
+    
+    // If we've cleaned up in the last 24 hours, don't do it again
+    if (lastCleanupString != null) {
+      final lastCleanup = DateTime.parse(lastCleanupString);
+      if (now.difference(lastCleanup).inHours < 24) {
+        return;
+      }
+    }
+    
+    // Update the last cleanup time
+    await _prefs.setString(_lastCleanupKey, now.toIso8601String());
+    
+    // Clean up current run logs
+    final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
+    if (currentRunLogs.isNotEmpty) {
+      final cutoffTime = now.subtract(const Duration(hours: 24));
+      final filteredLogs = _filterLogsNewerThan(currentRunLogs, cutoffTime);
+      
+      // Only update if we actually removed something
+      if (filteredLogs.length < currentRunLogs.length) {
+        await _prefs.setStringList(_currentRunKey, filteredLogs);
+      }
+    }
+    
+    // Clean up previous run logs
+    final previousRunLogs = _prefs.getStringList(_previousRunKey) ?? [];
+    if (previousRunLogs.isNotEmpty) {
+      final cutoffTime = now.subtract(const Duration(hours: 24));
+      final filteredLogs = _filterLogsNewerThan(previousRunLogs, cutoffTime);
+      
+      // Only update if we actually removed something
+      if (filteredLogs.length < previousRunLogs.length) {
+        await _prefs.setStringList(_previousRunKey, filteredLogs);
+      }
+    }
+  }
+  
+  /// Filters logs to only keep those newer than the cutoff time
+  static List<String> _filterLogsNewerThan(List<String> logs, DateTime cutoffTime) {
+    return logs.where((logString) {
+      try {
+        final logEntry = jsonDecode(logString) as List<dynamic>;
+        final timestamp = DateTime.parse(logEntry[0] as String);
+        return timestamp.isAfter(cutoffTime);
+      } catch (e) {
+        // If there's an error parsing the log, keep it to be safe
+        return true;
+      }
+    }).toList();
   }
 
   static void debug(String text) {
     _saveLog(LOG.debug, text);
   }
 
-  static void _saveLog(LOG type, String text) {
-    final typeString = type.name;
-    final logEntry = [DateTime.now().toIso8601String(), typeString, text];
-    logs.add(logEntry);
-
-    // Store in SharedPreferences
-    if (_initialized) {
-      final currentLogs = _prefs.getStringList('debug_logs') ?? [];
-      currentLogs.add(jsonEncode(logEntry));
-      // Keep only last 100 logs
-      if (currentLogs.length > 100) {
-        currentLogs.removeAt(0);
-      }
-      _prefs.setStringList('debug_logs', currentLogs);
-    }
-  }
-
-  static List<String> getLogs() {
-    if (!_initialized) return [];
-    return _prefs.getStringList('debug_logs') ?? [];
+  static void info(String text) {
+    _saveLog(LOG.info, text);
   }
 
   static void unusual(String text) {
@@ -146,8 +197,84 @@ class Log {
     _saveLog(LOG.error, text);
   }
 
-  static void info(String text) {
-    _saveLog(LOG.info, text);
+  static void _saveLog(LOG type, String text) {
+    final typeString = type.name;
+    final timestamp = DateTime.now().toIso8601String();
+    final logEntry = [timestamp, typeString, text];
+    logs.add(logEntry);
+
+    // Output to debug console in debug mode
+    debugPrint('[${typeString.toUpperCase()}] $text');
+    
+    // Store in SharedPreferences
+    if (_initialized) {
+      final currentLogs = _prefs.getStringList(_currentRunKey) ?? [];
+      currentLogs.add(jsonEncode(logEntry));
+      // Keep only the most recent logs in memory (limit to 200)
+      if (currentLogs.length > 200) {
+        currentLogs.removeAt(0);
+      }
+      _prefs.setStringList(_currentRunKey, currentLogs);
+    }
+  }
+
+  static List<List<String>> getAllLogs() {
+    if (!_initialized) return [];
+    
+    final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
+    final previousRunLogs = _prefs.getStringList(_previousRunKey) ?? [];
+    
+    final List<List<String>> allLogs = [];
+    
+    if (previousRunLogs.isNotEmpty) {
+      allLogs.add(['--- Previous Run ---']);
+      allLogs.addAll(previousRunLogs.map((log) => 
+        _formatLogEntry(jsonDecode(log) as List<dynamic>)).toList());
+    }
+    
+    if (currentRunLogs.isNotEmpty) {
+      allLogs.add(['--- Current Run ---']);
+      allLogs.addAll(currentRunLogs.map((log) => 
+        _formatLogEntry(jsonDecode(log) as List<dynamic>)).toList());
+    }
+    
+    return allLogs;
+  }
+  
+  static List<String> _formatLogEntry(List<dynamic> logEntry) {
+    final timestamp = DateTime.parse(logEntry[0] as String).toLocal();
+    final timeString = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
+    final type = logEntry[1] as String;
+    final message = logEntry[2] as String;
+    return ['$timeString [${type.toUpperCase()}] $message'];
+  }
+
+  static List<String> getLogs() {
+    final allLogs = getAllLogs();
+    return allLogs.map((entry) => entry.join(' ')).toList();
+  }
+
+  static Future<void> clearAllLogs() async {
+    if (!_initialized) return;
+    await _prefs.setStringList(_currentRunKey, []);
+    await _prefs.setStringList(_previousRunKey, []);
+    logs.clear();
+  }
+  
+  /// Public method to manually trigger cleaning up of old logs
+  static Future<void> cleanupOldLogs() async {
+    if (!_initialized) return;
+    
+    // Force cleanup by resetting the last cleanup time
+    await _prefs.remove(_lastCleanupKey);
+    await _cleanupOldLogsIfNeeded();
+  }
+  
+  /// Called when app is resumed from background
+  /// Checks if logs need to be cleaned up
+  static Future<void> onAppResume() async {
+    if (!_initialized) return;
+    await _cleanupOldLogsIfNeeded();
   }
 }
 
