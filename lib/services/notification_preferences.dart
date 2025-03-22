@@ -76,16 +76,16 @@ class NotificationPreferencesService {
           // Subscribe to new topics
           final fcm = ref.read(fcmProvider);
           final topics = <String>{tournamentId};
-          if (playerId != null) {
+          if (playerId == null) {
+            topics.add('$tournamentId-');
+          } else {
             topics.add('$tournamentId-$playerId');
           }
 
           for (final topic in topics) {
             try {
-              Log.debug('awaiting subscribeToTopic $topic');
               await fcm.subscribeToTopic(topic);
             } catch (e) {
-              Log.debug('Error subscribing to topic $topic: $e');
               // Continue with other topics even if one fails
             }
           }
