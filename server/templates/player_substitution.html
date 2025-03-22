@@ -31,6 +31,8 @@
                 <option value="15">15 seconds</option>
                 <option value="30" selected>30 seconds</option>
                 <option value="60">1 minute</option>
+                <option value="120">2 minutes</option>
+                <option value="300">5 minutes</option>
             </select>
         </div>
     </div>
@@ -57,6 +59,17 @@
         </div>
         <h3>Substitution Preview</h3>
         <pre id="previewContent" class="monospace-output"></pre>
+    </div>
+    <div id="tableReductionOption" style="display: none; margin: 20px 0; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <h4>Table Count Reduction</h4>
+        <p>The number of active tables has reduced. Would you like to:</p>
+        <div style="margin-top: 10px;">
+            <input type="checkbox" id="reduceTableCount" name="reduceTableCount">
+            <label for="reduceTableCount">Permanently reduce the number of tables to match the current player count</label>
+        </div>
+        <p class="note" style="font-style: italic; margin-top: 10px; color: #6c757d;">
+            <strong>Note:</strong> If unchecked, the original table count will be maintained, allowing for players to rejoin later.
+        </p>
     </div>
     <button id="confirmSubstitutions">Do these Substitutions and update the webpage & app</button>
     <button id="cancelSubstitutions">Cancel</button>
@@ -291,8 +304,17 @@ document.addEventListener('DOMContentLoaded', function() {
             currentStats.textContent = '';
             newStats.textContent = '';
             statsContainer.style.display = 'none';
+            
+            // Check if we should show the table reduction option
+            const completedRounds = {{ completed_rounds }};
+            if (completedRounds === 0 && droppedOut.length >= 4) {
+                tableReductionOption.style.display = 'block';
+                reduceTableCountCheckbox.checked = false;
+            } else {
+                tableReductionOption.style.display = 'none';
+            }
+            
             confirmButton.scrollIntoView({behavior: 'smooth', block: 'center'});
-
 
             // Run optimization
             const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
@@ -374,8 +396,17 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmButton.textContent = "Processing...";
         document.body.style.cursor = 'wait';
         
+        // Get the reduce table count preference
+        const reduceTableCount = reduceTableCountCheckbox.checked;
+        
         fetch('{{ url_for("run.sub.confirm_substitutions") }}', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reduceTableCount: reduceTableCount
+            }),
         })
         .then(response => response.json())
         .then(data => {
@@ -388,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButton.disabled = false;
                 confirmButton.textContent = "Do these Substitutions and update the webpage & app";
                 document.body.style.cursor = 'default';
-                alert('Error applying substitutions');
+                alert('Error applying substitutions: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {

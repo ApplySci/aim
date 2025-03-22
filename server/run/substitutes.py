@@ -17,13 +17,12 @@ from flask import (
     stream_with_context,
 )
 from flask_login import current_user
-import json
-import time
 
 from oauth_setup import (
     admin_or_editor_required,
     logging,
     login_required,
+    MIN_TABLES,
     tournament_required,
 )
 from write_sheet import googlesheet
@@ -76,9 +75,10 @@ def player_substitution():
     return render_template(
         "player_substitution.html",
         completed_rounds=completed_rounds,
+        min_tables=MIN_TABLES,
         players=players,
-        seating=seating,
         players_with_seating=players_with_seating,
+        seating=seating,
         subs_with_seating=subs_with_seating,
         subs_without_seating=subs_without_seating,
     )
@@ -93,12 +93,20 @@ def confirm_substitutions():
     if not new_seating:
         return jsonify({"status": "error", "message": "No substitution data found"})
 
+    # Get the reduce table count preference from the request
+    data = request.json or {}
+    reduce_table_count = data.get("reduceTableCount", False)
+
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
     seatlist = seating_to_seatlist(new_seating)
     session["last_seating"] = googlesheet.get_seating(sheet)
-    googlesheet.update_seating(sheet, seatlist)
+
+    # Pass the reduce_table_count parameter to update_seating
+    logging.debug(f"seatlist: {seatlist}")
+    googlesheet.update_seating(sheet, seatlist, reduce_table_count)
     from .run import update_ranking_and_scores
+
     update_ranking_and_scores()
     return jsonify({"status": "success"})
 

@@ -562,9 +562,30 @@ class GSP:
             logging.error(f"Error getting sheet users: {str(e)}", exc_info=True)
             raise e
 
-    def update_seating(
+    def _remove_empty_tables(
         self, live: gspread.spreadsheet.Spreadsheet, seatlist: list[list[int]]
+    ) -> list[list[int]]:
+        """Remove empty tables from the seating list."""
+        return [row for row in seatlist if row[2]]
+
+    def update_seating(
+        self,
+        live: gspread.spreadsheet.Spreadsheet,
+        seatlist: list[list[int]],
+        reduce_table_count: bool = False,
     ) -> None:
+        """
+        Update the seating arrangement in the spreadsheet.
+
+        Args:
+            live: The spreadsheet to update
+            seatlist: The new seating arrangement
+            reduce_table_count: Whether to permanently reduce the table count
+        """
+        # TODO process reduce_table_count
+        if reduce_table_count:
+            seatlist = self._remove_empty_tables(live, seatlist)
+            # self._reduce_table_count(live, nTables)
         live.worksheet("seating").batch_update(
             [
                 {
@@ -656,7 +677,7 @@ class GSP:
         Raises:
             Exception: If seating plan cannot be found or sheet update fails
         """
-        # TODO  not yet used anywhere. Should be used to change number of tables at the 
+        # TODO  not yet used anywhere. Should be used to change number of tables at the
         # start of a tournament. Probably needs more work
         try:
             # Get current tournament settings
