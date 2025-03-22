@@ -7,44 +7,55 @@
 
 <p>{{ completed_rounds}} hanchan completed. Substitutions will be made for all hanchan from {{ completed_rounds + 1 }} onwards</p>
 
-<div id="playerManagement" style="display: flex; justify-content: flex-start; gap: 100px;">
-    <div id="currentPlayersSection" style="position: relative; width: 300px;">
+<div id="playerManagement">
+    <div id="currentPlayersSection">
         <h3>Current Players</h3>
-        <select id="currentPlayerSelect" multiple size="16" style="width: 100%;"></select>
-        <button id="moveToDropped" style="position: absolute; top: 55px; right: -40px;background-color: blue; color: white; font-size: 1.2em;">→</button>
+        <select id="currentPlayerSelect" multiple size="16"></select>
+        <button id="moveToDropped" class="move-button right-button">→</button>
     </div>
-    <div id="droppedPlayersSection" style="position: relative; width: 300px;">
+    <div id="droppedPlayersSection">
         <h3>Dropped Out Players</h3>
-        <button id="moveToActive" style="position: absolute; top: 55px; left: -40px;background-color: blue; color: white; font-size: 1.2em;">←</button>
-        <select id="droppedPlayerSelect" multiple style="width: 100%;"></select>
+        <button id="moveToActive" class="move-button left-button">←</button>
+        <select id="droppedPlayerSelect" multiple></select>
+    </div>
+</div>
+
+<div id="tableReductionOption" class="notification-box warning-box">
+    <h4>Table Count Reduction</h4>
+    <p>The number of active tables has reduced. Would you like to:</p>
+    <div class="option-row">
+        <input type="checkbox" id="reduceTableCount" name="reduceTableCount">
+        <label for="reduceTableCount">Permanently reduce the number of tables to match the current player count</label>
+    </div>
+    <p class="note">
+        <strong>Note:</strong> If unchecked, the original table count will be maintained, allowing for players to rejoin later.
+    </p>
+</div>
+
+<div id="optimizationSettings" class="hidden">
+    <div class="info-box">
+        <p>We need to adjust the seating to accommodate the reduced number of tables.</p>
+        <p>⚡ This will run in your browser. More calculation time might generate better results, but will consume a little more power,
+            which might be relevant if you're running a laptop on low battery.</p>
+        <label for="timeLimit">Calculation time: </label>
+        <select id="timeLimit">
+            <option value="15">15 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="60">1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300">5 minutes</option>
+        </select>
     </div>
 </div>
 
 <p>
-    <div id="optimizationSettings" style="display: none;">
-        <div class="info-box">
-            <p>The number of tables has changed. We need to redesign the seating.</p>
-            <p>⚡ This will run in your browser. More calculation time might generate better results, but will consume a little more power,
-                which might be relevant if you're running a laptop on low battery.</p>
-            <label for="timeLimit">Calculation time: </label>
-            <select id="timeLimit">
-                <option value="15">15 seconds</option>
-                <option value="30" selected>30 seconds</option>
-                <option value="60">1 minute</option>
-                <option value="120">2 minutes</option>
-                <option value="300">5 minutes</option>
-            </select>
-        </div>
-    </div>
-</p>
-<p>
     <button id="calculateSubstitutions">Calculate Substitutions</button>
-    <button id="undoSubstitution" style="display: none;">Undo Last Substitution</button>
+    <button id="undoSubstitution" class="hidden">Undo Last Substitution</button>
 </p>
-<div id="substitutionPreview" style="display: none;">
+<div id="substitutionPreview" class="hidden">
     <div class="optimization-container">
         <pre id="optimizationProgress" class="monospace-output"></pre>
-        <div id="statisticsContainer" style="display: none;">
+        <div id="statisticsContainer" class="hidden">
             <h4>Statistics Comparison</h4>
             <div class="stats-grid">
                 <div class="stats-column">
@@ -60,23 +71,70 @@
         <h3>Substitution Preview</h3>
         <pre id="previewContent" class="monospace-output"></pre>
     </div>
-    <div id="tableReductionOption" style="display: none; margin: 20px 0; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-        <h4>Table Count Reduction</h4>
-        <p>The number of active tables has reduced. Would you like to:</p>
-        <div style="margin-top: 10px;">
-            <input type="checkbox" id="reduceTableCount" name="reduceTableCount">
-            <label for="reduceTableCount">Permanently reduce the number of tables to match the current player count</label>
-        </div>
-        <p class="note" style="font-style: italic; margin-top: 10px; color: #6c757d;">
-            <strong>Note:</strong> If unchecked, the original table count will be maintained, allowing for players to rejoin later.
-        </p>
-    </div>
     <button id="confirmSubstitutions">Do these Substitutions and update the webpage & app</button>
     <button id="cancelSubstitutions">Cancel</button>
 </div>
 <p><a href="{{ url_for('run.run_tournament') }}">Back to main Run Tournament page</a></p>
 
 <style>
+#playerManagement {
+    display: flex;
+    justify-content: flex-start;
+    gap: 100px;
+}
+
+#currentPlayersSection, 
+#droppedPlayersSection {
+    position: relative;
+    width: 300px;
+}
+
+.hidden {
+    display: none;
+}
+
+#currentPlayerSelect,
+#droppedPlayerSelect {
+    width: 100%;
+}
+
+.move-button {
+    position: absolute;
+    top: 55px;
+    background-color: blue;
+    color: white;
+    font-size: 1.2em;
+}
+
+.left-button {
+    left: -40px;
+}
+
+.right-button {
+    right: -40px;
+}
+
+.notification-box {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.warning-box {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.option-row {
+    margin-top: 10px;
+}
+
+.note {
+    font-style: italic;
+    margin-top: 10px;
+    color: #6c757d;
+}
+
 .optimization-container {
     display: flex;
     flex-direction: column;
@@ -96,11 +154,10 @@
 }
 
 #optimizationProgress {
-    border-left: 3px solid #4CAF50;  /* Green accent */
-}
+    border-left: 3px solid #4CAF50;
 
 #previewContent {
-    border-left: 3px solid #2196F3;  /* Blue accent */
+    border-left: 3px solid #2196F3;
 }
 
 .stats-grid {
@@ -125,7 +182,7 @@
 
 .info-box {
     background-color: #f8f9fa;
-    border-left: 4px solid #17a2b8;  /* Info blue color */
+    border-left: 4px solid #17a2b8;
     padding: 15px;
     margin: 10px 0;
     border-radius: 4px;
@@ -166,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewContent = document.getElementById('previewContent');
     const optimizationSettings = document.getElementById('optimizationSettings');
     const timeLimit = document.getElementById('timeLimit');
+    const reduceTableCountCheckbox = document.getElementById('reduceTableCount');
 
     //
     // Data Initialization
@@ -208,9 +266,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return droppedPlayers.map(player => parseInt(player.seating_id));
     }
 
-    function updateOptimizationSettings() {
+    // New function to check if table reduction options should be displayed
+    function updateTableReductionOptions() {
         const droppedCount = droppedPlayers.length;
-        optimizationSettings.style.display = droppedCount >= 4 ? 'block' : 'none';
+        const completedRounds = {{ completed_rounds }};
+        const tableReductionOption = document.getElementById('tableReductionOption');
+        const optimizationSettings = document.getElementById('optimizationSettings');
+        
+        if (completedRounds === 0 && droppedCount >= 4) {
+            tableReductionOption.style.display = 'block';
+            reduceTableCountCheckbox.checked = true;
+            optimizationSettings.style.display = (currentPlayers.length >= 4 * {{ min_tables }}) ? 'none' : 'block';
+        } else {
+            tableReductionOption.style.display = 'none';
+            optimizationSettings.style.display = droppedCount >= 4 ? 'block' : 'none';
+        }    
+    }
+
+    // Replace existing updateOptimizationSettings function
+    function updateOptimizationSettings() {
+        updateTableReductionOptions();
     }
 
     //
@@ -268,6 +343,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         renderPlayers();
+        // Check table reduction options after moving players
+        updateTableReductionOptions();
     });
 
     moveToActiveButton.addEventListener('click', function() {
@@ -280,6 +357,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         renderPlayers();
+        // Check table reduction options after moving players
+        updateTableReductionOptions();
     });
 
     calculateButton.addEventListener('click', async function() {
@@ -305,41 +384,84 @@ document.addEventListener('DOMContentLoaded', function() {
             newStats.textContent = '';
             statsContainer.style.display = 'none';
             
-            // Check if we should show the table reduction option
-            const completedRounds = {{ completed_rounds }};
-            if (completedRounds === 0 && droppedOut.length >= 4) {
-                tableReductionOption.style.display = 'block';
-                reduceTableCountCheckbox.checked = false;
+            // Get current table count
+            const currentTableCount = Math.ceil(currentPlayers.length / 4);
+            const initialTableCount = {{ (players_with_seating / 4)|round(0, 'ceil')|int }};
+            const minTables = {{ min_tables }};
+            
+            // Decide on optimization strategy based on table counts
+            const reduceTableCount = reduceTableCountCheckbox.checked;
+            let newSeating;
+            
+            if (reduceTableCount && initialTableCount > minTables && currentTableCount >= minTables) {
+                // Case 1: Use predefined seating template instead of optimization
+                optimizationProgress.textContent = "Using predefined optimal seating template...\n";
+                
+                try {
+                    const response = await fetch('{{ url_for("run.sub.get_predefined_seating") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            tableCount: currentTableCount,
+                            completedRounds: {{ completed_rounds }}
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to get predefined seating template');
+                    }
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        newSeating = result.seating;
+                        optimizationProgress.textContent += "Predefined seating template applied successfully.\n";
+                    } else {
+                        throw new Error(result.message || 'Unknown error fetching seating template');
+                    }
+                } catch (error) {
+                    // Fall back to optimization if template fetch fails
+                    optimizationProgress.textContent += `Error: ${error.message}\nFalling back to optimization...\n`;
+                    newSeating = await runOptimization(droppedOut, selectedTime);
+                }
+            } else if (reduceTableCount && currentTableCount < minTables) {
+                // Case 2: First get min_tables seating plan, then optimize down
+                optimizationProgress.textContent = `Getting seating plan for minimum ${minTables} tables first...\n`;
+                
+                try {
+                    const response = await fetch('{{ url_for("run.sub.get_predefined_seating") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            tableCount: minTables,
+                            completedRounds: {{ completed_rounds }}
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to get min tables seating template');
+                    }
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        // Now optimize this seating plan down to the required number of tables
+                        optimizationProgress.textContent += "Optimizing down to required table count...\n";
+                        const baseSeating = result.seating;
+                        
+                        // Use the optimization worker with the base seating
+                        newSeating = await runOptimization(droppedOut, selectedTime, baseSeating);
+                    } else {
+                        throw new Error(result.message || 'Unknown error fetching min tables seating');
+                    }
+                } catch (error) {
+                    // Fall back to regular optimization
+                    optimizationProgress.textContent += `Error: ${error.message}\nFalling back to direct optimization...\n`;
+                    newSeating = await runOptimization(droppedOut, selectedTime);
+                }
             } else {
-                tableReductionOption.style.display = 'none';
+                // Case 3: Normal optimization (current approach)
+                newSeating = await runOptimization(droppedOut, selectedTime);
             }
             
-            confirmButton.scrollIntoView({behavior: 'smooth', block: 'center'});
-
-            // Run optimization
-            const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
-            const newSeating = await new Promise((resolve, reject) => {
-                worker.onmessage = function(e) {
-                    if (e.data.type === 'progress') {
-                        optimizationProgress.textContent += e.data.message;
-                        optimizationProgress.scrollTop = optimizationProgress.scrollHeight;
-                    } else if (e.data.type === 'result') {
-                        resolve(e.data.seating);
-                    }
-                };
-                worker.onerror = reject;
-                worker.postMessage({
-                    seats: seating,
-                    fixedRounds: {{ completed_rounds }},
-                    omitPlayers: droppedOut,
-                    substitutes: Array.from(
-                        {length: 4}, 
-                        (_, i) => Math.max(...seating[0].flat()) + 1 + i
-                    ),
-                    timeLimit: selectedTime
-                });
-            });
-
             // Generate and display preview
             const preview = generateSubstitutionPreview(seating, newSeating);
             previewContent.textContent = "Substitution Changes:\n\n" + preview.join('\n');
@@ -451,6 +573,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Helper function to run optimization with worker
+    async function runOptimization(droppedOut, timeLimit, baseSeating = null) {
+        const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
+        
+        return new Promise((resolve, reject) => {
+            worker.onmessage = function(e) {
+                if (e.data.type === 'progress') {
+                    optimizationProgress.textContent += e.data.message;
+                    optimizationProgress.scrollTop = optimizationProgress.scrollHeight;
+                } else if (e.data.type === 'result') {
+                    resolve(e.data.seating);
+                }
+            };
+            worker.onerror = reject;
+            
+            const workerData = {
+                seats: baseSeating || seating,
+                fixedRounds: {{ completed_rounds }},
+                omitPlayers: droppedOut,
+                substitutes: Array.from(
+                    {length: 4}, 
+                    (_, i) => Math.max(...seating[0].flat()) + 1 + i
+                ),
+                timeLimit: timeLimit
+            };
+            
+            worker.postMessage(workerData);
+        });
+    }
+
+    // Call updateTableReductionOptions on initial load
+    updateTableReductionOptions();
 });
 </script>
 {% endblock %}

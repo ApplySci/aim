@@ -33,6 +33,7 @@ db = SQLAlchemy()
 
 app_directory = os.path.dirname(os.path.realpath(__file__))
 KEYFILE = os.path.join(app_directory, "fcm-admin.json")
+MIN_TABLES = 4
 
 initialize_firebase(credentials.Certificate(KEYFILE))
 firestore_client = firestore.client()

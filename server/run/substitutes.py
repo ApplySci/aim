@@ -7,6 +7,8 @@ including updating seating arrangements and player assignments while
 maintaining optimal seating patterns.
 """
 
+import importlib
+
 from flask import (
     Blueprint,
     jsonify,
@@ -195,3 +197,74 @@ def analyze_seating():
     new_stats = make_stats(data["seating"], ignore_players=substitute_ids)
 
     return jsonify({"status": "success", "current": current_stats, "new": new_stats})
+
+
+@blueprint.route("/get_predefined_seating", methods=["POST"])
+@admin_or_editor_required
+@tournament_required
+@login_required
+def get_predefined_seating():
+    """Get predefined seating template for the specified table count."""
+    data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
+
+    table_count = data.get("tableCount")
+    completed_rounds = data.get("completedRounds", 0)
+
+    if not table_count:
+        return jsonify({"status": "error", "message": "No table count specified"}), 400
+
+    tournament = current_user.live_tournament
+    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+
+    # Get total number of rounds in the tournament
+    schedule = googlesheet.get_schedule(sheet)
+    total_rounds = len(schedule["rounds"])
+
+    try:
+        # Try to import the seating module
+        seating_module = importlib.import_module(f"seating.seats_{total_rounds}")
+        player_count = table_count * 4
+
+        if player_count not in seating_module.seats:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": f"No predefined seating for {player_count} players",
+                    }
+                ),
+                404,
+            )
+
+        # Get the predefined seating plan
+        predefined_seating = seating_module.seats[player_count]
+
+        # Convert to the seating format expected by the frontend
+        seating = [[[] for _ in range(table_count)] for _ in range(total_rounds)]
+        for round_idx in range(total_rounds):
+            for table_idx in range(table_count):
+                if round_idx < len(predefined_seating) and table_idx < len(
+                    predefined_seating[round_idx]
+                ):
+                    seating[round_idx][table_idx] = predefined_seating[round_idx][
+                        table_idx
+                    ]
+                else:
+                    # Fill with zeros if table doesn't exist in the seating plan
+                    seating[round_idx][table_idx] = [0, 0, 0, 0]
+
+        return jsonify({"status": "success", "seating": seating})
+
+    except (ImportError, KeyError, AttributeError) as e:
+        logging.error(f"Error fetching predefined seating: {str(e)}")
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Failed to get predefined seating: {str(e)}",
+                }
+            ),
+            500,
+        )
