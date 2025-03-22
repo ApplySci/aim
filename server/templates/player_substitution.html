@@ -11,19 +11,19 @@
     <div id="currentPlayersSection">
         <h3>Current Players</h3>
         <select id="currentPlayerSelect" multiple size="16"></select>
-        <button id="moveToDropped" class="move-button right-button">→</button>
+        <button id="moveToDropped" class="move-button">→</button>
     </div>
     <div id="droppedPlayersSection">
         <h3>Dropped Out Players</h3>
-        <button id="moveToActive" class="move-button left-button">←</button>
+        <button id="moveToActive" class="move-button">←</button>
         <select id="droppedPlayerSelect" multiple></select>
     </div>
 </div>
 
-<div id="tableReductionOption" class="notification-box warning-box">
+<div id="tableReductionOption">
     <h4>Table Count Reduction</h4>
     <p>The number of active tables has reduced. Would you like to:</p>
-    <div class="option-row">
+    <div>
         <input type="checkbox" id="reduceTableCount" name="reduceTableCount">
         <label for="reduceTableCount">Permanently reduce the number of tables to match the current player count</label>
     </div>
@@ -33,7 +33,7 @@
 </div>
 
 <div id="optimizationSettings" class="hidden">
-    <div class="info-box">
+    <div>
         <p>We need to adjust the seating to accommodate the reduced number of tables.</p>
         <p>⚡ This will run in your browser. More calculation time might generate better results, but will consume a little more power,
             which might be relevant if you're running a laptop on low battery.</p>
@@ -53,11 +53,11 @@
     <button id="undoSubstitution" class="hidden">Undo Last Substitution</button>
 </p>
 <div id="substitutionPreview" class="hidden">
-    <div class="optimization-container">
+    <div id="optimizationContainer">
         <pre id="optimizationProgress" class="monospace-output"></pre>
         <div id="statisticsContainer" class="hidden">
             <h4>Statistics Comparison</h4>
-            <div class="stats-grid">
+            <div id="statsGrid">
                 <div class="stats-column">
                     <h5>Current Seating</h5>
                     <pre id="currentStats" class="monospace-output"></pre>
@@ -106,26 +106,23 @@
     font-size: 1.2em;
 }
 
-.left-button {
+#moveToActive {
     left: -40px;
 }
 
-.right-button {
+#moveToDropped {
     right: -40px;
 }
 
-.notification-box {
+#tableReductionOption {
     margin: 20px 0;
     padding: 15px;
     border-radius: 4px;
-}
-
-.warning-box {
     background-color: #fff3cd;
     border-left: 4px solid #ffc107;
 }
 
-.option-row {
+#tableReductionOption div {
     margin-top: 10px;
 }
 
@@ -135,7 +132,7 @@
     color: #6c757d;
 }
 
-.optimization-container {
+#optimizationContainer {
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -155,12 +152,13 @@
 
 #optimizationProgress {
     border-left: 3px solid #4CAF50;
+}
 
 #previewContent {
     border-left: 3px solid #2196F3;
 }
 
-.stats-grid {
+#statsGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -180,7 +178,7 @@
     padding-bottom: 5px;
 }
 
-.info-box {
+#optimizationSettings > div {
     background-color: #f8f9fa;
     border-left: 4px solid #17a2b8;
     padding: 15px;
@@ -188,7 +186,7 @@
     border-radius: 4px;
 }
 
-.info-box p {
+#optimizationSettings p {
     margin: 0 0 10px 0;
     color: #495057;
 }
@@ -273,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableReductionOption = document.getElementById('tableReductionOption');
         const optimizationSettings = document.getElementById('optimizationSettings');
         
+        // TODO it isn't quite this simple. We need to account for 1-3 substitutes too.
         if (completedRounds === 0 && droppedCount >= 4) {
             tableReductionOption.style.display = 'block';
             reduceTableCountCheckbox.checked = true;
@@ -361,6 +360,63 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTableReductionOptions();
     });
 
+    // Helper function for API requests
+    async function makeApiRequest(url, data) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API request to ${url} failed`);
+        }
+        
+        const result = await response.json();
+        if (result.status !== 'success') {
+            throw new Error(result.message || 'Unknown API error');
+        }
+        
+        return result;
+    }
+    
+    // Helper function to fetch predefined seating
+    async function getPredefinedSeating(tableCount, message) {
+        optimizationProgress.textContent += message;
+        try {
+            const result = await makeApiRequest('{{ url_for("run.sub.get_predefined_seating") }}', {
+                tableCount: tableCount,
+                completedRounds: {{ completed_rounds }}
+            });
+            
+            optimizationProgress.textContent += "Predefined seating template applied successfully.\n";
+            return result.seating;
+        } catch (error) {
+            optimizationProgress.textContent += `Error: ${error.message}\nFalling back to optimization...\n`;
+            throw error;
+        }
+    }
+
+    // Setup UI for calculation
+    function setupCalculationUI() {
+        const optimizationProgress = document.getElementById('optimizationProgress');
+        const previewContent = document.getElementById('previewContent');
+        const statsContainer = document.getElementById('statisticsContainer');
+        const currentStats = document.getElementById('currentStats');
+        const newStats = document.getElementById('newStats');
+        
+        optimizationProgress.textContent = "";
+        previewContent.textContent = "";
+        substitutionPreview.style.display = 'block';
+        calculateButton.disabled = true;
+        
+        currentStats.textContent = '';
+        newStats.textContent = '';
+        statsContainer.style.display = 'none';
+        
+        return { optimizationProgress, previewContent, statsContainer, currentStats, newStats };
+    }
+
     calculateButton.addEventListener('click', async function() {
         try {
             const droppedOut = getDroppedOutPlayers();
@@ -370,19 +426,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Setup UI for calculation
+            const { optimizationProgress, previewContent, statsContainer, currentStats, newStats } = setupCalculationUI();
             const selectedTime = parseInt(timeLimit.value);
-            optimizationProgress.textContent = "";
-            previewContent.textContent = "";
-            substitutionPreview.style.display = 'block';
-            calculateButton.disabled = true;
-            
-            // Clear statistics
-            const statsContainer = document.getElementById('statisticsContainer');
-            const currentStats = document.getElementById('currentStats');
-            const newStats = document.getElementById('newStats');
-            currentStats.textContent = '';
-            newStats.textContent = '';
-            statsContainer.style.display = 'none';
             
             // Get current table count
             const currentTableCount = Math.ceil(currentPlayers.length / 4);
@@ -393,72 +438,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const reduceTableCount = reduceTableCountCheckbox.checked;
             let newSeating;
             
-            if (reduceTableCount && initialTableCount > minTables && currentTableCount >= minTables) {
-                // Case 1: Use predefined seating template instead of optimization
-                optimizationProgress.textContent = "Using predefined optimal seating template...\n";
-                
-                try {
-                    const response = await fetch('{{ url_for("run.sub.get_predefined_seating") }}', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            tableCount: currentTableCount,
-                            completedRounds: {{ completed_rounds }}
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to get predefined seating template');
-                    }
-                    
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        newSeating = result.seating;
-                        optimizationProgress.textContent += "Predefined seating template applied successfully.\n";
-                    } else {
-                        throw new Error(result.message || 'Unknown error fetching seating template');
-                    }
-                } catch (error) {
-                    // Fall back to optimization if template fetch fails
-                    optimizationProgress.textContent += `Error: ${error.message}\nFalling back to optimization...\n`;
-                    newSeating = await runOptimization(droppedOut, selectedTime);
-                }
-            } else if (reduceTableCount && currentTableCount < minTables) {
-                // Case 2: First get min_tables seating plan, then optimize down
-                optimizationProgress.textContent = `Getting seating plan for minimum ${minTables} tables first...\n`;
-                
-                try {
-                    const response = await fetch('{{ url_for("run.sub.get_predefined_seating") }}', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            tableCount: minTables,
-                            completedRounds: {{ completed_rounds }}
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to get min tables seating template');
-                    }
-                    
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        // Now optimize this seating plan down to the required number of tables
-                        optimizationProgress.textContent += "Optimizing down to required table count...\n";
-                        const baseSeating = result.seating;
+            // TODO when we're getting predefined seating, we're going tohave to reallocate seating numbers too.
+            // preserve the existing order, and just renumber them 1-n. Apply this to the google sheet.
+            try {
+                if (reduceTableCount && initialTableCount > minTables && currentTableCount >= minTables) {
+                    // Case 1: Use predefined seating template
+                    newSeating = await getPredefinedSeating(
+                        currentTableCount, 
+                        "Using predefined optimal seating template...\n"
+                    );
+                } else if (reduceTableCount && currentTableCount < minTables) {
+                    // Case 2: First get min_tables seating plan, then optimize down
+                    const message = `Getting seating plan for minimum ${minTables} tables first...\n`;
+                    try {
+                        const baseSeating = await getPredefinedSeating(minTables, message);
                         
-                        // Use the optimization worker with the base seating
+                        // Now optimize this seating plan down to the required table count
+                        optimizationProgress.textContent += "Optimizing down to required table count...\n";
                         newSeating = await runOptimization(droppedOut, selectedTime, baseSeating);
-                    } else {
-                        throw new Error(result.message || 'Unknown error fetching min tables seating');
+                    } catch (error) {
+                        // Fall back to regular optimization
+                        newSeating = await runOptimization(droppedOut, selectedTime);
                     }
-                } catch (error) {
-                    // Fall back to regular optimization
-                    optimizationProgress.textContent += `Error: ${error.message}\nFalling back to direct optimization...\n`;
+                } else {
+                    // Case 3: Normal optimization
                     newSeating = await runOptimization(droppedOut, selectedTime);
                 }
-            } else {
-                // Case 3: Normal optimization (current approach)
+            } catch (error) {
+                // Final fallback to direct optimization
+                optimizationProgress.textContent += `Using direct optimization...\n`;
                 newSeating = await runOptimization(droppedOut, selectedTime);
             }
             
@@ -470,28 +478,15 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmButton.scrollIntoView({behavior: 'smooth', block: 'center'});
 
             // Store results
-            const response = await fetch('{{ url_for("run.sub.store_seating") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ seating: newSeating })
+            await makeApiRequest('{{ url_for("run.sub.store_seating") }}', {
+                seating: newSeating
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to store seating arrangement');
-            }
 
             // Analyze and display statistics
-            const statsResponse = await fetch('{{ url_for("run.sub.analyze_seating") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ seating: newSeating })
+            const statsData = await makeApiRequest('{{ url_for("run.sub.analyze_seating") }}', {
+                seating: newSeating
             });
-
-            if (!statsResponse.ok) {
-                throw new Error('Failed to analyze seating arrangement');
-            }
-
-            const statsData = await statsResponse.json();
+            
             if (statsData.status === 'success') {
                 const statsContainer = document.getElementById('statisticsContainer');
                 const currentStats = document.getElementById('currentStats');
