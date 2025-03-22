@@ -12,7 +12,7 @@ publish_to: 'none'
 # In iOS, build name is used as CFBundleShortVersionString
 # build number is used as CFBundleVersion.
 
-version: 1.0.8+55
+version: 1.0.8+56
 
 environment:
   sdk: '>=3.2.5 <4.0.0'
@@ -35,7 +35,7 @@ dependencies:
   firebase_messaging: ^15.2.4
   flutter_autostart: ^0.0.2
   flutter_fgbg: any # used directly and by alarm too
-  flutter_html: ^3.0.0-beta.2
+  flutter_html: ^3.0.0
   flutter_riverpod: ^2.6.1
   flutter_sticky_header: ^0.7.0
   flutter_timezone: ^4.1.0
