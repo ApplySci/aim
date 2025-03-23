@@ -63,8 +63,9 @@ class TournamentPage extends ConsumerWidget {
 
     // Handle initial tab from notification, but only once
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (!_initialTabHandled && args?['initial_tab'] case String tab) {
+    if (!_initialTabHandled && args != null && args['initial_tab'] is String) {
       _initialTabHandled = true;
+      final tab = args['initial_tab'] as String;
       final status = info.valueOrNull?.status ?? WhenTournament.upcoming;
       final index = TournamentTab.fromNotificationType(tab).toIndex(status);
       Future(() => ref.read(pageProvider.notifier).state = index);
