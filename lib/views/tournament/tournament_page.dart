@@ -51,6 +51,9 @@ enum TournamentTab {
 
 class TournamentPage extends ConsumerWidget {
   const TournamentPage({super.key});
+  
+  // Track whether we've already handled the initial tab selection
+  static bool _initialTabHandled = false;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,12 +61,14 @@ class TournamentPage extends ConsumerWidget {
     final tournament = ref.watch(tournamentProvider);
     final info = ref.watch(tournamentInfoProvider);
 
-    // Handle initial tab from notification
+    // Handle initial tab from notification, but only once
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args?['initial_tab'] case String tab) {
+    if (!_initialTabHandled && args?['initial_tab'] case String tab) {
+      _initialTabHandled = true;
       final status = info.valueOrNull?.status ?? WhenTournament.upcoming;
       final index = TournamentTab.fromNotificationType(tab).toIndex(status);
       Future(() => ref.read(pageProvider.notifier).state = index);
+      Log.debug('Set initial tab to $tab (index $index) from notification');
     }
 
     return info.when(
