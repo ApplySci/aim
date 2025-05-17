@@ -94,16 +94,25 @@ def get_tournament_results(tournament_id: int) -> list[dict]:
 
 
 def get_active_tournaments(user_email: str) -> dict[str, list[Tournament]]:
-    """Get all non-past tournaments accessible by the user"""
+    """Get all tournaments accessible by the user"""
     accesses = db.session.query(Access).filter_by(user_email=user_email).all()
     
-    grouped_tournaments = {"live": [], "test": [], "upcoming": []}
+    grouped_tournaments = {"live": [], "test": [], "upcoming": [], "past": [], "unarchived_past": []}
     
     for access in accesses:
         tournament = access.tournament
-        if not tournament.past_data:  # Skip archived tournaments
-            status = tournament.status
-            if status in grouped_tournaments:
-                grouped_tournaments[status].append(tournament)
+        status = tournament.status
+        
+        # Handle past tournaments specially
+        if status == "past":
+            if tournament.past_data:
+                # This is an archived past tournament
+                grouped_tournaments["past"].append(tournament)
+            else:
+                # This is an unarchived past tournament that needs archiving
+                grouped_tournaments["unarchived_past"].append(tournament)
+        elif status in grouped_tournaments:
+            # Regular non-past tournament
+            grouped_tournaments[status].append(tournament)
     
     return grouped_tournaments

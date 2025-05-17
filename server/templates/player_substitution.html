@@ -278,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
             optimizationSettings.style.display = (currentPlayers.length >= 4 * {{ min_tables }}) ? 'none' : 'block';
         } else {
             tableReductionOption.style.display = 'none';
+            reduceTableCountCheckbox.checked = false;
             optimizationSettings.style.display = droppedCount >= 4 ? 'block' : 'none';
         }    
     }
@@ -430,25 +431,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedTime = parseInt(timeLimit.value);
             
             // Get current table count
-            const currentTableCount = Math.ceil(currentPlayers.length / 4);
-            const initialTableCount = {{ (players_with_seating / 4)|round(0, 'ceil')|int }};
+            const newTableCount = Math.ceil(currentPlayers.length / 4);
+            const oldTableCount = {{ (players_with_seating / 4)|round(0, 'ceil')|int }};
             const minTables = {{ min_tables }};
             
             // Decide on optimization strategy based on table counts
             const reduceTableCount = reduceTableCountCheckbox.checked;
             let newSeating;
             
-            // TODO when we're getting predefined seating, we're going tohave to reallocate seating numbers too.
+            // TODO when we're getting predefined seating, we're going to have to reallocate seating numbers too.
             // preserve the existing order, and just renumber them 1-n. Apply this to the google sheet.
             try {
-                if (reduceTableCount && initialTableCount > minTables && currentTableCount >= minTables) {
-                    // Case 1: Use predefined seating template
+                if (reduceTableCount && oldTableCount > minTables && newTableCount >= minTables) {
+                    // Use predefined seating template
                     newSeating = await getPredefinedSeating(
-                        currentTableCount, 
+                        newTableCount, 
                         "Using predefined optimal seating template...\n"
                     );
-                } else if (reduceTableCount && currentTableCount < minTables) {
-                    // Case 2: First get min_tables seating plan, then optimize down
+                } else if (reduceTableCount && oldTableCount > minTables) { // & we know newTableCount < minTables
+                    // First get min_tables seating plan, then optimize down
                     const message = `Getting seating plan for minimum ${minTables} tables first...\n`;
                     try {
                         const baseSeating = await getPredefinedSeating(minTables, message);
@@ -461,12 +462,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         newSeating = await runOptimization(droppedOut, selectedTime);
                     }
                 } else {
-                    // Case 3: Normal optimization
+                    // Normal optimization
                     newSeating = await runOptimization(droppedOut, selectedTime);
                 }
             } catch (error) {
                 // Final fallback to direct optimization
-                optimizationProgress.textContent += `Using direct optimization...\n`;
+                optimizationProgress.textContent += `We hit an error, so we are using direct optimization...\n`;
                 newSeating = await runOptimization(droppedOut, selectedTime);
             }
             

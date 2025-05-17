@@ -23,4 +23,21 @@
         </ul>
     {% endif %}
 {% endfor %}
+
+{% if grouped_tournaments.unarchived_past %}
+    <h2>Past Tournaments Awaiting Archiving</h2>
+    <div class="alert alert-warning">
+        <p>These tournaments need to be archived to appear on the public past tournaments page.</p>
+    </div>
+    <ul>
+    {% for tournament in grouped_tournaments.unarchived_past %}
+        <li>
+            <form method="POST" action="">
+                <input type="hidden" name="id" value="{{ tournament.id }}">
+                <button type="submit" class="btn btn-warning">{{ tournament.title }} (Click to Archive)</button>
+            </form>
+        </li>
+    {% endfor %}
+    </ul>
+{% endif %}
 {% endblock %}
