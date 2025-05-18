@@ -108,6 +108,24 @@ def validate_other_name(form, field):
             raise ValidationError('Missing the "?" placeholder')
 
 
+class GoogleAccountField(StringField):
+    """A field that allows selecting from existing Google accounts or entering a new one."""
+    def __init__(self, label=None, validators=None, **kwargs):
+        if validators is None:
+            validators = [Email()]
+        super(GoogleAccountField, self).__init__(label, validators, **kwargs)
+        self.widget.input_type = 'email'
+        self.widget.class_ = 'google-account-field'
+        self.widget.attrs = {
+            'list': 'google-accounts',
+            'autocomplete': 'off',
+        }
+
+    def _value(self):
+        """Return the value of the field."""
+        return str(self.data) if self.data is not None else ''
+
+
 class TournamentForm(FlaskForm):
     title = StringField(
         "Tournament name",
@@ -218,7 +236,7 @@ class TournamentForm(FlaskForm):
         default=True,
     )
     scorer_emails = FieldList(
-        StringField(
+        GoogleAccountField(
             "Additional Scorer Emails",
             validators=[Optional(), Email()],
         ),

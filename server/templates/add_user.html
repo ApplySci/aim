@@ -1,4 +1,5 @@
 {% extends "runbase.html" %}
+{% from "partials/google_account_field.html" import google_account_field %}
 
 {% block title %}Manage Users{% endblock %}
 
@@ -77,10 +78,10 @@
     }
 </style>
 <fieldset>
-<form method="POST">
+<form method="POST" id="user-management-form">
     {{ form.hidden_tag() }}
     <div>
-        {{ form.email.label }}: {{ form.email(size=30) }}
+        {{ google_account_field(form.email, users=all_accounts) }}
         {% for error in form.email.errors %}
             <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
@@ -205,4 +206,10 @@ function updateUserRole(email, newRole) {
     });
 }
 </script>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/google_account_field.js') }}"></script>
+<!-- ... rest of your scripts ... -->
 {% endblock %}

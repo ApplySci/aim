@@ -26,6 +26,7 @@ from oauth_setup import db, firestore_client, logging, Role
 from run.run import update_schedule
 from write_sheet import googlesheet
 from utils.timezones import get_timezones_for_country
+from run.user_management import get_all_users
 
 blueprint = Blueprint("create", __name__)
 messages_by_user = {}
@@ -174,7 +175,11 @@ def results_create():
         form.timezone.choices = [(tz, tz) for tz in initial_timezones]
 
     return render_template(
-        "create_results.html", form=form, round_labels=round_labels, zip=zip_longest
+        "create_results.html", 
+        form=form, 
+        round_labels=round_labels, 
+        zip=zip_longest,
+        all_accounts=get_all_users(),
     )
 
 

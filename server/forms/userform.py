@@ -7,12 +7,16 @@ including adding users to tournaments and assigning roles.
 """
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, SubmitField
+from wtforms import RadioField, SubmitField
 from wtforms.validators import DataRequired, Email
+from forms.tournament_forms import GoogleAccountField
 
 
 class AddUserForm(FlaskForm):
-    email = StringField("Email (must be a google account)", validators=[DataRequired(), Email()])
+    email = GoogleAccountField(
+        "Email (must be a google account)",
+        validators=[DataRequired(), Email()],
+    )
     role = RadioField(
         "Role",
         choices=[("admin", "Admin"), ("editor", "Editor"), ("scorer", "Scorer")],

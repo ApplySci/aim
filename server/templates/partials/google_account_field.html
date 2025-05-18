@@ -1,0 +1,36 @@
+{% macro google_account_field(field, index=None, users=None) %}
+<div class="google-account-field-wrapper">
+    {{ field.label }}
+    {{ field(class="form-control google-account-field", list="google-accounts", autocomplete="off") }}
+    <datalist id="google-accounts">
+        {% for user in users %}
+            <option value="{{ user }}">
+        {% endfor %}
+    </datalist>
+    {% for error in field.errors %}
+        <span class="error">{{ error }}</span>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro google_account_list(field_list, add_button_text="Add Another Account", users=None) %}
+<fieldset class="google-account-list" id="google-account-list">
+    <datalist id="google-accounts">
+        {% for user in users %}
+            <option value="{{ user }}">
+        {% endfor %}
+    </datalist>
+    {% for field in field_list %}
+        {{ google_account_field(field, loop.index0, users=users) }}
+    {% endfor %}
+    <small>(each must be a google account)</small>
+    <p>
+        <button type="button" class="add-account-btn">{{ add_button_text }}</button>
+    </p>
+</fieldset>
+{% endmacro %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}

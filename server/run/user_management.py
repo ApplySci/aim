@@ -161,6 +161,7 @@ def add_user_get():
         "add_user.html",
         form=form,
         users=users,
+        all_accounts=get_all_users(),
         is_admin=is_admin,
         current_user_email=current_user.email,
         missing_from_sheet=missing_from_sheet,
@@ -422,3 +423,9 @@ def delete_user():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
+
+
+def get_all_users():
+    db_users = db.session.query(User).all()
+    results = [user.email for user in sorted(db_users, key=lambda x: x.email.lower())]
+    return results
