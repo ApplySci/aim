@@ -196,7 +196,7 @@ class TournamentForm(FlaskForm):
     )
     url_icon = StringField(
         "Icon URL",
-        default="https://worldriichileague.com/wrl512.png",
+        default="https://wr.mahjong.ie/static/wrl512.png",
         validators=[Optional(), URL(), url_ok],
     )
     google_doc_id = StringField(
