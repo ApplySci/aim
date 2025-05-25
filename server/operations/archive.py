@@ -27,6 +27,7 @@ from config import BASEDIR
 from operations.queries import get_past_tournament_summaries
 from operations.transforms import tournaments_to_summaries
 import os
+from write_sheet import googlesheet
 
 PAST_TOURNAMENTS_FILE = os.path.join(BASEDIR, "data", "past_tournaments.json")
 
@@ -92,17 +93,41 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
     if not tournament_data:
         return False
 
-    # Get additional data from v3 subcollection
+    # Get additional data from firebase
     v3_collection = tournament_ref.collection("v3")
-    players_doc = v3_collection.document("players").get().to_dict()
     ranking_doc = v3_collection.document("ranking").get().to_dict()
     scores_doc = v3_collection.document("scores").get().to_dict()
     seating_doc = v3_collection.document("seating").get().to_dict()
 
+    # Get player data from Google Sheet (authoritative source)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+        raw_players = googlesheet.get_players(sheet)
+        
+        # Convert raw player data to the format expected by the rest of the function
+        players_data = {"players": []}
+        for p in raw_players:
+            if len(p) >= 3:  # Ensure we have at least seating_id, registration_id, name
+                players_data["players"].append({
+                    "seating_id": p[0] if p[0] != "" else None,
+                    "registration_id": str(p[1]),
+                    "name": p[2],
+                    "is_current": p[0] != "",
+                })
+        
+        logging.info(f"Retrieved {len(players_data['players'])} players from Google Sheet for archiving")
+        
+    except Exception as e:
+        logging.error(f"Failed to get players from Google Sheet: {str(e)}")
+        # Fallback to Firebase data if Google Sheet is inaccessible
+        players_doc = v3_collection.document("players").get().to_dict()
+        players_data = players_doc if players_doc else {"players": []}
+        logging.warning("Using Firebase player data as fallback")
+
     # Merge all data
     tournament_data.update(
         {
-            "players": players_doc,
+            "players": players_data,
             "ranking": ranking_doc,
             "scores": scores_doc,
             "seating": seating_doc,
@@ -152,15 +177,22 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
                     db.session.add(player)
                     stats["new_players"] += 1
 
+            # Handle None seating_id for substitute players
+            seating_id = p["seating_id"]
+            if seating_id is None:
+                # Skip players without seating_id (substitutes who were never seated)
+                logging.info(f"Skipping player {p['name']} with no seating_id (likely substitute)")
+                continue
+                
             tournament_player = TournamentPlayer(
                 tournament=tournament,
                 player=player,
-                seating_id=p["seating_id"],
+                seating_id=seating_id,
                 registration_id=p["registration_id"],
             )
             db.session.add(tournament_player)
-            if p["seating_id"]:
-                player_map[int(p["seating_id"])] = tournament_player
+            if seating_id:
+                player_map[int(seating_id)] = tournament_player
 
         # Archive game results
         scores = tournament_data.get("scores", {})

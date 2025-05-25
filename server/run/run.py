@@ -678,7 +678,7 @@ def _save_to_cloud(document: str, data: dict, force_set=False):
     tournament = current_user.live_tournament
 
     if tournament.status == "past":
-        return _save_to_archive()
+        return _save_to_archive(document, data, force_set)
 
     # For live tournaments, continue using Firebase
     firebase_id: str = tournament.firebase_doc
