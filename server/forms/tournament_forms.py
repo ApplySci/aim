@@ -33,6 +33,7 @@ from wtforms.validators import (
     ValidationError,
     Regexp,
 )
+from wtforms.widgets import TextInput
 
 from write_sheet import googlesheet
 
@@ -108,22 +109,32 @@ def validate_other_name(form, field):
             raise ValidationError('Missing the "?" placeholder')
 
 
+class EmailTextInput(TextInput):
+    """A TextInput widget that renders as email type."""
+    input_type = "email"
+    
+    def __init__(self):
+        super().__init__()
+        self.class_ = "google-account-field"
+        self.attrs = {
+            "list": "google-accounts",
+            "autocomplete": "off",
+        }
+
+
 class GoogleAccountField(StringField):
     """A field that allows selecting from existing Google accounts or entering a new one."""
+    
+    widget = EmailTextInput()  # Use the custom widget class
+
     def __init__(self, label=None, validators=None, **kwargs):
         if validators is None:
             validators = [Email()]
         super(GoogleAccountField, self).__init__(label, validators, **kwargs)
-        self.widget.input_type = 'email'
-        self.widget.class_ = 'google-account-field'
-        self.widget.attrs = {
-            'list': 'google-accounts',
-            'autocomplete': 'off',
-        }
 
     def _value(self):
         """Return the value of the field."""
-        return str(self.data) if self.data is not None else ''
+        return str(self.data) if self.data is not None else ""
 
 
 class TournamentForm(FlaskForm):
@@ -153,9 +164,7 @@ class TournamentForm(FlaskForm):
     )
     country = SelectField("Country", choices=countries, default="DE")
     timezone = SelectField(
-        "Timezone",
-        choices=[],  # Remove default choices
-        validators=[DataRequired()]
+        "Timezone", choices=[], validators=[DataRequired()]  # Remove default choices
     )
 
     status = RadioField(
@@ -176,7 +185,7 @@ class TournamentForm(FlaskForm):
             ("wrl", "World Riichi League"),
             ("wro", "World Riichi Other"),
             ("ema", "EMA"),
-            ("other", "Other")
+            ("other", "Other"),
         ],
         validators=[DataRequired()],
     )
@@ -185,7 +194,11 @@ class TournamentForm(FlaskForm):
         default="https://worldriichileague.com/",
         validators=[Optional(), URL(), url_ok],
     )
-    url_icon = StringField("Icon URL", validators=[Optional(), URL(), url_ok])
+    url_icon = StringField(
+        "Icon URL",
+        default="https://worldriichileague.com/wrl512.png",
+        validators=[Optional(), URL(), url_ok],
+    )
     google_doc_id = StringField(
         "Google Doc ID", validators=[Optional(), validate_google_doc_id]
     )
@@ -235,12 +248,9 @@ class TournamentForm(FlaskForm):
         "Notify the scorer as soon as the scoresheet has been created",
         default=True,
     )
-    scorer_emails = FieldList(
-        GoogleAccountField(
-            "Additional Scorer Emails",
+    scorer_emails = GoogleAccountField(
+            "Additional Scorer Email",
             validators=[Optional(), Email()],
-        ),
-        min_entries=1,
     )
     use_winds = BooleanField(
         "Use the winds as assigned in the pre-defined seating",
@@ -271,14 +281,11 @@ class TournamentForm(FlaskForm):
         return [template.replace("?", str(i + 1)) for i in range(len(self.round_dates))]
 
     def validate_rules(self, field):
-        if field.data not in ['wrl', 'wro', 'ema', 'other']:
+        if field.data not in ["wrl", "wro", "ema", "other"]:
             raise ValidationError("Invalid rules selected")
 
     def validate_chombo(self, form):
-        chombo = (
-            -30 if form.rules.data in ['wrl', 'wro']
-            else -20
-        )
+        chombo = -30 if form.rules.data in ["wrl", "wro"] else -20
 
 
 class EditTournamentForm(TournamentForm):

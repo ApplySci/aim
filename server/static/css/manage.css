@@ -235,3 +235,96 @@ input[type="submit"]:active {
 .dateTimeStamp {
   font-weight: bold;
 }
+
+/* Google Account Field Styles */
+.google-account-field-wrapper {
+    position: relative;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.google-account-field {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.google-account-field:focus {
+    border-color: #4da6ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(77, 166, 255, 0.2);
+}
+
+.remove-account-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: #ff4d4d;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.remove-account-btn:hover {
+    color: #ff0000;
+}
+
+.add-account-btn {
+    background-color: #4da6ff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 10px 0;
+}
+
+.add-account-btn:hover {
+    background-color: #3399ff;
+}
+
+.google-account-list {
+    margin: 15px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.google-account-list small {
+    display: block;
+    color: #666;
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+/* Error message styling */
+.error {
+    color: #ff4d4d;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Form field labels */
+.google-account-field-wrapper label {
+    min-width: 150px;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .google-account-field-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .google-account-field-wrapper label {
+        margin-bottom: 5px;
+    }
+}

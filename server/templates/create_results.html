@@ -1,4 +1,5 @@
 {% extends "runbase.html" %}
+{% from "partials/google_account_field.html" import google_account_field %}
 
 {% block title %}Create a new tournament{% endblock %}
 
@@ -80,19 +81,8 @@
             {% endfor %}
         </p>
         <fieldset id="scorer-emails">
-            {% for email_field in form.scorer_emails %}
-                <div class="scorer-email-field">
-                    {{ email_field.label }}
-                    {{ email_field(class="form-control", size=30) }}
-                    {% for error in email_field.errors %}
-                        <span class="error">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-            <small>(each must be a google account)</small>
-            <p>
-                <button type="button" id="add-scorer">Add Another Scorer</button>
-            </p>
+            {{ google_account_field(form.scorer_emails, users=all_accounts) }}
+            <button class="add-account-btn">Add Another Scorer</button>
         </fieldset>
         <p>
             {{ form.address.label }}<br>
@@ -154,6 +144,7 @@
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/google_account_field.js') }}"></script>
 <script>
 var hanchanField = document.getElementById('hanchan_name');
 var otherField = document.getElementById('other_name');
@@ -258,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
     set_format_listener();
     hanchanCountField.addEventListener('change', set_datetime_fields);
 
-    document.getElementById('add-scorer').addEventListener('click', function() {
+    document.querySelector('.add-account-btn').addEventListener('click', function() {
         var emailFields = document.getElementById('scorer-emails');
         var newField = emailFields.children[0].cloneNode(true);
         var fieldCount = emailFields.children.length;

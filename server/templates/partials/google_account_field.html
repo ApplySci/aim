@@ -8,26 +8,9 @@
         {% endfor %}
     </datalist>
     {% for error in field.errors %}
-        <span class="error">{{ error }}</span>
+        <span class="error">{{ error }}</span>`
     {% endfor %}
 </div>
-{% endmacro %}
-
-{% macro google_account_list(field_list, add_button_text="Add Another Account", users=None) %}
-<fieldset class="google-account-list" id="google-account-list">
-    <datalist id="google-accounts">
-        {% for user in users %}
-            <option value="{{ user }}">
-        {% endfor %}
-    </datalist>
-    {% for field in field_list %}
-        {{ google_account_field(field, loop.index0, users=users) }}
-    {% endfor %}
-    <small>(each must be a google account)</small>
-    <p>
-        <button type="button" class="add-account-btn">{{ add_button_text }}</button>
-    </p>
-</fieldset>
 {% endmacro %}
 
 {% block head %}

@@ -427,5 +427,7 @@ def delete_user():
 
 def get_all_users():
     db_users = db.session.query(User).all()
-    results = [user.email for user in sorted(db_users, key=lambda x: x.email.lower())]
+    results = [user.email
+               for user in sorted(db_users, key=lambda x: x.email.lower())
+               if "gserviceaccount" not in user.email]
     return results
