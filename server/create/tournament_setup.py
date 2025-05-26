@@ -19,7 +19,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from config import GOOGLE_CLIENT_EMAIL, BASEDIR
+from config import GOOGLE_CLIENT_EMAIL, BASEDIR, SUPERADMIN
 from forms.tournament_forms import TournamentForm
 from models import Access, Tournament, User
 from oauth_setup import db, firestore_client, logging, Role
@@ -100,6 +100,20 @@ def results_create():
         db.session.add(
             Access(current_user.email, tournament=tournament, role=Role.admin)
         )
+        
+        # Ensure SUPERADMIN is always an admin for every tournament
+        if current_user.email.lower() != SUPERADMIN.lower():
+            # Ensure the SUPERADMIN user record exists
+            superadmin_user = db.session.query(User).filter_by(email=SUPERADMIN).first()
+            if not superadmin_user:
+                superadmin_user = User(email=SUPERADMIN)
+                db.session.add(superadmin_user)
+            
+            # Add SUPERADMIN as admin
+            db.session.add(
+                Access(SUPERADMIN, tournament=tournament, role=Role.admin)
+            )
+        
         db.session.commit()
         for email in form.scorer_emails.data:
             if email:  # Only process non-empty email fields

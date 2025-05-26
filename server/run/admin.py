@@ -16,7 +16,7 @@ from flask_login import login_required, current_user
 
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, SUPERADMIN, TEMPLATE_ID
 from models import Tournament, Access, User, PastTournamentData
-from oauth_setup import db, firestore_client, login_required, superadmin_required
+from oauth_setup import db, firestore_client, login_required, superadmin_required, Role
 from operations.archive import update_past_tournaments_json
 from operations.queries import get_past_tournament_summaries
 from write_sheet import googlesheet
@@ -38,6 +38,49 @@ def regenerate_past_tournaments():
         flash("Past tournaments JSON regenerated successfully", "success")
     except Exception as e:
         flash(f"Error regenerating past tournaments JSON: {str(e)}", "error")
+
+    return redirect(url_for("admin.superadmin"))
+
+
+@blueprint.route("/add_superadmin_to_tournaments", methods=["POST"])
+@login_required
+def add_superadmin_to_tournaments():
+    if current_user.email != SUPERADMIN:
+        flash("Unauthorized", "error")
+        return redirect(url_for("admin.superadmin"))
+
+    try:
+        # Ensure the SUPERADMIN user record exists
+        superadmin_user = db.session.query(User).filter_by(email=SUPERADMIN).first()
+        if not superadmin_user:
+            superadmin_user = User(email=SUPERADMIN)
+            db.session.add(superadmin_user)
+            db.session.commit()
+
+        # Get all tournaments
+        tournaments = db.session.query(Tournament).all()
+        added_count = 0
+        
+        for tournament in tournaments:
+            # Check if SUPERADMIN already has access to this tournament
+            existing_access = (
+                db.session.query(Access)
+                .filter_by(user_email=SUPERADMIN, tournament_id=tournament.id)
+                .first()
+            )
+            
+            if not existing_access:
+                # Add SUPERADMIN as admin to this tournament
+                access = Access(SUPERADMIN, tournament=tournament, role=Role.admin)
+                db.session.add(access)
+                added_count += 1
+
+        db.session.commit()
+        flash(f"SUPERADMIN added to {added_count} tournaments successfully", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error adding SUPERADMIN to tournaments: {str(e)}", "error")
 
     return redirect(url_for("admin.superadmin"))
 

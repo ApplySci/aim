@@ -109,13 +109,16 @@
         <tr {% if user.email == current_user_email %}class="current-user"{% endif %}>
             <td>{{ user.email }}</td>
             <td>
-                <select class="role-select" data-email="{{ user.email }}" {% if user.email == current_user_email %}disabled{% endif %}>
+                <select class="role-select" data-email="{{ user.email }}" {% if user.email == current_user_email or user.email == SUPERADMIN %}disabled{% endif %}>
                     <option value="scorer" {% if user.role == 'scorer' %}selected{% endif %}>Scorer</option>
                     <option value="editor" {% if user.role == 'editor' %}selected{% endif %}>Editor</option>
                     {% if is_admin %}
                     <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
                     {% endif %}
                 </select>
+                {% if user.email == SUPERADMIN %}
+                    <small style="color: #666;">(Protected)</small>
+                {% endif %}
             </td>
             <td>{% if user.get('in_db', True) %}<span class="check">✓</span>{% else %}<span class="cross">✗</span>{% endif %}</td>
             <td>{% if user.in_sheet %}<span class="check">✓</span>{% else %}<span class="cross">✗</span>{% endif %}</td>
@@ -127,7 +130,7 @@
                     {% if not user.get('in_db', True) %}
                         <button class="btn btn-add" onclick="fixAccess('{{ user.email }}', 'add_to_db')">+ DB</button>
                     {% endif %}
-                    {% if user.email != current_user_email %}
+                    {% if user.email != current_user_email and user.email != SUPERADMIN %}
                         <button class="btn btn-remove" onclick="fixAccess('{{ user.email }}', 'remove')" title="Remove Access">🗑️</button>
                     {% endif %}
                 {% endif %}

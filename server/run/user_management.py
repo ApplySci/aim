@@ -21,6 +21,7 @@ from oauth_setup import (
 )
 from forms.userform import AddUserForm
 from write_sheet import googlesheet
+from config import SUPERADMIN
 
 blueprint = Blueprint("user_management", __name__)
 
@@ -166,6 +167,7 @@ def add_user_get():
         current_user_email=current_user.email,
         missing_from_sheet=missing_from_sheet,
         missing_from_db=missing_from_db,
+        SUPERADMIN=SUPERADMIN,
     )
 
 
@@ -185,6 +187,15 @@ def update_user_role():
 
     if access:
         try:
+            # Prevent changing SUPERADMIN's role
+            if email.lower() == SUPERADMIN.lower():
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "The superadmin's role cannot be changed",
+                    }
+                )
+            
             # Check if the current user is an admin for this tournament
             is_admin = current_user.live_tournament_role == Role.admin
             # Prevent non-admin users from changing any admin role
@@ -220,6 +231,10 @@ def remove_user_access():
     # Check if the current user is trying to remove themselves
     if email == current_user.email:
         return jsonify({"success": False, "error": "You cannot remove yourself"})
+    
+    # Prevent removal of SUPERADMIN
+    if email.lower() == SUPERADMIN.lower():
+        return jsonify({"success": False, "error": "The superadmin account cannot be removed from tournaments"})
 
     # Check if the current user is an admin for this tournament
     is_admin = current_user.live_tournament_role == Role.admin
@@ -297,6 +312,10 @@ def fix_access():
             return jsonify({"success": False, "error": str(e)})
 
     elif action == "remove":
+        # Prevent removal of SUPERADMIN
+        if email.lower() == SUPERADMIN.lower():
+            return jsonify({"success": False, "error": "The superadmin account cannot be removed from tournaments"})
+        
         db_removed = False
         sheet_removed = False
         error_message = ""
@@ -382,8 +401,12 @@ def sync_access(tournament_id):
         access = Access(email, tournament=tournament, role=Role.scorer)
         db.session.add(access)
 
-    # Remove extra users from the database
+    # Remove extra users from the database (except SUPERADMIN)
     for email in db_emails - sheet_emails:
+        # Never remove SUPERADMIN during sync
+        if email.lower() == SUPERADMIN.lower():
+            continue
+            
         access = (
             db.session.query(Access)
             .filter_by(user_email=email, tournament_id=tournament_id)

@@ -61,3 +61,20 @@ jinja2 templates for the website - both the public pages, and the management pag
 ### ./utils/
 - [`timezones.py`](/server/utils/timezones.py) - return a list of the timezones for a given country
 
+### Configuration Files
+- [`config.py.template`](/server/config.py.template) - Template for main application configuration (copy to `config.py` and fill in your values)
+- [`requirements.txt`](/server/requirements.txt) - Python dependencies with detailed comments
+
+### Database Migrations
+- [`migrations/`](/server/migrations/) - Database migration files (managed by Alembic)
+- [`.server-admin/alembic.ini`](/server/.server-admin/alembic.ini) - Alembic configuration for database migrations
+- [`.server-admin/env.py`](/server/.server-admin/env.py) - Alembic environment setup
+
+### Production/Deployment
+- [`.server-admin/gunicorn.py`](/server/.server-admin/gunicorn.py) - Production gunicorn configuration
+- [`.server-admin/supervisord.conf`](/server/.server-admin/supervisord.conf) - Process management configuration
+- [`.server-admin/start`, `.server-admin/stop`, `.server-admin/kill`](/server/.server-admin/) - Server management scripts
+
+### Development Helpers
+- [`run.cmd`](/server/run.cmd), [`debug.cmd`](/server/debug.cmd) - Windows batch files for development server
+

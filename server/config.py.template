@@ -4,6 +4,7 @@ copy this file to config.py and replace the curly brackets and their contents,
 with your actual values
 """
 # config.py
+SUPERADMIN="{google account}"
 GOOGLE_CLIENT_ID = '{from google}'
 GOOGLE_CLIENT_SECRET = '{also from google}'
 SECRET_KEY = '{you set this yourself, it is unique to your app}'
