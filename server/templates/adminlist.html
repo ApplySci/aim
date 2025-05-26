@@ -17,6 +17,13 @@
         Regenerate Past Tournaments JSON
     </button>
 </form>
+
+<form action="{{ url_for('admin.add_superadmin_to_tournaments') }}" method="POST">
+    <button type="submit" id="addSuperadminBtn" class="btn btn-info mb-3" 
+            onclick="return confirm('This will add the SUPERADMIN account as an admin to all tournaments that don\'t already have it. Continue?')">
+        Add SUPERADMIN to All Tournaments
+    </button>
+</form>
 {% endif %}
 
 {% if docs %}
