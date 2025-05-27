@@ -11,7 +11,7 @@ from functools import wraps
 import os
 import shutil
 
-from flask import abort, Blueprint, flash, jsonify, redirect, render_template, url_for
+from flask import abort, Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required, current_user
 
 from config import GOOGLE_CLIENT_EMAIL, OUR_EMAILS, SUPERADMIN, TEMPLATE_ID
@@ -19,6 +19,12 @@ from models import Tournament, Access, User, PastTournamentData
 from oauth_setup import db, firestore_client, login_required, superadmin_required, Role
 from operations.archive import update_past_tournaments_json
 from operations.queries import get_past_tournament_summaries
+from operations.firebase_backup import (
+    create_firebase_backup, 
+    restore_firebase_backup, 
+    list_backup_files, 
+    delete_backup_file
+)
 from write_sheet import googlesheet
 
 
@@ -175,12 +181,85 @@ def superadmin():
             .all()
         )
 
+        # Get backup files
+        backup_files = list_backup_files()
+
         return render_template(
             "adminlist.html",
             docs=our_docs,
+            tournaments=active_tournaments,  # Keep the original variable name for compatibility
             active_tournaments=active_tournaments,
             archived_tournaments=archived_tournaments,
             users_without_access=users_without_access,
+            backup_files=backup_files,
         )
     except Exception as e:
         return f"Error listing sheets: {str(e)}", 500
+
+
+@blueprint.route("/admin/backup_firebase", methods=["POST"])
+@superadmin_required
+@login_required
+def backup_firebase():
+    """Create a backup of the Firebase Firestore database"""
+    try:
+        backup_path = create_firebase_backup()
+        flash(f"Firebase backup created successfully: {os.path.basename(backup_path)}", "success")
+    except Exception as e:
+        flash(f"Error creating Firebase backup: {str(e)}", "error")
+    
+    return redirect(url_for("admin.superadmin"))
+
+
+@blueprint.route("/admin/restore_firebase", methods=["POST"])
+@superadmin_required
+@login_required
+def restore_firebase():
+    """Restore Firebase Firestore database from a backup file"""
+    backup_filename = request.form.get("backup_filename")
+    confirm = request.form.get("confirm_restore") == "true"
+    
+    if not backup_filename:
+        flash("No backup file selected", "error")
+        return redirect(url_for("admin.superadmin"))
+    
+    if not confirm:
+        flash("Restore operation requires confirmation", "error")
+        return redirect(url_for("admin.superadmin"))
+    
+    try:
+        from operations.firebase_backup import BACKUP_DIR
+        backup_path = os.path.join(BACKUP_DIR, backup_filename)
+        
+        success = restore_firebase_backup(backup_path, confirm_restore=True)
+        if success:
+            flash(f"Firebase database restored successfully from: {backup_filename}", "success")
+        else:
+            flash("Firebase restore failed", "error")
+    except Exception as e:
+        flash(f"Error restoring Firebase backup: {str(e)}", "error")
+    
+    return redirect(url_for("admin.superadmin"))
+
+
+@blueprint.route("/admin/delete_backup", methods=["POST"])
+@superadmin_required
+@login_required
+def delete_backup():
+    """Delete a backup file"""
+    backup_filename = request.form.get("backup_filename")
+    
+    if not backup_filename:
+        flash("No backup file specified", "error")
+        return redirect(url_for("admin.superadmin"))
+    
+    try:
+        success = delete_backup_file(backup_filename)
+        if success:
+            flash(f"Backup file deleted: {backup_filename}", "success")
+        else:
+            flash(f"Failed to delete backup file: {backup_filename}", "error")
+    except Exception as e:
+        flash(f"Error deleting backup file: {str(e)}", "error")
+    
+    return redirect(url_for("admin.superadmin"))

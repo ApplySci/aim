@@ -63,6 +63,73 @@
 <a target="_blank"
 href='https://console.firebase.google.com/u/0/project/org-worldriichi-tournament/firestore/databases/-default-/data/~2Ftournaments'
 >Database console - opens in new window</a>
+
+{% if current_user.email == SUPERADMIN %}
+<div class="firebase-backup-section mt-4">
+    <h3>Firebase Database Backup & Restore</h3>
+    
+    <!-- Create Backup -->
+    <form action="{{ url_for('admin.backup_firebase') }}" method="POST" class="mb-3">
+        <button type="submit" id="createBackupBtn" class="btn btn-success" 
+                onclick="return confirm('This will create a backup of the entire Firebase database. This may take a few minutes. Continue?')">
+            🗄️ Create Firebase Backup
+        </button>
+    </form>
+    
+    <!-- List of Backup Files -->
+    {% if backup_files %}
+    <div class="backup-files">
+        <h4>Available Backup Files</h4>
+        <table class="backup-table">
+            <thead>
+                <tr>
+                    <th>Backup File</th>
+                    <th>Created</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backup_files %}
+                <tr>
+                    <td>{{ backup.filename }}</td>
+                    <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ "%.1f"|format(backup.size / 1024 / 1024) }} MB</td>
+                    <td>
+                        <button onclick="showRestoreModal('{{ backup.filename }}')" class="btn btn-warning btn-sm">
+                            🔄 Restore
+                        </button>
+                        <button onclick="deleteBackup('{{ backup.filename }}')" class="btn btn-danger btn-sm">
+                            🗑️ Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No backup files found.</p>
+    {% endif %}
+</div>
+
+<!-- Restore Confirmation Modal -->
+<div id="restoreModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h4>⚠️ Confirm Database Restore</h4>
+        <p><strong>WARNING:</strong> This will completely replace the current Firebase database with the backup data. This action cannot be undone!</p>
+        <p>Backup file: <span id="restoreFilename"></span></p>
+        <form id="restoreForm" action="{{ url_for('admin.restore_firebase') }}" method="POST">
+            <input type="hidden" name="backup_filename" id="restoreBackupFilename">
+            <input type="hidden" name="confirm_restore" value="true">
+            <div class="modal-buttons">
+                <button type="button" onclick="hideRestoreModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Restore Database</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 </section>
 
 {% if users_without_access %}
@@ -190,6 +257,42 @@ function deleteUser(email) {
         });
     }
 }
+
+// Backup and Restore Functions
+function showRestoreModal(filename) {
+    document.getElementById('restoreFilename').textContent = filename;
+    document.getElementById('restoreBackupFilename').value = filename;
+    document.getElementById('restoreModal').style.display = 'block';
+}
+
+function hideRestoreModal() {
+    document.getElementById('restoreModal').style.display = 'none';
+}
+
+function deleteBackup(filename) {
+    if (confirm(`Are you sure you want to delete the backup file "${filename}"? This action cannot be undone.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('admin.delete_backup') }}";
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'backup_filename';
+        input.value = filename;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('restoreModal');
+    if (event.target == modal) {
+        hideRestoreModal();
+    }
+}
 </script>
 
 <style>
@@ -218,6 +321,108 @@ function deleteUser(email) {
     }
     .btn-danger:hover {
         background-color: #ff3333;
+    }
+    
+    /* Backup and Restore Styles */
+    .firebase-backup-section {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        margin-top: 20px;
+    }
+    
+    .backup-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .backup-table th, .backup-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    
+    .backup-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    
+    .backup-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+    }
+    
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .btn-warning:hover {
+        background-color: #e0a800;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 5px;
+        width: 80%;
+        max-width: 500px;
+    }
+    
+    .modal-buttons {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    .modal-buttons button {
+        margin-left: 10px;
     }
 </style>
 {% endblock %}
