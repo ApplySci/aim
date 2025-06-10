@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from models import Tournament
 
 def tournament_to_summary(tournament: Tournament) -> dict:
@@ -19,9 +20,35 @@ def tournament_to_summary(tournament: Tournament) -> dict:
     }
 
 def tournaments_to_summaries(tournaments: list[Tournament]) -> list[dict]:
-    """Convert a list of tournaments to their summary representations"""
-    return [
+    """Convert a list of tournaments to their summary representations, sorted by start date (most recent first)"""
+    summaries = [
         tournament_to_summary(t)
         for t in tournaments
         if t.past_data
-    ] 
+    ]
+    
+    # Sort by start_date in descending order (most recent first)
+    # Handle cases where start_date might be None or in different formats
+    def get_sort_key(summary):
+        start_date = summary.get("start_date")
+        if not start_date:
+            return datetime.min  # Put tournaments without dates at the end
+        
+        # Handle both string and datetime formats
+        if isinstance(start_date, str):
+            try:
+                # Try parsing ISO format first
+                return datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                try:
+                    # Try other common formats if needed
+                    return datetime.strptime(start_date, "%Y-%m-%d")
+                except ValueError:
+                    return datetime.min
+        elif hasattr(start_date, 'year'):  # datetime-like object
+            return start_date
+        else:
+            return datetime.min
+    
+    summaries.sort(key=get_sort_key, reverse=True)
+    return summaries
