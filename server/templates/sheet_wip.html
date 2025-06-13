@@ -52,14 +52,22 @@ function get_sheet_copy() {
     let timestamp = new Date().getTime();
     xhr.timeout = 60000; // 60 seconds
     xhr.open("GET", "{{ url_for('create.get_their_copy')}}?t=" + timestamp, true);
+    
     xhr.onload = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
                 if (sheetwip_timer != undefined) {
                     clearTimeout(sheetwip_timer);
                 }
-                var docs = JSON.parse(xhr.responseText);
-                list_sheets(docs);
+                try {
+                    var docs = JSON.parse(xhr.responseText);
+                    list_sheets(docs);
+                } catch (e) {
+                    console.error("Error parsing JSON response:", e);
+                    document.getElementById('doclist').innerHTML =
+                        `<p>Error processing server response. Please try again.</p>
+                        <p><button onclick="get_sheet_copy()">Try Again</button></p>`;
+                }
             } else if (xhr.status == 204) {
                 document.getElementById('doclist').innerHTML =
   `<p>The only google sheets that we can see, belong to us.
@@ -69,9 +77,29 @@ function get_sheet_copy() {
   change in permissions.</p>
   <p><button onclick="get_sheet_copy()">I have now given you read permissions</button>
   </p>`
+            } else {
+                console.error("Unexpected HTTP status:", xhr.status);
+                document.getElementById('doclist').innerHTML =
+                    `<p>Server returned an unexpected response (${xhr.status}). Please try again.</p>
+                    <p><button onclick="get_sheet_copy()">Try Again</button></p>`;
             }
         }
-    }
+    };
+    
+    xhr.onerror = function() {
+        console.error("Network error occurred while checking for sheet copy");
+        document.getElementById('doclist').innerHTML =
+            `<p>Network error occurred. Please check your connection and try again.</p>
+            <p><button onclick="get_sheet_copy()">Try Again</button></p>`;
+    };
+    
+    xhr.ontimeout = function() {
+        console.error("Request timed out while checking for sheet copy");
+        document.getElementById('doclist').innerHTML =
+            `<p>Request timed out. The server may be busy. Please try again.</p>
+            <p><button onclick="get_sheet_copy()">Try Again</button></p>`;
+    };
+    
     xhr.send();
 }
 

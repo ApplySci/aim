@@ -32,6 +32,28 @@ blueprint = Blueprint("create", __name__)
 messages_by_user = {}
 
 
+def extract_scorer_emails_from_request(form, request):
+    """Extract all scorer emails from form data, including dynamically added fields."""
+    scorer_emails = []
+    
+    # Get the main scorer_emails field
+    if form.scorer_emails.data and form.scorer_emails.data.strip():
+        scorer_emails.append(form.scorer_emails.data.strip())
+    
+    # Get dynamically added scorer email fields
+    for key, value in request.form.items():
+        if key.startswith('scorer_emails-') and value and value.strip():
+            scorer_emails.append(value.strip())
+    
+    # Filter out invalid emails and deduplicate
+    valid_emails = []
+    for email in scorer_emails:
+        if email and email != '.' and email not in valid_emails:
+            valid_emails.append(email)
+    
+    return valid_emails
+
+
 @blueprint.route("/create/")
 def index():
     if current_user.is_authenticated:
@@ -115,13 +137,18 @@ def results_create():
             )
         
         db.session.commit()
-        for email in form.scorer_emails.data:
-            if email:  # Only process non-empty email fields
-                scorer = db.session.query(User).filter_by(email=email).first()
-                if scorer is None:
-                    scorer = User(email=email)
-                    db.session.add(scorer)
-                db.session.add(Access(email, tournament=tournament, role=Role.scorer))
+        
+        # Extract scorer emails once using helper function
+        scorer_emails = extract_scorer_emails_from_request(form, request)
+        
+        # Process scorer emails for database access
+        for email in scorer_emails:
+            scorer = db.session.query(User).filter_by(email=email).first()
+            if scorer is None:
+                scorer = User(email=email)
+                db.session.add(scorer)
+            db.session.add(Access(email, tournament=tournament, role=Role.scorer))
+        
         db.session.commit()
         base_dir = tournament.full_web_directory
         os.makedirs(base_dir, exist_ok=True)
@@ -150,7 +177,7 @@ def results_create():
                 hanchan_count=hanchan_count,
                 title=form.title.data,
                 owner=owner,
-                scorers=[email.data for email in form.scorer_emails if email.data],
+                scorers=scorer_emails,  # Use the extracted list instead of trying to iterate over form field
                 notify=form.notify.data,
                 timezone=form.timezone.data,
                 start_times=start_times,
