@@ -22,6 +22,7 @@ from flask import (
     request,
     jsonify,
     make_response,
+    abort,
 )
 from flask_login import login_required, current_user
 
@@ -88,10 +89,12 @@ def select_tournament():
 
 
 @login_required
-def _ranking_to_web(scores, games, players, done, schedule):
+def _ranking_to_web(scores, games, players, done, schedule, tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
     items = list(scores.items())
     sorted_scores = sorted(items, key=lambda item: item[1]["r"])  # sort by rank
-    title = current_user.live_tournament.title
+    title = tournament.title
     if done > 0:
         roundName = f"Scores after {schedule['rounds'][done-1]['name']}"
     else:
@@ -107,9 +110,9 @@ def _ranking_to_web(scores, games, players, done, schedule):
         round_name=roundName,
         next_roundname=nextName,
         players=players,
-        webroot=webroot(),
+        webroot=webroot(tournament),
     )
-    fn = os.path.join(current_user.live_tournament.full_web_directory, "projector.html")
+    fn = os.path.join(tournament.full_web_directory, "projector.html")
     with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -133,12 +136,12 @@ def _ranking_to_web(scores, games, players, done, schedule):
             scores=sorted_scores,
             round_name=roundName,
             players=players,
-            webroot=webroot(),
+            webroot=webroot(tournament),
             roundNames=_round_names(schedule),
             done=done,
             games=scores_by_player,
         )
-    fn = os.path.join(current_user.live_tournament.full_web_directory, "ranking.html")
+    fn = os.path.join(tournament.full_web_directory, "ranking.html")
     with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -225,16 +228,44 @@ def update_tournament_status():
 
 
 @login_required
-def _get_sheet():
-    sheet_id = current_user.live_tournament.google_doc_id
+def _get_tournament_from_id(tournament_id):
+    """Helper function to get tournament object from ID with permission checking"""
+    if tournament_id is not None:
+        # Check tournament access permission
+        from models import Access, Tournament
+        access = (
+            db.session.query(Access)
+            .filter_by(user_email=current_user.email, tournament_id=tournament_id)
+            .first()
+        )
+        if not access:
+            abort(403, description="You don't have permission to access this tournament")
+        
+        tournament = db.session.query(Tournament).get(tournament_id)
+        if not tournament:
+            abort(404, description="Tournament not found")
+        return tournament
+    else:
+        # Use live tournament for legacy URL
+        return None
+
+
+@login_required
+def _get_sheet(tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
+    sheet_id = tournament.google_doc_id
     return googlesheet.get_sheet(sheet_id)
 
 
 @blueprint.route("/update_schedule")
+@blueprint.route("/tournament/<int:tournament_id>/update_schedule")
 @wrap_and_catch
 @login_required
-def update_schedule():
-    sheet = _get_sheet()
+def update_schedule(tournament_id=None):
+    tournament = _get_tournament_from_id(tournament_id)
+
+    sheet = _get_sheet(tournament)
     schedule: dict = googlesheet.get_schedule(sheet)
     seating = _seating_to_map(sheet, schedule)
     _save_to_cloud(
@@ -243,12 +274,13 @@ def update_schedule():
             "rounds": seating,
             "timezone": schedule["timezone"],
         },
+        tournament=tournament,
     )
-    _seating_to_web(sheet=sheet, seating=seating)
+    _seating_to_web(sheet=sheet, seating=seating, tournament=tournament)
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("seating & schedule updated", "seating")
+        _send_messages("seating & schedule updated", "seating", tournament=tournament)
         return (
             jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
             200,
@@ -261,58 +293,65 @@ def update_schedule():
 
 
 @login_required
-def _seating_to_web(sheet, seating):
+def _seating_to_web(sheet, seating, tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
     done: int = googlesheet.count_completed_hanchan(sheet)
-    players = _get_players(sheet, False)
+    players = _get_players(sheet, False, tournament)
     schedule: dict = googlesheet.get_schedule(sheet)
 
     # Get tournament data from Firestore
     tournament_ref = firestore_client.collection("tournaments").document(
-        current_user.live_tournament.firebase_doc
+        tournament.firebase_doc
     )
     tournament_data = tournament_ref.get().to_dict()
 
     html: str = render_template(
         "seating.html",
         done=done,
-        title=current_user.live_tournament.title,
+        title=tournament.title,
         seating=seating,
         schedule=schedule,
         players=players,
         roundNames=_round_names(schedule),
         use_winds=tournament_data.get("use_winds", False),
     )
-    fn = os.path.join(current_user.live_tournament.full_web_directory, "seating.html")
+    fn = os.path.join(tournament.full_web_directory, "seating.html")
     with open(fn, "w", encoding="utf-8") as f:
         f.write(html)
     return "Seating published on web", 200
 
 
 @blueprint.route("/update_players")
+@blueprint.route("/tournament/<int:tournament_id>/update_players")
 @wrap_and_catch
 @login_required
-def update_players():
-    sheet = _get_sheet()
-    _get_players(sheet, True)
+def update_players(tournament_id=None):
+    tournament = _get_tournament_from_id(tournament_id)
+
+    sheet = _get_sheet(tournament)
+    _get_players(sheet, True, tournament)
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"
     if send_notifications:
-        _send_messages("player list updated", "players")
+        _send_messages("player list updated", "players", tournament=tournament)
         return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
     else:
         return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
 
 
 @login_required
-def _send_messages(msg: str, notification_type: str):
-    firebase_id = current_user.live_tournament.firebase_doc
+def _send_messages(msg: str, notification_type: str, tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
+    firebase_id = tournament.firebase_doc
     _send_topic_fcm(
-        firebase_id, msg, current_user.live_tournament.title, notification_type
+        firebase_id, msg, tournament.title, notification_type
     )
 
 
 @login_required
-def _message_player_topics(scores: dict, done: int, players):
+def _message_player_topics(scores: dict, done: int, players, tournament=None):
     """
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
@@ -320,7 +359,9 @@ def _message_player_topics(scores: dict, done: int, players):
     if done == 0:
         return
 
-    firebase_id = current_user.live_tournament.firebase_doc
+    if tournament is None:
+        tournament = current_user.live_tournament
+    firebase_id = tournament.firebase_doc
 
     # Send general tournament update notification
     topic = f"{firebase_id}-"
@@ -334,7 +375,7 @@ def _message_player_topics(scores: dict, done: int, players):
         )
 
     # Get the player map with registration IDs
-    raw_players = googlesheet.get_players(_get_sheet())
+    raw_players = googlesheet.get_players(_get_sheet(tournament))
     reg_id_map = {
         p[0]: p[1] for p in raw_players if p[0] != ""
     }  # map seating_id to registration_id
@@ -389,8 +430,10 @@ def _get_one_round_results(sheet, rnd: int):
     return {f"{rnd}": tables}
 
 
-def webroot():
-    return f"/static/{current_user.live_tournament.web_directory}/"
+def webroot(tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
+    return f"/static/{tournament.web_directory}/"
 
 
 def _round_names(schedule):
@@ -401,10 +444,12 @@ def _round_names(schedule):
 
 
 @login_required
-def _games_to_web(games, schedule, players):
+def _games_to_web(games, schedule, players, tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
     roundNames = _round_names(schedule)
     player_dir = os.path.join(
-        current_user.live_tournament.full_web_directory,
+        tournament.full_web_directory,
         "players",
     )
 
@@ -431,9 +476,9 @@ def _games_to_web(games, schedule, players):
                 players=players,
                 roundNames=roundNames,
                 done=len(games),
-                webroot=webroot(),
+                webroot=webroot(tournament),
                 pid=pid,
-                title=current_user.live_tournament.title,
+                title=tournament.title,
             )
 
             fn = os.path.join(player_dir, f"{pid}.html")
@@ -447,7 +492,7 @@ def _games_to_web(games, schedule, players):
     # =======================================================
 
     round_dir = os.path.join(
-        current_user.live_tournament.full_web_directory,
+        tournament.full_web_directory,
         "rounds",
     )
 
@@ -463,8 +508,8 @@ def _games_to_web(games, schedule, players):
             roundNames=roundNames,
             done=len(games),
             roundname=roundNames[r],
-            webroot=webroot(),
-            title=current_user.live_tournament.title,
+            webroot=webroot(tournament),
+            title=tournament.title,
         )
 
         fn = os.path.join(round_dir, f"{r}.html")
@@ -475,8 +520,11 @@ def _games_to_web(games, schedule, players):
 
 
 @blueprint.route("/get_results")
+@blueprint.route("/tournament/<int:tournament_id>/get_results")
 @login_required
-def update_ranking_and_scores():
+def update_ranking_and_scores(tournament_id=None):
+    tournament = _get_tournament_from_id(tournament_id)
+
     send_notifications = request.args.get("sendNotifications", "true") == "true"
 
     # Create a unique job ID
@@ -485,16 +533,16 @@ def update_ranking_and_scores():
     @copy_current_request_context
     def _finish_sheet_to_cloud():
         try:
-            sheet = _get_sheet()
+            sheet = _get_sheet(tournament)
             schedule: dict = googlesheet.get_schedule(sheet)
             done: int = googlesheet.count_completed_hanchan(sheet)
-            ranking = _ranking_to_cloud(sheet, done)
-            players = _get_players(sheet, False)
-            games = _games_to_cloud(sheet, done, players)
-            _games_to_web(games, schedule, players)
-            _ranking_to_web(ranking, games, players, done, schedule)
+            ranking = _ranking_to_cloud(sheet, done, tournament)
+            players = _get_players(sheet, False, tournament)
+            games = _games_to_cloud(sheet, done, players, tournament)
+            _games_to_web(games, schedule, players, tournament)
+            _ranking_to_web(ranking, games, players, done, schedule, tournament)
             if send_notifications:
-                _message_player_topics(ranking, done, players)
+                _message_player_topics(ranking, done, players, tournament)
 
             # Store completion status
             _store_job_status(job_id, "Scores updated successfully")
@@ -536,7 +584,7 @@ job_statuses = {}
 
 
 @login_required
-def _games_to_cloud(sheet, done: int, players):
+def _games_to_cloud(sheet, done: int, players, tournament=None):
     results = {}
     for this_round in range(1, done + 1):
         one = _get_one_round_results(sheet, this_round)
@@ -560,12 +608,12 @@ def _games_to_cloud(sheet, done: int, players):
         if missing:
             cleaned_scores[r]["missing"] = missing
 
-    _save_to_cloud("scores", cleaned_scores, force_set=True)
+    _save_to_cloud("scores", cleaned_scores, force_set=True, tournament=tournament)
     return results
 
 
 @login_required
-def _ranking_to_cloud(sheet, done: int) -> dict:
+def _ranking_to_cloud(sheet, done: int, tournament=None) -> dict:
     results = googlesheet.get_results(sheet)
     body = results[1:]
     body.sort(key=lambda x: -x[3])  # sort by descending cumulative score
@@ -588,12 +636,12 @@ def _ranking_to_cloud(sheet, done: int) -> dict:
         }
 
     round_index: str = f"{done}"
-    _save_to_cloud("ranking", {round_index: all_scores, "roundDone": round_index})
+    _save_to_cloud("ranking", {round_index: all_scores, "roundDone": round_index}, tournament=tournament)
     return all_scores
 
 
 @login_required
-def _get_players(sheet, to_cloud=True):
+def _get_players(sheet, to_cloud=True, tournament=None):
     raw: list[list] = googlesheet.get_players(sheet)
     players = []
     player_map = {}
@@ -618,7 +666,7 @@ def _get_players(sheet, to_cloud=True):
                 }
             )
     if to_cloud:
-        _save_to_cloud("players", {"players": players})
+        _save_to_cloud("players", {"players": players}, tournament=tournament)
     return player_map
 
 
@@ -650,9 +698,10 @@ def _seating_to_map(sheet, schedule):
     return seating
 
 
-def _save_to_archive(document: str, data: dict, force_set=False):
+def _save_to_archive(document: str, data: dict, force_set=False, tournament=None):
     # For past tournaments, save to local database
-    tournament = current_user.live_tournament
+    if tournament is None:
+        tournament = current_user.live_tournament
     if not tournament.past_data:
         return False
 
@@ -674,11 +723,12 @@ def _save_to_archive(document: str, data: dict, force_set=False):
 
 
 @login_required
-def _save_to_cloud(document: str, data: dict, force_set=False):
-    tournament = current_user.live_tournament
+def _save_to_cloud(document: str, data: dict, force_set=False, tournament=None):
+    if tournament is None:
+        tournament = current_user.live_tournament
 
     if tournament.status == "past":
-        return _save_to_archive(document, data, force_set)
+        return _save_to_archive(document, data, force_set, tournament)
 
     # For live tournaments, continue using Firebase
     firebase_id: str = tournament.firebase_doc
