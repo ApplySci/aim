@@ -50,7 +50,7 @@ android {
 
     defaultConfig {
         applicationId "org.worldriichi.tournament"
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 23 // flutter.minSdkVersion
         multiDexEnabled true
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
