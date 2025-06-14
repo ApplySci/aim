@@ -260,7 +260,7 @@ class GSP:
         sheetname_to_copy = template.id
         for r in range(1, hanchan_count + 1):
             sheet = self.live_sheet.duplicate_sheet(
-                sheetname_to_copy, 6, new_sheet_name=f"R{r}"
+                sheetname_to_copy, 7, new_sheet_name=f"R{r}"
             )
             # update cell B1 with the round number
             sheet.update([[r]], range_name="B1", raw=False)
@@ -709,6 +709,46 @@ class GSP:
         # Get unique table numbers from second column
         tables = {int(row[1]) for row in seating[1:] if row[1]}
         return max(tables) if tables else 0
+
+    def update_hyperlinks_with_tournament_id(
+        self, sheet_id: str, tournament_id: int
+    ) -> None:
+        """
+        Update hyperlinks in specific cells, replacing 'TID' with the actual tournament_id.
+
+        Args:
+            sheet_id: The Google Sheet ID
+            tournament_id: The tournament ID to replace 'TID' with
+        """
+        try:
+            sheet = self.get_sheet(sheet_id)
+
+            # Define the cells to update
+            cells_to_update = [
+                ("players", "F1"),
+                ("GO LIVE", "F11"),
+                ("schedule", "F1"),
+            ]
+
+            for worksheet_name, cell_address in cells_to_update:
+                try:
+                    worksheet = sheet.worksheet(worksheet_name)
+                    cell_formula = worksheet.acell(
+                        cell_address, value_render_option="FORMULA"
+                    )
+                    updated_formula = cell_formula.value.replace(
+                        "/TID/", f"/{tournament_id}/"
+                    )
+                    worksheet.update_cell(
+                        cell_formula.row, cell_formula.col, updated_formula
+                    )
+                except Exception as e:
+                    logging.warning(
+                        f"Failed to update hyperlink in {worksheet_name}!{cell_address}: {str(e)}"
+                    )
+
+        except Exception as e:
+            logging.error(f"Failed to update hyperlinks for sheet {sheet_id}: {str(e)}")
 
 
 googlesheet = GSP()

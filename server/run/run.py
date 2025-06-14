@@ -193,7 +193,7 @@ def run_tournament():
         expected_status = "past"
 
     current_status = tournament.status
-    status_mismatch = current_status != expected_status  and current_status != 'test'
+    status_mismatch = current_status != expected_status and current_status != "test"
 
     return render_template(
         "run_tournament.html",
@@ -233,21 +233,24 @@ def _get_tournament_from_id(tournament_id):
     if tournament_id is not None:
         # Check tournament access permission
         from models import Access, Tournament
+
         access = (
             db.session.query(Access)
             .filter_by(user_email=current_user.email, tournament_id=tournament_id)
             .first()
         )
         if not access:
-            abort(403, description="You don't have permission to access this tournament")
-        
+            abort(
+                403, description="You don't have permission to access this tournament"
+            )
+
         tournament = db.session.query(Tournament).get(tournament_id)
         if not tournament:
             abort(404, description="Tournament not found")
         return tournament
     else:
         # Use live tournament for legacy URL
-        return None
+        return current_user.live_tournament
 
 
 @login_required
@@ -345,9 +348,7 @@ def _send_messages(msg: str, notification_type: str, tournament=None):
     if tournament is None:
         tournament = current_user.live_tournament
     firebase_id = tournament.firebase_doc
-    _send_topic_fcm(
-        firebase_id, msg, tournament.title, notification_type
-    )
+    _send_topic_fcm(firebase_id, msg, tournament.title, notification_type)
 
 
 @login_required
@@ -636,7 +637,11 @@ def _ranking_to_cloud(sheet, done: int, tournament=None) -> dict:
         }
 
     round_index: str = f"{done}"
-    _save_to_cloud("ranking", {round_index: all_scores, "roundDone": round_index}, tournament=tournament)
+    _save_to_cloud(
+        "ranking",
+        {round_index: all_scores, "roundDone": round_index},
+        tournament=tournament,
+    )
     return all_scores
 
 

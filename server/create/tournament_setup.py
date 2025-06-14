@@ -35,22 +35,22 @@ messages_by_user = {}
 def extract_scorer_emails_from_request(form, request):
     """Extract all scorer emails from form data, including dynamically added fields."""
     scorer_emails = []
-    
+
     # Get the main scorer_emails field
     if form.scorer_emails.data and form.scorer_emails.data.strip():
         scorer_emails.append(form.scorer_emails.data.strip())
-    
+
     # Get dynamically added scorer email fields
     for key, value in request.form.items():
-        if key.startswith('scorer_emails-') and value and value.strip():
+        if key.startswith("scorer_emails-") and value and value.strip():
             scorer_emails.append(value.strip())
-    
+
     # Filter out invalid emails and deduplicate
     valid_emails = []
     for email in scorer_emails:
-        if email and email != '.' and email not in valid_emails:
+        if email and email != "." and email not in valid_emails:
             valid_emails.append(email)
-    
+
     return valid_emails
 
 
@@ -122,7 +122,7 @@ def results_create():
         db.session.add(
             Access(current_user.email, tournament=tournament, role=Role.admin)
         )
-        
+
         # Ensure SUPERADMIN is always an admin for every tournament
         if current_user.email.lower() != SUPERADMIN.lower():
             # Ensure the SUPERADMIN user record exists
@@ -130,17 +130,15 @@ def results_create():
             if not superadmin_user:
                 superadmin_user = User(email=SUPERADMIN)
                 db.session.add(superadmin_user)
-            
+
             # Add SUPERADMIN as admin
-            db.session.add(
-                Access(SUPERADMIN, tournament=tournament, role=Role.admin)
-            )
-        
+            db.session.add(Access(SUPERADMIN, tournament=tournament, role=Role.admin))
+
         db.session.commit()
-        
+
         # Extract scorer emails once using helper function
         scorer_emails = extract_scorer_emails_from_request(form, request)
-        
+
         # Process scorer emails for database access
         for email in scorer_emails:
             scorer = db.session.query(User).filter_by(email=email).first()
@@ -148,7 +146,7 @@ def results_create():
                 scorer = User(email=email)
                 db.session.add(scorer)
             db.session.add(Access(email, tournament=tournament, role=Role.scorer))
-        
+
         db.session.commit()
         base_dir = tournament.full_web_directory
         os.makedirs(base_dir, exist_ok=True)
@@ -189,6 +187,10 @@ def results_create():
             current_user.live_tournament.google_doc_id = sheet_id
             db.session.commit()
 
+            # Update hyperlinks in the Google Sheet with the actual tournament_id
+            tournament_id = current_user.live_tournament.id
+            googlesheet.update_hyperlinks_with_tournament_id(sheet_id, tournament_id)
+
         thread = threading.Thread(target=make_sheet)
         thread.start()
         return redirect(url_for("create.select_sheet"))
@@ -216,9 +218,9 @@ def results_create():
         form.timezone.choices = [(tz, tz) for tz in initial_timezones]
 
     return render_template(
-        "create_results.html", 
-        form=form, 
-        round_labels=round_labels, 
+        "create_results.html",
+        form=form,
+        round_labels=round_labels,
         zip=zip_longest,
         all_accounts=get_all_users(),
     )
