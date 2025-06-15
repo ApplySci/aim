@@ -15,6 +15,7 @@ class Seating extends ConsumerWidget {
     final filtered = ref.watch(filterByPlayerProvider.select((e) => e != null));
     final info = ref.watch(tournamentInfoProvider).valueOrNull;
     final status = info?.status ?? WhenTournament.upcoming;
+    final hasSeatingData = ref.watch(seatingProvider).valueOrNull?.isNotEmpty ?? false;
 
     final Widget allToggle = SwitchListTile(
       title: const Text(
@@ -27,21 +28,41 @@ class Seating extends ConsumerWidget {
           .state = value,
     );
 
-    return(status == WhenTournament.live)
-      ? TabScaffold(
-          title: const Text('Seating'),
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Past'),
-          ],
-          children: [
-            const ScheduleList(when: When.upcoming),
-            const ScheduleList(when: When.past),
-          ],
-        )
-      : Column(children: [
-          const Expanded(child: ScheduleList(when: When.all)),
-          if (filtered) allToggle,
-      ]);
+    return (status == WhenTournament.live)
+        ? DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                TabBar(
+                  tabs: const [
+                    Tab(text: 'Upcoming'),
+                    Tab(text: 'Past'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      Column(
+                        children: [
+                          const Expanded(child: ScheduleList(when: When.upcoming)),
+                          if (hasSeatingData && (filtered || !showAll)) allToggle,
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          const Expanded(child: ScheduleList(when: When.past)),
+                          if (hasSeatingData && (filtered || !showAll)) allToggle,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Column(children: [
+            const Expanded(child: ScheduleList(when: When.all)),
+            if (hasSeatingData && (filtered || !showAll)) allToggle,
+          ]);
   }
 }
