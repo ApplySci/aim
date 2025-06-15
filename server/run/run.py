@@ -165,6 +165,9 @@ def _ranking_to_web(scores, games, players, done, schedule, tournament=None):
         rs = str(r)
         for t in games[rs]:
             for idx, line in games[rs][t].items():
+                # Skip entries where player_id is None or empty
+                if line[0] is None or line[0] == "":
+                    continue
                 p = int(line[0])  # Ensure integer key for consistency
                 if p not in scores_by_player:
                     scores_by_player[p] = {}
