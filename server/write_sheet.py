@@ -65,61 +65,6 @@ class GSP:
         """
         return live.worksheet("schedule").get()[1:]
 
-    def get_schedule(self, live: gspread.spreadsheet.Spreadsheet) -> list:
-        """
-        get the timezone, the local start times, and the names of all the rounds.
-        Convert all the datetimes to UTC, and standard ISO format
-        """
-        vals: list = self.get_raw_schedule(live)
-        timezone_string = vals[0][2]
-        tz = ZoneInfo(timezone_string)
-        vals = vals[2:]  # throw away the headers
-        schedule: dict = {"timezone": timezone_string, "rounds": []}
-        for i in range(0, len(vals)):
-            thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
-            utc_dt = thisDatetime.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
-            schedule["rounds"].append(
-                {
-                    "id": vals[i][0],
-                    "name": vals[i][1],
-                    "start": utc_dt.isoformat(),
-                }
-            )
-        return schedule
-
-    def get_seating(self, live: gspread.spreadsheet.Spreadsheet) -> list:
-        return live.worksheet("seating").get(
-            value_render_option=gspread.utils.ValueRenderOption.unformatted
-        )[1:]
-
-    def get_players(self, live: gspread.spreadsheet.Spreadsheet) -> list:
-        return live.worksheet("players").get(
-            value_render_option=gspread.utils.ValueRenderOption.unformatted
-        )[3:]
-
-    def count_completed_hanchan(self, live: gspread.spreadsheet.Spreadsheet) -> int:
-        triggers = live.worksheet("GO LIVE").get("PublicationTriggers")
-        done: int = 0  # number of completed hanchan
-        for i in range(1, len(triggers)):
-            if len(triggers[i]) < 3 or triggers[i][1] == "":
-                break
-            done = i
-        return done
-
-    def get_results(self, live: gspread.spreadsheet.Spreadsheet) -> list:
-        return live.worksheet("results").get(
-            value_render_option=gspread.utils.ValueRenderOption.unformatted
-        )
-
-    def get_table_results(
-        self, round: int, live: gspread.spreadsheet.Spreadsheet
-    ) -> list:
-
-        vals = live.worksheet(f"R{round}").get(
-            value_render_option=gspread.utils.ValueRenderOption.unformatted
-        )
-        return vals
-
     def _reduce_table_count(self, results, template, table_count: int) -> None:
         # delete unnecessary rows in the results sheet
         results.delete_rows(2 + table_count * 4, 1 + MAX_TABLES * 4)
@@ -219,7 +164,8 @@ class GSP:
             table_count: New number of tables
         """
         players_sheet = live.worksheet("players")
-        players = self.get_players(live)
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
         player_count = table_count * 4
         players_sheet.delete_rows(player_count + 4, len(players) + 5)
 
@@ -635,7 +581,8 @@ class GSP:
             players_to_remove: List of seating IDs to remove
         """
         players_sheet = live.worksheet("players")
-        players = self.get_players(live)
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
 
         updates = []
         for row_idx, player in enumerate(players, start=4):
@@ -656,7 +603,8 @@ class GSP:
             reassignments: Dict mapping old_id to new_id
         """
         players_sheet = live.worksheet("players")
-        players = self.get_players(live)
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
 
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in reassignments:
@@ -681,7 +629,8 @@ class GSP:
         # start of a tournament. Probably needs more work
         try:
             # Get current tournament settings
-            schedule = self.get_schedule(live)
+            batch_data = self.batch_get_tournament_data(live)
+            schedule = self.get_schedule_from_batch(batch_data)
             hanchan_count = len(schedule["rounds"])
 
             # Import new seating plan
@@ -749,6 +698,125 @@ class GSP:
 
         except Exception as e:
             logging.error(f"Failed to update hyperlinks for sheet {sheet_id}: {str(e)}")
+
+    def batch_get_tournament_data(
+        self, live: gspread.spreadsheet.Spreadsheet, include_rounds: int = None
+    ) -> dict:
+        """
+        Batch get multiple worksheet ranges in a single API call
+
+        Args:
+            live: The spreadsheet to read from
+            include_rounds: Number of completed rounds to include (if None, doesn't fetch round data)
+
+        Returns:
+            dict: Contains all the worksheet data organized by key
+        """
+        ranges = [
+            "schedule!A:Z",
+            "players!A:Z",
+            "results!A:Z",
+            "seating!A:Z",
+            "GO LIVE!PublicationTriggers",
+        ]
+
+        # Add round worksheets if we know how many are done
+        if include_rounds:
+            for round_num in range(1, include_rounds + 1):
+                ranges.append(f"R{round_num}!A:Z")
+
+        try:
+            result = live.values_batch_get(ranges)
+
+            return {
+                "schedule_raw": result[0] if len(result) > 0 else [],
+                "players_raw": result[1] if len(result) > 1 else [],
+                "results_raw": result[2] if len(result) > 2 else [],
+                "seating_raw": result[3] if len(result) > 3 else [],
+                "triggers_raw": result[4] if len(result) > 4 else [],
+                "rounds_raw": result[5:] if include_rounds and len(result) > 5 else [],
+            }
+        except Exception as e:
+            logging.error(f"Batch get failed: {str(e)}")
+            raise
+
+    def get_schedule_from_batch(self, batch_data: dict) -> dict:
+        """Convert batch schedule data to the expected format"""
+        vals = batch_data["schedule_raw"][1:]  # Skip header row
+        timezone_string = vals[0][2]
+        tz = ZoneInfo(timezone_string)
+        vals = vals[2:]  # throw away the headers
+        schedule = {"timezone": timezone_string, "rounds": []}
+        for i in range(0, len(vals)):
+            thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
+            utc_dt = thisDatetime.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
+            schedule["rounds"].append(
+                {
+                    "id": vals[i][0],
+                    "name": vals[i][1],
+                    "start": utc_dt.isoformat(),
+                }
+            )
+        return schedule
+
+    def get_players_from_batch(self, batch_data: dict) -> list:
+        """Convert batch players data to the expected format"""
+        return batch_data["players_raw"][3:]  # Skip header rows
+
+    def get_seating_from_batch(self, batch_data: dict) -> list:
+        """Convert batch seating data to the expected format"""
+        return batch_data["seating_raw"][1:]  # Skip header row
+
+    def get_results_from_batch(self, batch_data: dict) -> list:
+        """Convert batch results data to the expected format"""
+        return batch_data["results_raw"]
+
+    def count_completed_hanchan_from_batch(self, batch_data: dict) -> int:
+        """Count completed hanchan from batch data"""
+        triggers = batch_data["triggers_raw"]
+        done = 0
+        for i in range(1, len(triggers)):
+            if len(triggers[i]) < 3 or triggers[i][1] == "":
+                break
+            done = i
+        return done
+
+    def get_round_results_from_batch(self, batch_data: dict, round_index: int) -> dict:
+        """Get specific round results from batch data"""
+        if round_index > len(batch_data["rounds_raw"]):
+            raise ValueError(f"Round {round_index} not available in batch data")
+
+        vals = batch_data["rounds_raw"][round_index - 1]  # Convert to 0-based index
+
+        row = 4
+        tables = {}
+        while row + 3 < len(vals):
+            # Get the table number from column 1
+            table = f"{vals[row][0]}"
+            tables[table] = {}
+            if not table:
+                # end of score page
+                break
+            # For each table, get the player ID & scores
+            for i in range(4):
+                player_id = vals[row + i][1]
+                # Handle potential None values in score calculations
+                chombo = vals[row + i][5]
+                game_score = vals[row + i][3]
+                placement = vals[row + i][4]
+                final_score = vals[row + i][6]
+
+                tables[table][f"{i}"] = [
+                    player_id,  # player_id: int
+                    round(10 * (chombo or 0)),  # chombo: int
+                    round(10 * (game_score or 0)),  # game score: int
+                    placement or 0,  # placement: int
+                    round(10 * (final_score or 0)),  # final score: int
+                ]
+
+            # Move to the next table
+            row += 7
+        return tables
 
 
 googlesheet = GSP()

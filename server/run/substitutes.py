@@ -39,10 +39,12 @@ blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 def player_substitution():
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    completed_rounds = googlesheet.count_completed_hanchan(sheet)
+
+    batch_data = googlesheet.batch_get_tournament_data(sheet)
+    completed_rounds = googlesheet.count_completed_hanchan_from_batch(batch_data)
 
     # Get players data
-    raw_players = googlesheet.get_players(sheet)
+    raw_players = googlesheet.get_players_from_batch(batch_data)
     players = []
 
     # Initialize counters
@@ -71,7 +73,7 @@ def player_substitution():
         players.append(player)
 
     # Get current seating arrangement
-    seatlist = googlesheet.get_seating(sheet)
+    seatlist = googlesheet.get_seating_from_batch(batch_data)
     seating = seatlist_to_seating(seatlist)
 
     return render_template(
@@ -102,7 +104,9 @@ def confirm_substitutions():
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
     seatlist = seating_to_seatlist(new_seating)
-    session["last_seating"] = googlesheet.get_seating(sheet)
+    # Get current seating for backup using batch
+    batch_data = googlesheet.batch_get_tournament_data(sheet)
+    session["last_seating"] = googlesheet.get_seating_from_batch(batch_data)
 
     # Pass the reduce_table_count parameter to update_seating
     logging.debug(f"seatlist: {seatlist}")
@@ -181,7 +185,8 @@ def analyze_seating():
     # Get current seating for comparison
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
-    current_seatlist = googlesheet.get_seating(sheet)
+    batch_data = googlesheet.batch_get_tournament_data(sheet)
+    current_seatlist = googlesheet.get_seating_from_batch(batch_data)
     current_seating = seatlist_to_seating(current_seatlist)
 
     # Find the highest player ID in the current seating
@@ -219,7 +224,8 @@ def get_predefined_seating():
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
 
     # Get total number of rounds in the tournament
-    schedule = googlesheet.get_schedule(sheet)
+    batch_data = googlesheet.batch_get_tournament_data(sheet)
+    schedule = googlesheet.get_schedule_from_batch(batch_data)
     total_rounds = len(schedule["rounds"])
 
     try:

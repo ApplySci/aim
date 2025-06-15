@@ -31,37 +31,37 @@ from write_sheet import googlesheet
 
 PAST_TOURNAMENTS_FILE = os.path.join(BASEDIR, "data", "past_tournaments.json")
 
+
 def ensure_data_directory():
     """Ensure the data directory exists"""
     os.makedirs(os.path.dirname(PAST_TOURNAMENTS_FILE), exist_ok=True)
+
 
 def update_past_tournaments_json(tournaments: list[Tournament]) -> None:
     """Update the static JSON file containing past tournament data"""
     ensure_data_directory()
     summaries = tournaments_to_summaries(tournaments)
-    
-    with open(PAST_TOURNAMENTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(
-            {'tournaments': summaries}, 
-            f,
-            ensure_ascii=False,
-            indent=2
-        )
-    
-    # Update the last_updated timestamp in Firestore
-    firestore_client.collection('metadata').document('past_tournaments').set({
-        'last_updated': firestore.SERVER_TIMESTAMP
-    }, merge=True)
 
-def find_matching_player(name: str, tournament_id: int, threshold: float = 1.1) -> ArchivedPlayer | None:
+    with open(PAST_TOURNAMENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump({"tournaments": summaries}, f, ensure_ascii=False, indent=2)
+
+    # Update the last_updated timestamp in Firestore
+    firestore_client.collection("metadata").document("past_tournaments").set(
+        {"last_updated": firestore.SERVER_TIMESTAMP}, merge=True
+    )
+
+
+def find_matching_player(
+    name: str, tournament_id: int, threshold: float = 1.1
+) -> ArchivedPlayer | None:
     """Find existing player with matching name using fuzzy matching"""
     # Get players created before this tournament's archival process started
     players = (
         db.session.query(ArchivedPlayer)
         .outerjoin(TournamentPlayer)
         .filter(
-            (TournamentPlayer.tournament_id != tournament_id) | 
-            (TournamentPlayer.tournament_id.is_(None))
+            (TournamentPlayer.tournament_id != tournament_id)
+            | (TournamentPlayer.tournament_id.is_(None))
         )
         .all()
     )
@@ -102,21 +102,26 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
     # Get player data from Google Sheet (authoritative source)
     try:
         sheet = googlesheet.get_sheet(tournament.google_doc_id)
-        raw_players = googlesheet.get_players(sheet)
-        
+        batch_data = googlesheet.batch_get_tournament_data(sheet)
+        raw_players = googlesheet.get_players_from_batch(batch_data)
+
         # Convert raw player data to the format expected by the rest of the function
         players_data = {"players": []}
         for p in raw_players:
             if len(p) >= 3:  # Ensure we have at least seating_id, registration_id, name
-                players_data["players"].append({
-                    "seating_id": p[0] if p[0] != "" else None,
-                    "registration_id": str(p[1]),
-                    "name": p[2],
-                    "is_current": p[0] != "",
-                })
-        
-        logging.info(f"Retrieved {len(players_data['players'])} players from Google Sheet for archiving")
-        
+                players_data["players"].append(
+                    {
+                        "seating_id": p[0] if p[0] != "" else None,
+                        "registration_id": str(p[1]),
+                        "name": p[2],
+                        "is_current": p[0] != "",
+                    }
+                )
+
+        logging.info(
+            f"Retrieved {len(players_data['players'])} players from Google Sheet for archiving"
+        )
+
     except Exception as e:
         logging.error(f"Failed to get players from Google Sheet: {str(e)}")
         # Fallback to Firebase data if Google Sheet is inaccessible
@@ -181,9 +186,11 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
             seating_id = p["seating_id"]
             if seating_id is None:
                 # Skip players without seating_id (substitutes who were never seated)
-                logging.info(f"Skipping player {p['name']} with no seating_id (likely substitute)")
+                logging.info(
+                    f"Skipping player {p['name']} with no seating_id (likely substitute)"
+                )
                 continue
-                
+
             tournament_player = TournamentPlayer(
                 tournament=tournament,
                 player=player,
@@ -229,12 +236,12 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
             "past_tournaments"
         )
         batch.set(
-            metadata_ref, 
+            metadata_ref,
             {
                 "last_updated": datetime.now(timezone.utc).isoformat(),
-                "api_base_url": "https://wr.mahjong.ie"
-            }, 
-            merge=True
+                "api_base_url": "https://wr.mahjong.ie",
+            },
+            merge=True,
         )
 
         batch.commit()

@@ -23,6 +23,7 @@ from flask import (
     jsonify,
     make_response,
     abort,
+    flash,
 )
 from flask_login import login_required, current_user
 
@@ -37,6 +38,24 @@ from write_sheet import googlesheet
 from . import substitutes
 
 blueprint = Blueprint("run", __name__, url_prefix="/run")
+
+
+def _is_ajax_request():
+    """Detect if this is an AJAX request that expects JSON response"""
+    # Check if X-Requested-With header is set (common with jQuery/AJAX)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+
+    # Check if request accepts JSON (fetch requests typically send this)
+    accept_header = request.headers.get("Accept", "")
+    if "application/json" in accept_header:
+        return True
+
+    # Check if there's a timestamp parameter (our AJAX buttons add this)
+    if request.args.get("t"):
+        return True
+
+    return False
 
 
 def wrap_and_catch(myfunc):
@@ -64,9 +83,31 @@ def wrap_and_catch(myfunc):
 def select_tournament():
     new_id = request.form.get("id")
     if new_id:
-        current_user.live_tournament_id = new_id
-        db.session.commit()
-        return redirect(url_for("run.run_tournament"))
+        try:
+            # Validate that the tournament exists and user has permission
+            from models import Tournament
+
+            tournament = db.session.query(Tournament).get(int(new_id))
+            if not tournament:
+                flash("Tournament not found", "error")
+                return redirect(url_for("run.select_tournament"))
+
+            # Check permission using our centralized function
+            _check_tournament_permission(tournament)
+
+            # If we get here, permission is granted
+            current_user.live_tournament_id = new_id
+            db.session.commit()
+            flash(f"Switched to tournament: {tournament.title}", "info")
+            return redirect(url_for("run.run_tournament"))
+
+        except Exception as e:
+            # Handle permission errors gracefully
+            if hasattr(e, "code") and e.code == 403:
+                flash("You don't have permission to access this tournament", "error")
+            else:
+                flash("Error selecting tournament", "error")
+            return redirect(url_for("run.select_tournament"))
 
     # Clean up Access database - delete entries without valid tournament or user
     invalid_accesses = (
@@ -174,8 +215,9 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
 def run_tournament():
     tournament = current_user.live_tournament
     sheet = _get_sheet()
-    schedule = googlesheet.get_schedule(sheet)
-    hanchan_count = googlesheet.count_completed_hanchan(sheet)
+    batch_data = googlesheet.batch_get_tournament_data(sheet)
+    schedule = googlesheet.get_schedule_from_batch(batch_data)
+    hanchan_count = googlesheet.count_completed_hanchan_from_batch(batch_data)
 
     tournament_tz = ZoneInfo(schedule["timezone"])
     now = datetime.now(tournament_tz)
@@ -226,29 +268,39 @@ def update_tournament_status():
 
 
 @login_required
+def _check_tournament_permission(tournament):
+    """Check if current user has permission to access the given tournament"""
+    from models import Access
+
+    access = (
+        db.session.query(Access)
+        .filter_by(user_email=current_user.email, tournament_id=tournament.id)
+        .first()
+    )
+    if not access:
+        abort(403, description="You don't have permission to access this tournament")
+    return tournament
+
+
+@login_required
 def _get_tournament_from_id(tournament_id):
     """Helper function to get tournament object from ID with permission checking"""
     if tournament_id is not None:
-        # Check tournament access permission
-        from models import Access, Tournament
-
-        access = (
-            db.session.query(Access)
-            .filter_by(user_email=current_user.email, tournament_id=tournament_id)
-            .first()
-        )
-        if not access:
-            abort(
-                403, description="You don't have permission to access this tournament"
-            )
+        # Get specific tournament and check permission
+        from models import Tournament
 
         tournament = db.session.query(Tournament).get(tournament_id)
         if not tournament:
             abort(404, description="Tournament not found")
-        return tournament
+
+        return _check_tournament_permission(tournament)
     else:
-        # Use live tournament for legacy URL
-        return current_user.live_tournament
+        # Use live tournament for legacy URL, but still check permission
+        tournament = current_user.live_tournament
+        if not tournament:
+            abort(404, description="No live tournament set")
+
+        return _check_tournament_permission(tournament)
 
 
 @login_required
@@ -261,45 +313,71 @@ def _get_sheet(tournament=None):
 
 @blueprint.route("/update_schedule")
 @blueprint.route("/tournament/<int:tournament_id>/update_schedule")
-@wrap_and_catch
 @login_required
 def update_schedule(tournament_id=None):
-    tournament = _get_tournament_from_id(tournament_id)
+    try:
+        tournament = _get_tournament_from_id(tournament_id)
 
-    sheet = _get_sheet(tournament)
-    schedule: dict = googlesheet.get_schedule(sheet)
-    seating = _seating_to_map(sheet, schedule)
-    _save_to_cloud(
-        "seating",
-        {
-            "rounds": seating,
-            "timezone": schedule["timezone"],
-        },
-        tournament=tournament,
-    )
-    _seating_to_web(sheet=sheet, seating=seating, tournament=tournament)
+        sheet = _get_sheet(tournament)
+        batch_data = googlesheet.batch_get_tournament_data(sheet)
 
-    send_notifications = request.args.get("sendNotifications", "true") == "true"
-    if send_notifications:
-        _send_messages("seating & schedule updated", "seating", tournament=tournament)
-        return (
-            jsonify({"status": "SEATING & SCHEDULE updated, notifications sent"}),
-            200,
+        schedule = googlesheet.get_schedule_from_batch(batch_data)
+        seating = _seating_to_map_from_batch(batch_data, schedule)
+
+        _save_to_cloud(
+            "seating",
+            {
+                "rounds": seating,
+                "timezone": schedule["timezone"],
+            },
+            tournament=tournament,
         )
-    else:
-        return (
-            jsonify({"status": "SEATING & SCHEDULE updated, NO notifications"}),
-            200,
+        _seating_to_web_from_batch(
+            batch_data=batch_data, seating=seating, tournament=tournament
         )
+
+        send_notifications = request.args.get("sendNotifications", "true") == "true"
+
+        # Determine the response message
+        if send_notifications:
+            _send_messages(
+                "seating & schedule updated", "seating", tournament=tournament
+            )
+            message = "SEATING & SCHEDULE updated, notifications sent"
+        else:
+            message = "SEATING & SCHEDULE updated, NO notifications"
+
+        # Return JSON for AJAX requests, redirect for regular web requests
+        if _is_ajax_request():
+            return jsonify({"status": message}), 200
+        else:
+            return _handle_web_response(message, tournament, "success")
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback_details = traceback.extract_tb(exc_traceback)
+        # Filter traceback: only the ones we wrote
+        stack = [frame for frame in traceback_details if "/myapp" in frame.filename]
+        if len(stack):
+            frame = stack[-1]
+            error_msg = f"ERROR: {str(e)} in {frame.filename}, line {frame.lineno}, in {frame.name}"
+        else:
+            error_msg = f"ERROR: {str(e)}"
+
+        # Return JSON for AJAX requests, redirect for regular web requests
+        if _is_ajax_request():
+            return jsonify({"status": error_msg}), 200
+        else:
+            return _handle_web_response(error_msg, tournament, "error")
 
 
 @login_required
-def _seating_to_web(sheet, seating, tournament=None):
+def _seating_to_web_from_batch(batch_data, seating, tournament=None):
     if tournament is None:
         tournament = current_user.live_tournament
-    done: int = googlesheet.count_completed_hanchan(sheet)
-    players = _get_players(sheet, False, tournament)
-    schedule: dict = googlesheet.get_schedule(sheet)
+
+    done = googlesheet.count_completed_hanchan_from_batch(batch_data)
+    players = _get_players_from_batch(batch_data, False, tournament)
+    schedule = googlesheet.get_schedule_from_batch(batch_data)
 
     # Get tournament data from Firestore
     tournament_ref = firestore_client.collection("tournaments").document(
@@ -307,7 +385,7 @@ def _seating_to_web(sheet, seating, tournament=None):
     )
     tournament_data = tournament_ref.get().to_dict()
 
-    html: str = render_template(
+    html = render_template(
         "seating.html",
         done=done,
         title=tournament.title,
@@ -325,20 +403,45 @@ def _seating_to_web(sheet, seating, tournament=None):
 
 @blueprint.route("/update_players")
 @blueprint.route("/tournament/<int:tournament_id>/update_players")
-@wrap_and_catch
 @login_required
 def update_players(tournament_id=None):
-    tournament = _get_tournament_from_id(tournament_id)
+    try:
+        tournament = _get_tournament_from_id(tournament_id)
 
-    sheet = _get_sheet(tournament)
-    _get_players(sheet, True, tournament)
+        sheet = _get_sheet(tournament)
+        batch_data = googlesheet.batch_get_tournament_data(sheet)
+        _get_players_from_batch(batch_data, True, tournament)
 
-    send_notifications = request.args.get("sendNotifications", "true") == "true"
-    if send_notifications:
-        _send_messages("player list updated", "players", tournament=tournament)
-        return jsonify({"status": "PLAYERS updated, notifications sent"}), 200
-    else:
-        return jsonify({"status": "PLAYERS updated, NO notifications"}), 200
+        send_notifications = request.args.get("sendNotifications", "true") == "true"
+
+        # Determine the response message
+        if send_notifications:
+            _send_messages("player list updated", "players", tournament=tournament)
+            message = "PLAYERS updated, notifications sent"
+        else:
+            message = "PLAYERS updated, NO notifications"
+
+        # Return JSON for AJAX requests, redirect for regular web requests
+        if _is_ajax_request():
+            return jsonify({"status": message}), 200
+        else:
+            return _handle_web_response(message, tournament, "success")
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback_details = traceback.extract_tb(exc_traceback)
+        # Filter traceback: only the ones we wrote
+        stack = [frame for frame in traceback_details if "/myapp" in frame.filename]
+        if len(stack):
+            frame = stack[-1]
+            error_msg = f"ERROR: {str(e)} in {frame.filename}, line {frame.lineno}, in {frame.name}"
+        else:
+            error_msg = f"ERROR: {str(e)}"
+
+        # Return JSON for AJAX requests, redirect for regular web requests
+        if _is_ajax_request():
+            return jsonify({"status": error_msg}), 200
+        else:
+            return _handle_web_response(error_msg, tournament, "error")
 
 
 @login_required
@@ -350,7 +453,7 @@ def _send_messages(msg: str, notification_type: str, tournament=None):
 
 
 @login_required
-def _message_player_topics(scores: dict, done: int, players, tournament=None):
+def _message_player_topics(scores: dict, done: int, players, tournament=None, batch_data=None):
     """
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
@@ -373,8 +476,10 @@ def _message_player_topics(scores: dict, done: int, players, tournament=None):
             f"Failed to send tournament notification: {str(e)}", exc_info=True
         )
 
-    # Get the player map with registration IDs
-    raw_players = googlesheet.get_players(_get_sheet(tournament))
+    # Get the player map with registration IDs - reuse batch_data if provided
+    if batch_data is None:
+        batch_data = googlesheet.batch_get_tournament_data(_get_sheet(tournament))
+    raw_players = googlesheet.get_players_from_batch(batch_data)
     reg_id_map = {
         p[0]: p[1] for p in raw_players if p[0] != ""
     }  # map seating_id to registration_id
@@ -393,40 +498,6 @@ def _message_player_topics(scores: dict, done: int, players, tournament=None):
                 logging.error(
                     f"Failed to send notification to {name}: {str(e)}", exc_info=True
                 )
-
-
-@login_required
-def _get_one_round_results(sheet, rnd: int):
-    vals = googlesheet.get_table_results(round=rnd, live=sheet)
-    row: int = 4
-    tables = {}
-    while row + 3 < len(vals):
-        # Get the table number from column 1
-        table = f"{vals[row][0]}"
-        tables[table] = {}
-        if not table:
-            # end of score page
-            break
-        # For each table, get the player ID & scores
-        for i in range(4):
-            player_id = vals[row + i][1]
-            # Handle potential None values in score calculations
-            chombo = vals[row + i][5]
-            game_score = vals[row + i][3]
-            placement = vals[row + i][4]
-            final_score = vals[row + i][6]
-
-            tables[table][f"{i}"] = [
-                player_id,  # player_id: int
-                round(10 * (chombo or 0)),  # chombo: int
-                round(10 * (game_score or 0)),  # game score: int
-                placement or 0,  # placement: int
-                round(10 * (final_score or 0)),  # final score: int
-            ]
-
-        # Move to the next table
-        row += 7
-    return {f"{rnd}": tables}
 
 
 def webroot(tournament=None):
@@ -518,42 +589,71 @@ def _games_to_web(games, schedule, players, tournament=None):
     return f"{games}", 200
 
 
+@login_required
+def _process_scores_update(tournament, send_notifications=True):
+    """
+    Core logic for updating scores that can be used by both AJAX and sync requests.
+    Returns success message on success, raises exception on error.
+    """
+    sheet = _get_sheet(tournament)
+    # Get preliminary count to know how many rounds to fetch
+    done_prelim = googlesheet.count_completed_hanchan(sheet)
+
+    # Use batch get to fetch all data at once
+    batch_data = googlesheet.batch_get_tournament_data(
+        sheet, include_rounds=done_prelim
+    )
+
+    schedule = googlesheet.get_schedule_from_batch(batch_data)
+    done = googlesheet.count_completed_hanchan_from_batch(batch_data)
+    ranking = _ranking_to_cloud_from_batch(batch_data, done, tournament)
+    players = _get_players_from_batch(batch_data, False, tournament)
+    games = _games_to_cloud_from_batch(batch_data, done, players, tournament)
+
+    _games_to_web(games, schedule, players, tournament)
+    _ranking_to_web(ranking, games, players, done, schedule, tournament)
+
+    if send_notifications:
+        _message_player_topics(ranking, done, players, tournament, batch_data)
+
+    return "Scores updated successfully"
+
+
 @blueprint.route("/update_scores")
 @blueprint.route("/tournament/<int:tournament_id>/update_scores")
 @login_required
 def update_scores(tournament_id=None):
     tournament = _get_tournament_from_id(tournament_id)
-
     send_notifications = request.args.get("sendNotifications", "true") == "true"
+    is_ajax = _is_ajax_request()
 
-    # Create a unique job ID
-    job_id = str(uuid.uuid4())
+    if is_ajax:
+        # For AJAX requests, use the background job approach
+        job_id = str(uuid.uuid4())
 
-    @copy_current_request_context
-    def _finish_sheet_to_cloud():
+        @copy_current_request_context
+        def _finish_sheet_to_cloud():
+            try:
+                success_msg = _process_scores_update(tournament, send_notifications)
+                _store_job_status(job_id, success_msg)
+            except Exception as e:
+                error_msg = f"Error updating scores: {str(e)}"
+                logging.error(error_msg, exc_info=True)
+                _store_job_status(job_id, error_msg)
+
+        thread = threading.Thread(target=_finish_sheet_to_cloud)
+        thread.start()
+
+        return jsonify({"status": "processing", "job_id": job_id}), 202
+    else:
+        # For regular web requests, do the work synchronously and redirect
         try:
-            sheet = _get_sheet(tournament)
-            schedule: dict = googlesheet.get_schedule(sheet)
-            done: int = googlesheet.count_completed_hanchan(sheet)
-            ranking = _ranking_to_cloud(sheet, done, tournament)
-            players = _get_players(sheet, False, tournament)
-            games = _games_to_cloud(sheet, done, players, tournament)
-            _games_to_web(games, schedule, players, tournament)
-            _ranking_to_web(ranking, games, players, done, schedule, tournament)
-            if send_notifications:
-                _message_player_topics(ranking, done, players, tournament)
-
-            # Store completion status
-            _store_job_status(job_id, "Scores updated successfully")
+            success_msg = _process_scores_update(tournament, send_notifications)
+            return _handle_web_response(success_msg, tournament, "success")
         except Exception as e:
             error_msg = f"Error updating scores: {str(e)}"
             logging.error(error_msg, exc_info=True)
-            _store_job_status(job_id, error_msg)
-
-    thread = threading.Thread(target=_finish_sheet_to_cloud)
-    thread.start()
-
-    return jsonify({"status": "processing", "job_id": job_id}), 202
+            return _handle_web_response(error_msg, tournament, "error")
 
 
 @blueprint.route("/job_status/<job_id>")
@@ -583,11 +683,12 @@ job_statuses = {}
 
 
 @login_required
-def _games_to_cloud(sheet, done: int, players, tournament=None):
+def _games_to_cloud_from_batch(batch_data, done: int, players, tournament=None):
     results = {}
     for this_round in range(1, done + 1):
-        one = _get_one_round_results(sheet, this_round)
-        results.update(one)
+        tables = googlesheet.get_round_results_from_batch(batch_data, this_round)
+        results[str(this_round)] = tables
+
     cleaned_scores = results.copy()
     for r in cleaned_scores:
         # Track which players played in this round
@@ -612,8 +713,8 @@ def _games_to_cloud(sheet, done: int, players, tournament=None):
 
 
 @login_required
-def _ranking_to_cloud(sheet, done: int, tournament=None) -> dict:
-    results = googlesheet.get_results(sheet)
+def _ranking_to_cloud_from_batch(batch_data, done: int, tournament=None) -> dict:
+    results = googlesheet.get_results_from_batch(batch_data)
     body = results[1:]
     body.sort(key=lambda x: -x[3])  # sort by descending cumulative score
     all_scores = {}
@@ -644,8 +745,8 @@ def _ranking_to_cloud(sheet, done: int, tournament=None) -> dict:
 
 
 @login_required
-def _get_players(sheet, to_cloud=True, tournament=None):
-    raw: list[list] = googlesheet.get_players(sheet)
+def _get_players_from_batch(batch_data, to_cloud=True, tournament=None):
+    raw = googlesheet.get_players_from_batch(batch_data)
     players = []
     player_map = {}
     if len(raw) and len(raw[0]) > 2:
@@ -674,8 +775,8 @@ def _get_players(sheet, to_cloud=True, tournament=None):
 
 
 @login_required
-def _seating_to_map(sheet, schedule):
-    raw = googlesheet.get_seating(sheet)
+def _seating_to_map_from_batch(batch_data, schedule):
+    raw = googlesheet.get_seating_from_batch(batch_data)
     seating = []
     previous_round = ""
     hanchan_number = 0
@@ -790,3 +891,17 @@ blueprint.register_blueprint(substitutes.blueprint)
 @login_required
 def past_tournaments():
     return render_template("past_tournaments.html")
+
+
+def _handle_web_response(message, tournament, category="success"):
+    """Handle web response with flash message and redirect, ensuring correct live tournament"""
+    # Check if the updated tournament is the current user's live tournament
+    if current_user.live_tournament_id != tournament.id:
+        # Switch to this tournament and notify the user
+        current_user.live_tournament_id = tournament.id
+        db.session.commit()
+        flash(f"Switched to tournament: {tournament.title}", "info")
+
+    # Flash the main action message
+    flash(message, category)
+    return redirect(url_for("run.run_tournament"))
