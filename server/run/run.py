@@ -655,7 +655,7 @@ def _get_players(sheet, to_cloud=True, tournament=None):
         for p in raw:
             registration_id = p[1]
             seating_id = p[0] if p[0] != "" else None
-            name = p[2]
+            name = p[2] if len(p) > 2 else f"player {p[1]}"
             is_substitute = seating_id and int(seating_id) > max_seating_id - 3
 
             player_map[seating_id] = name
