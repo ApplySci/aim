@@ -208,8 +208,6 @@ def run_tournament():
         hanchan_count=hanchan_count,
         is_past=(current_status == "past"),
         schedule=schedule,
-        updateScoresUrl=url_for("run.update_ranking_and_scores"),
-        updateScheduleUrl=url_for("run.update_schedule"),
     )
 
 
@@ -520,10 +518,10 @@ def _games_to_web(games, schedule, players, tournament=None):
     return f"{games}", 200
 
 
-@blueprint.route("/get_results")
-@blueprint.route("/tournament/<int:tournament_id>/get_results")
+@blueprint.route("/update_scores")
+@blueprint.route("/tournament/<int:tournament_id>/update_scores")
 @login_required
-def update_ranking_and_scores(tournament_id=None):
+def update_scores(tournament_id=None):
     tournament = _get_tournament_from_id(tournament_id)
 
     send_notifications = request.args.get("sendNotifications", "true") == "true"

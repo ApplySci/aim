@@ -107,9 +107,9 @@ def confirm_substitutions():
     # Pass the reduce_table_count parameter to update_seating
     logging.debug(f"seatlist: {seatlist}")
     googlesheet.update_seating(sheet, seatlist, reduce_table_count)
-    from .run import update_ranking_and_scores
+    from .run import update_scores
 
-    update_ranking_and_scores()
+    update_scores()
     return jsonify({"status": "success"})
 
 

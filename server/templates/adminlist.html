@@ -1,11 +1,12 @@
 {% extends "runbase.html" %}
 
-{% block title %}Let's clean up{% endblock %}
+{% block title %}Careful now{% endblock %}
 
 {% block content %}
+{% if current_user.email == SUPERADMIN %}
+
 <h2>Admin Tools</h2>
 
-{% if current_user.email == SUPERADMIN %}
 <form action="{{ url_for('user_management.sync_access_route') }}" method="POST">
     <button type="submit" id="syncAccessBtn" class="btn btn-primary mb-3">
         Sync access permissions between Database & Google Sheets
@@ -24,39 +25,9 @@
         Add SUPERADMIN to All Tournaments
     </button>
 </form>
-{% endif %}
 
-{% if docs %}
-    <section>
-    <h2>List of spreadsheets we own:</h2>
-        <ul>
-        {% for doc in docs %}
-        <li id="buttonli{{ loop.index }}">
-            <button onclick="delet_dis({{ loop.index }}, '{{ doc['id'] }}')">
-            delete {{ doc['title'] }} </button> (
-            <a href="https://docs.google.com/spreadsheets/d/{{ doc['id'] }}">
-            {{ doc['id'] }} )
-            </a>
-        </li>
-        {% endfor %}
-        </ul>
-    <hr>
-    </section>
-{% endif %}
-
-<section>
-    <h2>List of tournaments in database</h2>
-    <ul>
-        {% for t in tournaments %}
-            <li id="tournament-{{ t.id }}">
-                {{ t.title }}
-                <button onclick="delete_tournament({{ t.id }})">
-                    Delete
-                </button>
-            </li>
-        {% endfor %}
-    </ul>
-</section>
+<hr>
+<h2>Danger below here</h2>
 
 <section>
 <h2>Cloud Firestore database:</h2>
@@ -64,7 +35,6 @@
 href='https://console.firebase.google.com/u/0/project/org-worldriichi-tournament/firestore/databases/-default-/data/~2Ftournaments'
 >Database console - opens in new window</a>
 
-{% if current_user.email == SUPERADMIN %}
 <div class="firebase-backup-section mt-4">
     <h3>Firebase Database Backup & Restore</h3>
     
@@ -113,6 +83,9 @@ href='https://console.firebase.google.com/u/0/project/org-worldriichi-tournament
     {% endif %}
 </div>
 
+<hr>
+<h2>Extreme Danger below here</h2>
+
 <!-- Restore Confirmation Modal -->
 <div id="restoreModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -129,8 +102,40 @@ href='https://console.firebase.google.com/u/0/project/org-worldriichi-tournament
         </form>
     </div>
 </div>
-{% endif %}
 </section>
+
+{% if docs %}
+    <section>
+    <h2>List of spreadsheets we own:</h2>
+        <ul>
+        {% for doc in docs %}
+        <li id="buttonli{{ loop.index }}">
+            <button onclick="delet_dis({{ loop.index }}, '{{ doc['id'] }}')">
+            delete {{ doc['title'] }} </button> (
+            <a href="https://docs.google.com/spreadsheets/d/{{ doc['id'] }}">
+            {{ doc['id'] }} )
+            </a>
+        </li>
+        {% endfor %}
+        </ul>
+    <hr>
+    </section>
+{% endif %}
+
+<section>
+    <h2>List of tournaments in database</h2>
+    <ul>
+        {% for t in tournaments %}
+            <li id="tournament-{{ t.id }}">
+                {{ t.title }}
+                <button onclick="delete_tournament({{ t.id }})">
+                    Delete
+                </button>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
+
 
 {% if users_without_access %}
     <section>
@@ -155,9 +160,11 @@ href='https://console.firebase.google.com/u/0/project/org-worldriichi-tournament
         </table>
     </section>
 {% endif %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if current_user.email == SUPERADMIN %}
 <script>
 function delet_dis(index, id) {
     let xhr = new XMLHttpRequest();
@@ -425,4 +432,5 @@ window.onclick = function(event) {
         margin-left: 10px;
     }
 </style>
+{% endif %}
 {% endblock %}

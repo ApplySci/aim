@@ -36,7 +36,7 @@
   </li>
 </ul>
 <fieldset>
-    <legend>• Update the app:</legend>
+    <legend>• Update the app & public web pages:</legend>
     <div class="action-group">
       <div>
         <label for="sendNotifications">
@@ -50,7 +50,7 @@
         </label>
       </div>
         <button class="action" data-url="{{
-        url_for('run.update_ranking_and_scores')
+        url_for('run.update_scores')
         }}">Update scores on web and app</button>
 
       <button class="action" data-url="{{
@@ -134,10 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
             starts in ${minutesUntil} minutes (at ${timeStr})
             but the previous round's results haven't been published yet.</p>
             <div class="action-group">
-                <button class="action" data-url="${{updateScoresUrl}}">
+                <button class="action" data-url="${{url_for('run.update_scores')}}">
                     Publish previous round's results
                 </button>
-                <button class="action" data-url="${{updateScheduleUrl}}">
+                <button class="action" data-url="${{url_for('run.update_schedule')}}">
                     Update schedule
                 </button>
             </div>`;

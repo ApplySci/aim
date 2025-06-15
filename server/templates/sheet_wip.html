@@ -70,13 +70,16 @@ function get_sheet_copy() {
                 }
             } else if (xhr.status == 204) {
                 document.getElementById('doclist').innerHTML =
-  `<p>The only google sheets that we can see, belong to us.
-  If you have made a copy, we can't see it. If you want to
-  use this interface to manage it, you will need to share it with us:
-  </p><p>{{ OUR_EMAIL }}</p><p>Note that it can take a few minutes for us to see the
-  change in permissions.</p>
-  <p><button onclick="get_sheet_copy()">I have now given you read permissions</button>
-  </p>`
+  `<p>We cannot find any available Google sheets. This could be because:</p>
+  <ul>
+    <li>All visible Google sheets belong to our system</li>
+    <li>All your Google sheets are already attached to other tournaments</li>
+    <li>All your Google sheets are template sheets (containing "score-template" in the title)</li>
+    <li>You haven't made a copy yet, or we can't see it</li>
+  </ul>
+  <p>If you have made a copy, you may need to share it with us: {{ OUR_EMAIL }}</p>
+  <p>Note that it can take a few minutes for us to see changes in permissions.</p>
+  <p><button onclick="get_sheet_copy()">I have now given you read permissions</button></p>`
             } else {
                 console.error("Unexpected HTTP status:", xhr.status);
                 document.getElementById('doclist').innerHTML =

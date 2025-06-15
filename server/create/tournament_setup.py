@@ -243,14 +243,48 @@ def poll_new_sheet():
     return "not ready yet", 204
 
 
+def get_used_google_doc_ids():
+    """Get a set of Google Doc IDs that are already attached to tournaments."""
+    used_doc_ids = set()
+    
+    # Get all tournaments except the current one being created (if it exists)
+    current_tournament_id = None
+    if current_user.live_tournament:
+        current_tournament_id = current_user.live_tournament.id
+    
+    # Query for google_doc_ids, excluding "pending" and the current tournament
+    query = db.session.query(Tournament.google_doc_id).filter(
+        Tournament.google_doc_id != "pending",
+        Tournament.google_doc_id.isnot(None)
+    )
+    
+    if current_tournament_id:
+        query = query.filter(Tournament.id != current_tournament_id)
+    
+    # Extract the google_doc_ids from the query results
+    for (doc_id,) in query:
+        used_doc_ids.add(doc_id)
+    
+    return used_doc_ids
+
+
 @blueprint.route("/create/copy_made")
 @login_required
 def get_their_copy():
+    # Get all Google Doc IDs that are already used by other tournaments
+    used_doc_ids = get_used_google_doc_ids()
+    
     # TODO TOFIX this doesn't seem to be working properly
     docs = googlesheet.list_sheets(current_user.email)
     their_docs = []
     for doc in docs:
-        if not doc["ours"]:
+        # Filter out sheets that are:
+        # 1. Ours (system-owned)
+        # 2. Already attached to other tournaments
+        # 3. Have "score-template" in the title (template sheets)
+        if (not doc["ours"] and 
+            doc["id"] not in used_doc_ids and 
+            "score-template" not in doc["title"].lower()):
             their_docs.append(doc)
     if their_docs:
         return jsonify(their_docs)
