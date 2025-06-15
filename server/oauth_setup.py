@@ -75,7 +75,7 @@ def config_jinja(app):
         return "scorePos" if score > 0 else "scoreNeg" if score < 0 else "score0"
 
     def urlsafe(x):
-        return quote_plus(x)
+        return quote_plus(str(x))
 
     env = app.jinja_env
     env.filters["prettyScore"] = prettyScore
@@ -159,6 +159,6 @@ def tournament_required(f):
                 return f(*args, **kwargs)
             # else Redirect to the tournament selection page
             return redirect(url_for("run.select_tournament"))
-        return redirect('/')
+        return redirect("/")
 
     return decorated_function

@@ -726,15 +726,44 @@ class GSP:
                 ranges.append(f"R{round_num}!A:Z")
 
         try:
-            result = live.values_batch_get(ranges)
+            result = live.values_batch_get(
+                ranges=ranges, params={"valueRenderOption": "UNFORMATTED_VALUE"}
+            )
+
+            # Extract the actual values from the nested structure
+            value_ranges = result["valueRanges"]
 
             return {
-                "schedule_raw": result[0] if len(result) > 0 else [],
-                "players_raw": result[1] if len(result) > 1 else [],
-                "results_raw": result[2] if len(result) > 2 else [],
-                "seating_raw": result[3] if len(result) > 3 else [],
-                "triggers_raw": result[4] if len(result) > 4 else [],
-                "rounds_raw": result[5:] if include_rounds and len(result) > 5 else [],
+                "schedule_raw": (
+                    value_ranges[0]["values"]
+                    if len(value_ranges) > 0 and "values" in value_ranges[0]
+                    else []
+                ),
+                "players_raw": (
+                    value_ranges[1]["values"]
+                    if len(value_ranges) > 1 and "values" in value_ranges[1]
+                    else []
+                ),
+                "results_raw": (
+                    value_ranges[2]["values"]
+                    if len(value_ranges) > 2 and "values" in value_ranges[2]
+                    else []
+                ),
+                "seating_raw": (
+                    value_ranges[3]["values"]
+                    if len(value_ranges) > 3 and "values" in value_ranges[3]
+                    else []
+                ),
+                "triggers_raw": (
+                    value_ranges[4]["values"]
+                    if len(value_ranges) > 4 and "values" in value_ranges[4]
+                    else []
+                ),
+                "rounds_raw": (
+                    [vr["values"] for vr in value_ranges[5:] if "values" in vr]
+                    if include_rounds and len(value_ranges) > 5
+                    else []
+                ),
             }
         except Exception as e:
             logging.error(f"Batch get failed: {str(e)}")
@@ -748,7 +777,19 @@ class GSP:
         vals = vals[2:]  # throw away the headers
         schedule = {"timezone": timezone_string, "rounds": []}
         for i in range(0, len(vals)):
-            thisDatetime = datetime.strptime(vals[i][2], "%A %d %B %Y, %H:%M")
+            # Handle both formatted strings and Excel serial numbers
+            date_value = vals[i][2]
+            if isinstance(date_value, (int, float)):
+                # Convert Excel serial number to datetime
+                # Excel/Google Sheets epoch: December 30, 1899
+                from datetime import timedelta
+
+                excel_epoch = datetime(1899, 12, 30)
+                thisDatetime = excel_epoch + timedelta(days=date_value)
+            else:
+                # Handle formatted string (fallback for compatibility)
+                thisDatetime = datetime.strptime(date_value, "%A %d %B %Y, %H:%M")
+
             utc_dt = thisDatetime.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
             schedule["rounds"].append(
                 {
@@ -770,6 +811,30 @@ class GSP:
     def get_results_from_batch(self, batch_data: dict) -> list:
         """Convert batch results data to the expected format"""
         return batch_data["results_raw"]
+
+    def count_completed_hanchan(self, live: gspread.spreadsheet.Spreadsheet) -> int:
+        """
+        Count completed hanchan by checking the trigger data
+
+        Args:
+            live: The spreadsheet to read from
+
+        Returns:
+            int: Number of completed rounds
+        """
+        try:
+            triggers = live.worksheet("GO LIVE").get(
+                "A11:C13", value_render_option="UNFORMATTED_VALUE"
+            )
+            done = 0
+            for i in range(1, len(triggers)):
+                if len(triggers[i]) < 3 or triggers[i][1] == "":
+                    break
+                done = i
+            return done
+        except Exception as e:
+            logging.error(f"Error counting completed hanchan: {str(e)}")
+            return 0
 
     def count_completed_hanchan_from_batch(self, batch_data: dict) -> int:
         """Count completed hanchan from batch data"""

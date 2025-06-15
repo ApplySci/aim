@@ -81,12 +81,13 @@ def wrap_and_catch(myfunc):
 @blueprint.route("/select_tournament", methods=["GET", "POST"])
 @login_required
 def select_tournament():
+    # Move the import to the top of the function
+    from models import Tournament
+    
     new_id = request.form.get("id")
     if new_id:
         try:
             # Validate that the tournament exists and user has permission
-            from models import Tournament
-
             tournament = db.session.query(Tournament).get(int(new_id))
             if not tournament:
                 flash("Tournament not found", "error")
@@ -164,7 +165,7 @@ def _ranking_to_web(scores, games, players, done, schedule, tournament=None):
         rs = str(r)
         for t in games[rs]:
             for idx, line in games[rs][t].items():
-                p = line[0]
+                p = int(line[0])  # Ensure integer key for consistency
                 if p not in scores_by_player:
                     scores_by_player[p] = {}
                 scores_by_player[p][r] = (line[4], t)
@@ -453,7 +454,9 @@ def _send_messages(msg: str, notification_type: str, tournament=None):
 
 
 @login_required
-def _message_player_topics(scores: dict, done: int, players, tournament=None, batch_data=None):
+def _message_player_topics(
+    scores: dict, done: int, players, tournament=None, batch_data=None
+):
     """
     send all our player-specific firebase notifications out
     do this in a separate thread so as not to hold up the main response
@@ -509,7 +512,7 @@ def webroot(tournament=None):
 def _round_names(schedule):
     roundNames = {}
     for r in schedule["rounds"]:
-        roundNames[r["id"]] = r["name"]
+        roundNames[str(r["id"])] = r["name"]
     return roundNames
 
 

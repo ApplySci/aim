@@ -67,7 +67,7 @@ def player_substitution():
         player = {
             "registration_id": str(p[1]),
             "seating_id": p[0] if has_seating else None,
-            "name": p[2],
+            "name": p[2] if len(p) > 2 else f"player {p[1]}",
             "is_current": has_seating,
         }
         players.append(player)
