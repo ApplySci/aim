@@ -491,8 +491,9 @@ def _message_player_topics(
     }  # map seating_id to registration_id
 
     for k, v in scores.items():
-        name = players[int(k)]
-        reg_id = reg_id_map.get(int(k))
+        key = int(k)
+        name = players[key] if key < len(players) else f"Player {k}" 
+        reg_id = reg_id_map.get(key)
         if reg_id:
             topic = f"{firebase_id}-{reg_id}"
             title = f"{name} is now in position {('','=')[v['t']]}{v['r']}"
