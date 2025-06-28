@@ -395,7 +395,7 @@ class GSP:
             copy_comments=True,
         )
 
-        self._set_permissions(owner, ["mj.apply.sci@gmail.com"], False)
+        self._set_permissions(owner, [SUPERADMIN], False)
 
         template: gspread.worksheet.Worksheet = self.live_sheet.worksheet("template")
         results: gspread.worksheet.Worksheet = self.live_sheet.worksheet("results")
