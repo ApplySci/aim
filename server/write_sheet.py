@@ -528,18 +528,44 @@ class GSP:
             seatlist: The new seating arrangement
             reduce_table_count: Whether to permanently reduce the table count
         """
-        # TODO process reduce_table_count
+        seating_sheet = live.worksheet("seating")
+        
         if reduce_table_count:
             seatlist = self._remove_empty_tables(live, seatlist)
-            # self._reduce_table_count(live, nTables)
-        live.worksheet("seating").batch_update(
-            [
+        
+        # Get current seating data to determine how many rows might need clearing
+        try:
+            current_seating_data = seating_sheet.get_all_values()[1:]  # Skip header
+            max_existing_row = len(current_seating_data) + 1  # +1 because of 0-based indexing, +1 for header
+        except:
+            max_existing_row = 1  # Just header row if error or empty
+        
+        # Calculate the new extent
+        new_last_row = len(seatlist) + 1  # +1 for header row
+        
+        # Determine the total range we need to update
+        update_end_row = max(new_last_row, max_existing_row)
+        
+        if update_end_row > 1:  # Only update if there's data beyond the header
+            # Prepare the complete values array
+            values = []
+            
+            # Add the new seating data
+            values.extend(seatlist)
+            
+            # Add empty rows to clear any remaining old data
+            if max_existing_row > new_last_row:
+                empty_rows_count = max_existing_row - new_last_row
+                empty_rows = [["", "", "", "", "", ""]] * empty_rows_count
+                values.extend(empty_rows)
+            
+            # Single batch update for the entire range
+            seating_sheet.batch_update([
                 {
-                    "range": f"A2:F{len(seatlist)+1}",
-                    "values": seatlist,
+                    "range": f"A2:F{update_end_row}",
+                    "values": values,
                 }
-            ]
-        )
+            ])
 
     def update_table_count(
         self, live: gspread.spreadsheet.Spreadsheet, table_count: int, seating: list
