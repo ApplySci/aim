@@ -175,7 +175,7 @@ def results_create():
                 hanchan_count=hanchan_count,
                 title=form.title.data,
                 owner=owner,
-                scorers=scorer_emails,  # Use the extracted list instead of trying to iterate over form field
+                scorers=scorer_emails,
                 notify=form.notify.data,
                 timezone=form.timezone.data,
                 start_times=start_times,
@@ -183,13 +183,25 @@ def results_create():
                 chombo=chombo,
             )
 
-            # Update the tournament in the database with the (temporary) new sheet_id
-            current_user.live_tournament.google_doc_id = sheet_id
-            db.session.commit()
-
-            # Update hyperlinks in the Google Sheet with the actual tournament_id
-            tournament_id = current_user.live_tournament.id
-            googlesheet.update_hyperlinks_with_tournament_id(sheet_id, tournament_id)
+            try:
+                # Store the tournament ID before the database operation
+                tournament_id = current_user.live_tournament.id
+                
+                # Re-fetch the tournament to avoid stale object issues
+                tournament = db.session.query(Tournament).get(tournament_id)
+                if tournament:
+                    tournament.google_doc_id = sheet_id
+                    db.session.commit()
+                    logging.info(f"Updated tournament {tournament_id} with sheet_id {sheet_id}")
+                else:
+                    logging.error(f"Tournament {tournament_id} not found during sheet update")
+                    
+                # Update hyperlinks in the Google Sheet with the actual tournament_id
+                googlesheet.update_hyperlinks_with_tournament_id(sheet_id, tournament_id)
+                
+            except Exception as e:
+                logging.error(f"Error updating tournament with sheet_id: {str(e)}")
+                db.session.rollback()
 
         thread = threading.Thread(target=make_sheet)
         thread.start()
