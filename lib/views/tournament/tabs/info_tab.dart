@@ -190,12 +190,12 @@ class ScheduleTable extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(
-                      '${DateFormat('EEEE d MMMM').format(schedule.start)}'
-                      ' ${useEventTimezone
-                        ? formatTimeWithDifference(schedule.start, localTimeZone)
-                        : DateFormat('HH:mm').format(
-                              tz.TZDateTime.from(schedule.start, localTimeZone)
-                            )}',
+                      useEventTimezone
+                        ? '${DateFormat('EEEE d MMMM').format(schedule.start)} ${formatTimeWithDifference(schedule.start, localTimeZone)}'
+                        : (() {
+                            final localDateTime = tz.TZDateTime.from(schedule.start, localTimeZone);
+                            return '${DateFormat('EEEE d MMMM').format(localDateTime)} ${DateFormat('HH:mm').format(localDateTime)}';
+                          })(),
                     ),
                   ),
                 ]),

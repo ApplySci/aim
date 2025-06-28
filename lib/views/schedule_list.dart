@@ -34,7 +34,12 @@ final filterByPlayerProvider = Provider((ref) {
   final playerId = ref.watch(filterByPlayerIdProvider);
   if (playerId == null) return null;
 
-  // Check player list first
+  // Check player map first (most direct lookup by ID)
+  final playerMap = ref.watch(playerMapProvider);
+  final playerFromMap = playerMap.value?[playerId];
+  if (playerFromMap != null) return playerFromMap;
+
+  // Check player list as fallback
   final playerList = ref.watch(playerListProvider);
   final regularPlayer = playerList.value?.firstWhereOrNull((e) => e.id == playerId);
   if (regularPlayer != null) return regularPlayer;
@@ -49,6 +54,7 @@ final filterByPlayerProvider = Provider((ref) {
   return null;
 }, dependencies: [
   filterByPlayerIdProvider,
+  playerMapProvider,
   playerListProvider,
   seatMapProvider,
   selectedSeatProvider,
@@ -190,11 +196,13 @@ class ScheduleList extends ConsumerWidget {
                                 '${DateFormat('EEEE d MMMM').format(round.start)}\n'
                                 '${formatTimeWithDifference(round.start, localTimeZone)}'
                               )
-                            : Text(
-                                '${DateFormat('HH:mm').format(tz.TZDateTime.from(
-                                    round.start, localTimeZone))}'
-                                ' (phone time)',
-                              ),
+                            : (() {
+                                final localDateTime = tz.TZDateTime.from(round.start, localTimeZone);
+                                return Text(
+                                    '${DateFormat('EEEE d MMMM').format(localDateTime)}\n'
+                                    '${DateFormat('HH:mm').format(localDateTime)} (phone time)',
+                                );
+                              })(),
                         visualDensity: VisualDensity.compact,
                         onTap: () => Navigator.of(context).pushNamed(
                           ROUTES.round,
