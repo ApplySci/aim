@@ -292,9 +292,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Statistics and Preview Functions
     //
     function formatStats(stats) {
+        // Check if there are any non-zero indirect meetings
+        const hasIndirectMeetings = stats.indirects && stats.indirects.some(v => v > 0);
+        const indirectText = hasIndirectMeetings 
+            ? stats.indirects.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', ')
+            : 'N/A - all pairs meet directly';
+            
         return [
             'Direct Meetings:     ' + stats.meets.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
-            'Indirect Meetings:   ' + stats.indirects.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
+            'Indirect Meetings:   ' + indirectText,
             'Table Distribution:  ' + stats.tables.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
             'Wind Distribution:   ' + stats.wind.map((v, i) => `${i}x: ${v}`).filter(Boolean).join(', '),
             'Repeat 3p Groups:    ' + stats.repeat3,

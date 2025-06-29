@@ -42,7 +42,11 @@ def make_stats(
         - repeat4: Count of repeat 4-player meets
     """
     table_count = len(seats[0])
-    player_count = max(table_count * 4, *ignore_players)
+    # Find the maximum player ID from the actual seating data, like the JavaScript version
+    all_players = [p for round in seats for table in round for p in table if p != 0]
+    # Use only the actual maximum player ID, not the theoretical table capacity
+    player_count = max(max(all_players) if all_players else 0, 
+                      max(ignore_players) if ignore_players else 0)
     hanchan_count = len(seats)
 
     player_pairs = [

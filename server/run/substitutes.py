@@ -109,7 +109,6 @@ def confirm_substitutions():
     session["last_seating"] = googlesheet.get_seating_from_batch(batch_data)
 
     # Pass the reduce_table_count parameter to update_seating
-    logging.debug(f"seatlist: {seatlist}")
     googlesheet.update_seating(sheet, seatlist, reduce_table_count)
     from .run import update_scores
 
@@ -194,13 +193,48 @@ def analyze_seating():
         max(player for table in round for player in table) for round in current_seating
     )
 
-    # Create list of substitute IDs (will be max_id + 1, max_id + 2, etc.)
-    substitute_ids = [0] + list(range(max_id + 1, max_id + 4))
-
     # Calculate stats for both seating arrangements
-    current_stats = make_stats(current_seating, ignore_players=substitute_ids)
-    new_stats = make_stats(data["seating"], ignore_players=substitute_ids)
+    # For current seating, only ignore empty seats (0)
+    current_stats = make_stats(current_seating, ignore_players=[0])
 
+    # For new seating, identify which rounds changed and which players are in those rounds
+    # First, identify which rounds have changed by comparing current vs new seating
+    changed_rounds = []
+    for round_idx in range(len(data["seating"])):
+        if (
+            round_idx < len(current_seating)
+            and data["seating"][round_idx] != current_seating[round_idx]
+        ):
+            changed_rounds.append(round_idx)
+
+    # Find all players who appear in the changed rounds
+    players_in_changed_rounds = set()
+    for round_idx in changed_rounds:
+        for table in data["seating"][round_idx]:
+            for player in table:
+                if player != 0:
+                    players_in_changed_rounds.add(player)
+
+    # For statistics, we want to consider only the players who appear in changed rounds
+    # All other players should be ignored, including any players who might have higher IDs
+    # but don't participate in the changed rounds
+    all_players_in_new_seating = set()
+    for round in data["seating"]:
+        for table in round:
+            for player in table:
+                if player != 0:
+                    all_players_in_new_seating.add(player)
+
+    # Find the maximum player ID to determine the full range of possible players
+    max_player_id_in_new = (
+        max(all_players_in_new_seating) if all_players_in_new_seating else 0
+    )
+
+    # Ignore all players who are not in the changed rounds
+    # This includes both players who appear in unchanged rounds and players who don't appear at all
+    all_possible_players = set(range(1, max_player_id_in_new + 1))
+    players_to_ignore = [0] + list(all_possible_players - players_in_changed_rounds)
+    new_stats = make_stats(data["seating"], ignore_players=players_to_ignore)
     return jsonify({"status": "success", "current": current_stats, "new": new_stats})
 
 
