@@ -81,7 +81,7 @@ class SeatingOptimizer {
         const tableCount = seats[0].length;
 
         // Calculate penalties
-        let score = stats.repeat3 * 30 + stats.repeat4 * 300;
+        let score = stats.repeat3 * 150 + stats.repeat4 * 1500;
 
         // Meets penalties
         for (let i = 3; i < stats.meets.length; i++) {
@@ -206,8 +206,18 @@ class SeatingOptimizer {
         
         let bestScore = Infinity;
         let bestGenome = null;
+        let originalGenome = null;  // Store the first good genome for potential restart
         let generation = 0;
         let lastProgressUpdate = 0;
+        
+        // Adaptive mutation rate variables
+        let baseMutationRate = 0.05;  // Starting mutation rate (5%)
+        let mutationRate = baseMutationRate;  // Current mutation rate
+        let generationsSinceImprovement = 0;
+        let restartCount = 0;  // Track number of restarts
+        const stagnationThreshold = 20000;  // Increase mutation after 20k generations without improvement
+        const mutationIncrement = 0.05;  // Increase mutation rate by 5% each time
+        const maxMutationRate = 0.25;  // Cap at 25% mutation rate
 
         while (Date.now() < endTime) {
             generation++;
@@ -227,10 +237,55 @@ class SeatingOptimizer {
                 bestScore = fitness[0].score;
                 bestGenome = fitness[0].genome;
                 
+                // Store the first good genome as original for potential restart
+                if (originalGenome === null) {
+                    originalGenome = JSON.parse(JSON.stringify(fitness[0].genome));  // Deep copy
+                }
+                
+                // Reset stagnation counter when we find improvement, and reset mutation rate
+                generationsSinceImprovement = 0;
+                mutationRate = baseMutationRate;
                 
                 if (bestScore <= this.targetScore) {
                     this.log("\nSuccess! Found solution within acceptable range.");
                     break;
+                }
+            } else {
+                // Increment stagnation counter
+                generationsSinceImprovement++;
+                
+                if (generationsSinceImprovement > stagnationThreshold) {
+                // we're too stale, let's mix things up
+                    if (mutationRate < maxMutationRate) {
+                        // increase mutation rate if we can
+                        mutationRate = Math.min(mutationRate + mutationIncrement, maxMutationRate);
+                        generationsSinceImprovement = 0;  // Reset counter after increasing mutation rate
+                        this.log(`\nIncreasing mutation rate to ${(mutationRate * 100).toFixed(1)}% after ${stagnationThreshold} generations without improvement`);
+                    } else {
+                        // else revert back to the original genome if it's available
+                        if (originalGenome !== null) {
+                            restartCount++;
+                            this.log(`\nRestart #${restartCount}: Reverting to original genome after ${stagnationThreshold} generations at maximum mutation rate`);
+                            bestGenome = JSON.parse(JSON.stringify(originalGenome));  // Deep copy back
+                            // Re-evaluate the score for the original genome to ensure consistency
+                            const originalSolution = this.createSolution(
+                                workingSeats,
+                                gaps.map(g => [...g]),
+                                bestGenome
+                            );
+                            bestScore = this.scoreSolution(originalSolution, this.substitutes.slice(0, directSubs));
+                            mutationRate = baseMutationRate;
+                            generationsSinceImprovement = 0;
+                            
+                            // Reinitialize population with some diversity around the original genome
+                            population = [bestGenome];
+                            while (population.length < this.populationSize) {
+                                let diverseGenome = JSON.parse(JSON.stringify(originalGenome));
+                                diverseGenome = this.mutate(diverseGenome, workingSeats);
+                                population.push(diverseGenome);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -238,7 +293,8 @@ class SeatingOptimizer {
             const now = Date.now();
             if (now - lastProgressUpdate > 5000) { // Update every 5 seconds
                 const timeLeft = Math.round((endTime - now) / 1000);
-                this.log(`\nGeneration ${generation}: Current score ${bestScore} (${timeLeft}s remaining)`, "\r");
+                const mutationPercent = (mutationRate * 100).toFixed(1);
+                this.log(`\nGeneration ${generation}: Current score ${bestScore} (${timeLeft}s remaining, mutation rate: ${mutationPercent}%)`, "\r");
                 lastProgressUpdate = now;
             }
 
@@ -248,7 +304,7 @@ class SeatingOptimizer {
                 const parent1 = fitness[Math.floor(Math.random() * 10)].genome;
                 const parent2 = fitness[Math.floor(Math.random() * 10)].genome;
                 let child = this.crossover(parent1, parent2);
-                if (Math.random() < 0.1) {
+                if (Math.random() < mutationRate) {
                     child = this.mutate(child, workingSeats);
                 }
                 newPopulation.push(child);
@@ -262,6 +318,8 @@ class SeatingOptimizer {
         this.log(`• Score before substitutions: ${this.baselineScore}\n`);
         this.log(`• Final score: ${bestScore}\n`);
         this.log(`• Generations: ${generation}\n`);
+        this.log(`• Final mutation rate: ${(mutationRate * 100).toFixed(1)}%\n`);
+        this.log(`• Restarts performed: ${restartCount}\n`);
         
         // Report termination reason
         if (Date.now() >= endTime) {
