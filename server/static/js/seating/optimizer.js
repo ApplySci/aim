@@ -213,11 +213,11 @@ class SeatingOptimizer {
         // Adaptive mutation rate variables
         let baseMutationRate = 0.05;  // Starting mutation rate (5%)
         let mutationRate = baseMutationRate;  // Current mutation rate
-        let generationsSinceImprovement = 0;
+        let generationsSinceImprovement = 0; // watch for stagnation
         let restartCount = 0;  // Track number of restarts
-        const stagnationThreshold = 20000;  // Increase mutation after 20k generations without improvement
-        const mutationIncrement = 0.05;  // Increase mutation rate by 5% each time
-        const maxMutationRate = 0.25;  // Cap at 25% mutation rate
+        const stagnationThreshold = 30000;  // Increase mutation after too many generations without improvement
+        const mutationIncrement = 0.05;  // Increase mutation rate after stagnation
+        const maxMutationRate = 0.15;  // Cap mutation rate
 
         while (Date.now() < endTime) {
             generation++;
@@ -236,11 +236,6 @@ class SeatingOptimizer {
             if (fitness[0].score < bestScore) {
                 bestScore = fitness[0].score;
                 bestGenome = fitness[0].genome;
-                
-                // Store the first good genome as original for potential restart
-                if (originalGenome === null) {
-                    originalGenome = JSON.parse(JSON.stringify(fitness[0].genome));  // Deep copy
-                }
                 
                 // Reset stagnation counter when we find improvement, and reset mutation rate
                 generationsSinceImprovement = 0;
@@ -262,29 +257,17 @@ class SeatingOptimizer {
                         generationsSinceImprovement = 0;  // Reset counter after increasing mutation rate
                         this.log(`\nIncreasing mutation rate to ${(mutationRate * 100).toFixed(1)}% after ${stagnationThreshold} generations without improvement`);
                     } else {
-                        // else revert back to the original genome if it's available
-                        if (originalGenome !== null) {
-                            restartCount++;
-                            this.log(`\nRestart #${restartCount}: Reverting to original genome after ${stagnationThreshold} generations at maximum mutation rate`);
-                            bestGenome = JSON.parse(JSON.stringify(originalGenome));  // Deep copy back
-                            // Re-evaluate the score for the original genome to ensure consistency
-                            const originalSolution = this.createSolution(
-                                workingSeats,
-                                gaps.map(g => [...g]),
-                                bestGenome
-                            );
-                            bestScore = this.scoreSolution(originalSolution, this.substitutes.slice(0, directSubs));
-                            mutationRate = baseMutationRate;
-                            generationsSinceImprovement = 0;
-                            
-                            // Reinitialize population with some diversity around the original genome
-                            population = [bestGenome];
-                            while (population.length < this.populationSize) {
-                                let diverseGenome = JSON.parse(JSON.stringify(originalGenome));
-                                diverseGenome = this.mutate(diverseGenome, workingSeats);
-                                population.push(diverseGenome);
-                            }
-                        }
+                        // else try from the beginning again
+                        restartCount++;
+                        this.log(`\nRestart #${restartCount}: Reverting to original genome after ${stagnationThreshold} generations at maximum mutation rate`);
+
+                        mutationRate = baseMutationRate;
+                        generationsSinceImprovement = 0;
+                        
+                        // Reinitialize population with completely random genomes, just like the initial setup
+                        population = Array(this.populationSize).fill()
+                            .map(() => this.randomGenome(workingSeats, gaps));
+                        continue;
                     }
                 }
             }
