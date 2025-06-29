@@ -850,7 +850,7 @@ class GSP:
         """
         try:
             triggers = live.worksheet("GO LIVE").get(
-                "A11:C13", value_render_option="UNFORMATTED_VALUE"
+                "A11:C500", value_render_option="UNFORMATTED_VALUE"
             )
             done = 0
             for i in range(1, len(triggers)):
