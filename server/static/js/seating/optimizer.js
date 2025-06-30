@@ -81,7 +81,7 @@ class SeatingOptimizer {
         const tableCount = seats[0].length;
 
         // Calculate penalties
-        let score = stats.repeat3 * 150 + stats.repeat4 * 1500;
+        let score = stats.repeat3 * 1500 + stats.repeat4 * 15000;
 
         // Meets penalties
         for (let i = 3; i < stats.meets.length; i++) {
