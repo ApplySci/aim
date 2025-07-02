@@ -545,7 +545,6 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
 
     # Create simplified version with just key columns
     key_columns = [
-        "Rank",
         "Player_Name",
         "Team_Name",
         "Country",
@@ -555,7 +554,7 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         "Round_3",
     ]
     
-    # Filter to only include available key columns
+    # Filter to only include available key columns (excluding Rank since we'll calculate it)
     available_key_cols = [col for col in key_columns if any(col in row for row in data_rows)]
     
     if available_key_cols:
@@ -564,6 +563,14 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         for row in data_rows:
             simple_row = {col: row.get(col) for col in available_key_cols}
             simple_data.append(simple_row)
+
+        # Calculate rankings based on Total_Score
+        simple_data = calculate_rankings(simple_data)
+        
+        # Reorder columns to put Rank first
+        if simple_data:
+            rank_first_cols = ['Rank'] + [col for col in simple_data[0].keys() if col != 'Rank']
+            simple_data = [{col: row[col] for col in rank_first_cols} for row in simple_data]
 
         # Display sample data
         print(f"\n📊 Sample data (first 5 rows):")
@@ -941,6 +948,51 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
     except Exception as e:
         print(f"❌ Failed to generate HTML page: {e}")
         return False
+
+
+def calculate_rankings(data_rows):
+    """Calculate rankings based on Total_Score, handling ties with = prefix
+    
+    Args:
+        data_rows: List of dictionaries containing player data
+        
+    Returns:
+        List of dictionaries with Rank column added
+    """
+    if not data_rows:
+        return data_rows
+    
+    # Sort by Total_Score in descending order (highest first)
+    sorted_data = sorted(data_rows, key=lambda x: x.get('Total_Score', 0) if x.get('Total_Score') is not None else -float('inf'), reverse=True)
+    
+    # Calculate rankings
+    current_rank = 1
+    for i, row in enumerate(sorted_data):
+        current_score = row.get('Total_Score')
+        
+        if i == 0:
+            # First player always gets rank 1
+            row['Rank'] = '1'
+            last_score = current_score
+        else:
+            # Check if score is the same as previous player
+            if current_score == last_score and current_score is not None:
+                # Tie - use = prefix and same rank as previous
+                prev_rank = sorted_data[i-1]['Rank']
+                if prev_rank.startswith('='):
+                    row['Rank'] = prev_rank  # Keep the same =rank
+                else:
+                    # Convert previous rank to =rank and apply to both
+                    equal_rank = f'={prev_rank}'
+                    sorted_data[i-1]['Rank'] = equal_rank
+                    row['Rank'] = equal_rank
+            else:
+                # Different score - calculate new rank
+                current_rank = i + 1
+                row['Rank'] = str(current_rank)
+                last_score = current_score
+    
+    return sorted_data
 
 
 if __name__ == "__main__":
