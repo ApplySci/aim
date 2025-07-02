@@ -708,6 +708,10 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
             letter-spacing: 0.5px;
         }}
         
+        th.right-align {{
+            text-align: right;
+        }}
+        
         th:last-child {{
             border-right: none;
         }}
@@ -819,11 +823,13 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
             # Convert Round_1, Round_2, etc. to H#1, H#2, etc.
             round_num = col.split('_')[1]
             display_name = f'H#{round_num}'
+            html_content += f'<th class="right-align">{display_name}</th>'
         elif col == 'Total_Score':
             display_name = 'Total'
+            html_content += f'<th class="right-align">{display_name}</th>'
         else:
             display_name = col.replace('_', ' ').title()
-        html_content += f'<th>{display_name}</th>'
+            html_content += f'<th>{display_name}</th>'
     
     html_content += '''
                         </tr>
