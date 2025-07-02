@@ -169,34 +169,13 @@ def save_to_csv(data_rows, filename):
 
 
 def process_player_standings_table(tables):
-    """Process the player standings table from PDF extraction"""
+    """Process the player standings table from PDF extraction (handles multi-page PDFs)"""
     if not tables:
         print("No tables found in PDF")
         return None
 
-    # Get the first table (player standings)
-    raw_table = tables[0]
-    print(f"Raw table has {len(raw_table)} rows")
-
-    # Find the header row (looking for "Rank" or similar)
-    header_row_idx = None
-    for i, row in enumerate(raw_table):
-        if any(cell and ("Rank" in str(cell) or "No" in str(cell)) for cell in row):
-            header_row_idx = i
-            break
-
-    if header_row_idx is None:
-        print("Could not find header row")
-        return None
-
-    # Extract headers from the next row (which has more detailed column names)
-    if header_row_idx + 1 < len(raw_table):
-        headers = raw_table[header_row_idx + 1]
-    else:
-        headers = raw_table[header_row_idx]
-
-    print(f"Headers found: {headers}")
-
+    print(f"📄 Processing {len(tables)} tables from PDF pages")
+    
     # Define our expected columns based on the data structure
     expected_columns = [
         "Rank",  # 0
@@ -218,53 +197,117 @@ def process_player_standings_table(tables):
         "Round_10",  # 12
     ]
 
-    # Process data rows (skip header rows)
-    data_rows = []
-    start_row = header_row_idx + 2  # Skip header rows
+    all_data_rows = []
+    headers_found = False
 
-    for i, row in enumerate(raw_table[start_row:], start=start_row):
-        if len(row) < 7:  # Skip rows that are too short
+    # Process each table (page) separately
+    for page_idx, raw_table in enumerate(tables):
+        print(f"📋 Processing page {page_idx + 1}: {len(raw_table)} rows")
+        
+        if not raw_table or len(raw_table) == 0:
+            print(f"   ⚠️  Page {page_idx + 1} is empty, skipping")
             continue
 
-        # Skip empty rows
-        if all(cell is None or str(cell).strip() == "" for cell in row):
-            continue
+        # Find the header row (looking for "Rank" or similar)
+        header_row_idx = None
+        for i, row in enumerate(raw_table):
+            if any(cell and ("Rank" in str(cell) or "No" in str(cell)) for cell in row):
+                header_row_idx = i
+                break
 
-        # Process each column
-        processed_row = {}
-
-        # Handle variable column lengths
-        for col_idx, col_name in enumerate(expected_columns):
-            if col_idx < len(row):
-                cell_value = row[col_idx]
+        if header_row_idx is None:
+            # No header found on this page - assume it's continuation data
+            if not headers_found:
+                print(f"   ⚠️  No header found on page {page_idx + 1} and no previous headers - skipping")
+                continue
             else:
-                cell_value = None
-
-            # Apply appropriate data type conversion
-            if col_name in ["Rank", "Player_No"]:
-                processed_row[col_name] = clean_numeric_value(cell_value)
-            elif col_name in [
-                "Total_Score",
-                "Round_1",
-                "Round_2",
-                "Round_3",
-                "Round_4",
-                "Round_5",
-                "Round_6",
-                "Round_7",
-                "Round_8",
-                "Round_9",
-                "Round_10",
-            ]:
-                processed_row[col_name] = clean_numeric_value(cell_value)
+                print(f"   📄 Page {page_idx + 1}: No headers (continuation page)")
+                start_row = 0  # Start from the beginning for continuation pages
+        else:
+            print(f"   📋 Page {page_idx + 1}: Header found at row {header_row_idx}")
+            
+            # Extract headers from the next row (which has more detailed column names)
+            if header_row_idx + 1 < len(raw_table):
+                headers = raw_table[header_row_idx + 1]
             else:
-                processed_row[col_name] = clean_string_value(cell_value)
+                headers = raw_table[header_row_idx]
+            
+            if not headers_found:
+                print(f"   📝 Headers found: {headers}")
+                headers_found = True
+            
+            start_row = header_row_idx + 2  # Skip header rows
 
-        # Only add rows that have at least a rank
-        if processed_row["Rank"] is not None:
-            data_rows.append(processed_row)
+        # Process data rows
+        page_data_rows = []
+        
+        for i, row in enumerate(raw_table[start_row:], start=start_row):
+            if len(row) < 3:  # Skip rows that are too short (reduced from 7 to 3)
+                continue
 
-    return data_rows
+            # Skip empty rows
+            if all(cell is None or str(cell).strip() == "" for cell in row):
+                continue
+
+            # Skip header rows that might appear on continuation pages
+            if any(cell and ("Rank" in str(cell) or "順位" in str(cell)) for cell in row):
+                continue
+
+            # Process each column
+            processed_row = {}
+
+            # Handle variable column lengths
+            for col_idx, col_name in enumerate(expected_columns):
+                if col_idx < len(row):
+                    cell_value = row[col_idx]
+                else:
+                    cell_value = None
+
+                # Apply appropriate data type conversion
+                if col_name in ["Rank", "Player_No"]:
+                    processed_row[col_name] = clean_numeric_value(cell_value)
+                elif col_name in [
+                    "Total_Score",
+                    "Round_1",
+                    "Round_2",
+                    "Round_3",
+                    "Round_4",
+                    "Round_5",
+                    "Round_6",
+                    "Round_7",
+                    "Round_8",
+                    "Round_9",
+                    "Round_10",
+                ]:
+                    processed_row[col_name] = clean_numeric_value(cell_value)
+                else:
+                    processed_row[col_name] = clean_string_value(cell_value)
+
+            # Only add rows that have at least a rank or player name
+            if (processed_row.get("Rank") is not None or 
+                (processed_row.get("Player_Name") and processed_row.get("Player_Name").strip())):
+                page_data_rows.append(processed_row)
+
+        print(f"   ✅ Page {page_idx + 1}: Extracted {len(page_data_rows)} player records")
+        all_data_rows.extend(page_data_rows)
+
+    print(f"🎯 Total records extracted from all pages: {len(all_data_rows)}")
+    
+    if not all_data_rows:
+        print("❌ No player data found in any pages")
+        return None
+    
+    # Sort by rank if available (in case pages were processed out of order)
+    def sort_key(row):
+        rank = row.get("Rank")
+        if rank is not None:
+            return (0, rank)  # Rank available - sort by rank
+        else:
+            return (1, 0)     # No rank - put at end
+    
+    all_data_rows.sort(key=sort_key)
+    
+    return all_data_rows
 
 
 def download_and_convert_to_csv(pattern=None, file_list=None):
