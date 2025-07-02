@@ -618,23 +618,35 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         display_summary_statistics(simple_data)
 
         # Generate HTML page
-        generate_html_page(simple_data)
+        generate_html_page(simple_data, pdf_filename=target_file['name'])
 
         return simple_data
 
     return None
 
 
-def generate_html_page(simple_data, output_path="../static/wrc.html"):
+def generate_html_page(simple_data, output_path="../static/wrc.html", pdf_filename=None):
     """Generate a mobile-friendly HTML page displaying the player standings
     
     Args:
         simple_data: List of dictionaries containing player data
         output_path: Path where to save the HTML file
+        pdf_filename: Original PDF filename to determine appropriate title
     """
     if not simple_data:
         print("❌ No data to generate HTML page")
         return False
+    
+    # Determine page title based on PDF filename
+    if pdf_filename and pdf_filename.startswith("TeamEvent"):
+        page_title = "WRC 2025 Team Event, Individual Scores"
+        header_title = "🏆 WRC 2025 Team Event, Individual Scores"
+    elif pdf_filename and pdf_filename.startswith("MainEvent"):
+        page_title = "WRC 2025 Main Event"
+        header_title = "🏆 WRC 2025 Main Event"
+    else:
+        page_title = "WRC 2025 Player Standings"
+        header_title = "🏆 WRC 2025 Player Standings"
     
     # Get column names
     columns = list(simple_data[0].keys())
@@ -644,7 +656,7 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WRC 2025 Player Standings</title>
+    <title>{page_title}</title>
     <style>
         * {{
             margin: 0;
@@ -798,6 +810,18 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
             font-style: italic;
         }}
         
+        tbody tr.highlighted {{
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107;
+            animation: highlight-pulse 1.5s ease-in-out;
+        }}
+        
+        @keyframes highlight-pulse {{
+            0% {{ background-color: #fff3cd; }}
+            50% {{ background-color: #ffecb5; }}
+            100% {{ background-color: #fff3cd; }}
+        }}
+        
         @media (max-width: 768px) {{
             .container {{
                 padding: 10px;
@@ -830,7 +854,7 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
 </head>
 <body>
     <div class="container">
-        <h1>🏆 WRC 2025 Player Standings</h1>
+        <h1>{header_title}</h1>
         
         <div class="search-container">
             <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by player name...">
@@ -924,7 +948,7 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
                     </tbody>
                 </table>
                 <div class="no-results" id="noResults" style="display: none;">
-                    No players found matching your search.
+                    No players found matching your search term.
                 </div>
             </div>
         </div>
@@ -939,10 +963,23 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
 
         searchBox.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
-            let visibleCount = 0;
+            let matchCount = 0;
             let firstMatch = null;
 
-            // Show/hide rows based on search
+            // Clear all highlights and keep all rows visible
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                row.classList.remove('highlighted');
+                row.style.display = ''; // Always keep rows visible
+            }
+
+            // If search term is empty, no highlighting needed
+            if (searchTerm === '') {
+                noResults.style.display = 'none';
+                return;
+            }
+
+            // Highlight matching rows
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const playerNameCell = row.querySelector('.player-name');
@@ -950,29 +987,27 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
                 if (playerNameCell) {
                     const playerName = playerNameCell.textContent.toLowerCase();
                     
-                    if (searchTerm === '' || playerName.includes(searchTerm)) {
-                        row.style.display = '';
-                        visibleCount++;
+                    if (playerName.includes(searchTerm)) {
+                        row.classList.add('highlighted');
+                        matchCount++;
                         
                         // Remember first match for scrolling
-                        if (firstMatch === null && searchTerm !== '') {
+                        if (firstMatch === null) {
                             firstMatch = row;
                         }
-                    } else {
-                        row.style.display = 'none';
                     }
                 }
             }
 
-            // Show/hide no results message
-            if (visibleCount === 0 && searchTerm !== '') {
+            // Show/hide no results message (though rows are still visible)
+            if (matchCount === 0) {
                 noResults.style.display = 'block';
             } else {
                 noResults.style.display = 'none';
             }
 
             // Scroll to first match
-            if (firstMatch && searchTerm !== '') {
+            if (firstMatch) {
                 setTimeout(() => {
                     const rect = firstMatch.getBoundingClientRect();
                     const wrapperRect = tableWrapper.getBoundingClientRect();
