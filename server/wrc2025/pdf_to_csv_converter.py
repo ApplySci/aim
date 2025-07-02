@@ -176,28 +176,109 @@ def process_player_standings_table(tables):
 
     print(f"📄 Processing {len(tables)} tables from PDF pages")
     
-    # Define our expected columns based on the data structure
-    expected_columns = [
-        "Rank",  # 0
-        "Player_No",  # 2
-        "Country",  # 5
-        "Country_JP",  # 6
-        "Player_Name",  # 7
-        "Player_Name_JP",  # 8
-        "Total_Score",  # 9
-        "Round_1",  # 10
-        "Round_2",  # 11
-        "Round_3",  # 12
-        "Round_4",  # 12
-        "Round_5",  # 12
-        "Round_6",  # 12
-        "Round_7",  # 12
-        "Round_8",  # 12
-        "Round_9",  # 12
-        "Round_10",  # 12
-    ]
+    # Define column mappings from possible header names to our standardized names
+    column_mappings = {
+        # Rank columns
+        "rank": "Rank",
+        "順位": "Rank",
+        
+        # Player number
+        "no": "Player_No",
+        "no.": "Player_No",
+        "player no": "Player_No",
+        "player no.": "Player_No",
+        
+        # Country
+        "country": "Country",
+        "国": "Country",
+        "country jp": "Country_JP",
+        "国名": "Country_JP",
+        
+        # Player name
+        "player name": "Player_Name",
+        "name": "Player_Name",
+        "player": "Player_Name",
+        "氏名": "Player_Name_JP",
+        "player name jp": "Player_Name_JP",
+        
+        # Scores
+        "total": "Total_Score",
+        "total score": "Total_Score",
+        "score": "Total_Score",
+        "合計": "Total_Score",
+        
+        # Team (if present)
+        "team": "Team_Name",
+        "team name": "Team_Name",
+        "チーム": "Team_Name",
+        
+        # Round scores - flexible pattern matching
+        "round 1": "Round_1",
+        "round 2": "Round_2",
+        "round 3": "Round_3",
+        "round 4": "Round_4",
+        "round 5": "Round_5",
+        "round 6": "Round_6",
+        "round 7": "Round_7",
+        "round 8": "Round_8",
+        "round 9": "Round_9",
+        "round 10": "Round_10",
+        "1回戦": "Round_1",
+        "2回戦": "Round_2",
+        "3回戦": "Round_3",
+        "4回戦": "Round_4",
+        "5回戦": "Round_5",
+        "6回戦": "Round_6",
+        "7回戦": "Round_7",
+        "8回戦": "Round_8",
+        "9回戦": "Round_9",
+        "10回戦": "Round_10",
+    }
+
+    def normalize_header(header):
+        """Normalize header text for matching"""
+        if header is None:
+            return ""
+        # Convert to lowercase, remove extra spaces and special characters
+        normalized = str(header).lower().strip()
+        normalized = re.sub(r'[^\w\s]', '', normalized)  # Remove punctuation
+        normalized = re.sub(r'\s+', ' ', normalized)     # Normalize whitespace
+        return normalized
+
+    def find_column_mapping(headers):
+        """Map actual PDF headers to our standardized column names"""
+        mapping = {}  # index -> our_column_name
+        
+        for idx, header in enumerate(headers):
+            if header is None:
+                continue
+                
+            normalized = normalize_header(header)
+            
+            # Direct mapping first
+            if normalized in column_mappings:
+                mapping[idx] = column_mappings[normalized]
+                continue
+            
+            # Pattern matching for round columns (e.g., "1", "2", "3" might be rounds)
+            if re.match(r'^\d+$', normalized):
+                round_num = int(normalized)
+                if 1 <= round_num <= 10:
+                    mapping[idx] = f"Round_{round_num}"
+                    continue
+            
+            # Pattern matching for round columns with various formats
+            round_match = re.search(r'(\d+)', normalized)
+            if round_match and any(word in normalized for word in ['round', 'r', '回戦', '戦']):
+                round_num = int(round_match.group(1))
+                if 1 <= round_num <= 10:
+                    mapping[idx] = f"Round_{round_num}"
+                    continue
+        
+        return mapping
 
     all_data_rows = []
+    column_mapping = None
     headers_found = False
 
     # Process each table (page) separately
@@ -211,7 +292,12 @@ def process_player_standings_table(tables):
         # Find the header row (looking for "Rank" or similar)
         header_row_idx = None
         for i, row in enumerate(raw_table):
-            if any(cell and ("Rank" in str(cell) or "No" in str(cell)) for cell in row):
+            if any(cell and (
+                "rank" in normalize_header(cell) or 
+                "no" in normalize_header(cell) or
+                "順位" in str(cell) or
+                "氏名" in str(cell)
+            ) for cell in row):
                 header_row_idx = i
                 break
 
@@ -226,23 +312,37 @@ def process_player_standings_table(tables):
         else:
             print(f"   📋 Page {page_idx + 1}: Header found at row {header_row_idx}")
             
-            # Extract headers from the next row (which has more detailed column names)
+            # Extract headers - try the header row and the next row
+            headers = raw_table[header_row_idx]
             if header_row_idx + 1 < len(raw_table):
-                headers = raw_table[header_row_idx + 1]
+                # Sometimes the real column names are in the next row
+                next_row = raw_table[header_row_idx + 1]
+                # Use next row if it seems to have more detailed headers
+                if len([h for h in next_row if h and len(str(h).strip()) > 2]) > len([h for h in headers if h and len(str(h).strip()) > 2]):
+                    headers = next_row
+                    start_row = header_row_idx + 2
+                else:
+                    start_row = header_row_idx + 1
             else:
-                headers = raw_table[header_row_idx]
+                start_row = header_row_idx + 1
             
+            # Create column mapping from headers
             if not headers_found:
-                print(f"   📝 Headers found: {headers}")
+                column_mapping = find_column_mapping(headers)
+                print(f"   📝 Found headers: {[str(h)[:20] + '...' if h and len(str(h)) > 20 else str(h) for h in headers]}")
+                print(f"   🗂️  Mapped columns: {column_mapping}")
                 headers_found = True
-            
-            start_row = header_row_idx + 2  # Skip header rows
+
+        # Skip processing if we don't have column mapping
+        if column_mapping is None:
+            print(f"   ⚠️  No column mapping available for page {page_idx + 1}")
+            continue
 
         # Process data rows
         page_data_rows = []
         
         for i, row in enumerate(raw_table[start_row:], start=start_row):
-            if len(row) < 3:  # Skip rows that are too short (reduced from 7 to 3)
+            if len(row) < 2:  # Skip rows that are too short
                 continue
 
             # Skip empty rows
@@ -250,42 +350,34 @@ def process_player_standings_table(tables):
                 continue
 
             # Skip header rows that might appear on continuation pages
-            if any(cell and ("Rank" in str(cell) or "順位" in str(cell)) for cell in row):
+            if any(cell and ("rank" in normalize_header(cell) or "順位" in str(cell)) for cell in row):
                 continue
 
-            # Process each column
+            # Process each column using our mapping
             processed_row = {}
 
-            # Handle variable column lengths
-            for col_idx, col_name in enumerate(expected_columns):
+            for col_idx, our_column_name in column_mapping.items():
                 if col_idx < len(row):
                     cell_value = row[col_idx]
                 else:
                     cell_value = None
 
-                # Apply appropriate data type conversion
-                if col_name in ["Rank", "Player_No"]:
-                    processed_row[col_name] = clean_numeric_value(cell_value)
-                elif col_name in [
+                # Apply appropriate data type conversion based on column type
+                if our_column_name in ["Rank", "Player_No"]:
+                    processed_row[our_column_name] = clean_numeric_value(cell_value)
+                elif our_column_name in [
                     "Total_Score",
-                    "Round_1",
-                    "Round_2",
-                    "Round_3",
-                    "Round_4",
-                    "Round_5",
-                    "Round_6",
-                    "Round_7",
-                    "Round_8",
-                    "Round_9",
-                    "Round_10",
+                    "Round_1", "Round_2", "Round_3", "Round_4", "Round_5",
+                    "Round_6", "Round_7", "Round_8", "Round_9", "Round_10",
                 ]:
-                    processed_row[col_name] = clean_numeric_value(cell_value)
+                    processed_row[our_column_name] = clean_numeric_value(cell_value)
                 else:
-                    processed_row[col_name] = clean_string_value(cell_value)
+                    processed_row[our_column_name] = clean_string_value(cell_value)
 
             # Only add rows that have at least a rank or player name
             if (processed_row.get("Rank") is not None or 
-                (processed_row.get("Player_Name") and processed_row.get("Player_Name").strip())):
+                (processed_row.get("Player_Name") and processed_row.get("Player_Name").strip()) or
+                (processed_row.get("Player_Name_JP") and processed_row.get("Player_Name_JP").strip())):
                 page_data_rows.append(processed_row)
 
         print(f"   ✅ Page {page_idx + 1}: Extracted {len(page_data_rows)} player records")
@@ -310,6 +402,62 @@ def process_player_standings_table(tables):
     return all_data_rows
 
 
+def extract_round_number(filename):
+    """Extract round number from filename like 'TeamEvent_3rdRound_PlayerStandings_*.pdf'
+    
+    Returns:
+        int: Round number (e.g., 3 for '3rd'), or 0 if not found
+    """
+    # Pattern to match {nth}Round format where n can be 1st, 2nd, 3rd, 4th, etc.
+    pattern = r"MainEvent_(\d+)(?:st|nd|rd|th)Round_PlayerStandings_"
+    
+    match = re.search(pattern, filename)
+    if match:
+        return int(match.group(1))
+    
+    return 0
+
+
+def select_highest_round_file(matching_files):
+    """Select the file with the highest round number from matching files
+    
+    Args:
+        matching_files: List of file dictionaries with 'name' and 'id' keys
+        
+    Returns:
+        dict: File dictionary with highest round number, or first file if no rounds found
+    """
+    if not matching_files:
+        return None
+        
+    if len(matching_files) == 1:
+        return matching_files[0]
+    
+    # Extract round numbers and find the highest
+    files_with_rounds = []
+    for file_info in matching_files:
+        round_num = extract_round_number(file_info['name'])
+        files_with_rounds.append((round_num, file_info))
+    
+    # Sort by round number (descending) - highest first
+    files_with_rounds.sort(key=lambda x: x[0], reverse=True)
+    
+    # Display selection logic
+    print(f"📋 Found {len(matching_files)} matching files:")
+    for round_num, file_info in files_with_rounds:
+        round_str = f"Round {round_num}" if round_num > 0 else "No round detected"
+        print(f"   - {file_info['name']} ({round_str})")
+    
+    # Return file with highest round number
+    selected_round, selected_file = files_with_rounds[0]
+    if selected_round > 0:
+        print(f"🎯 Selected highest round: Round {selected_round}")
+    else:
+        print(f"🎯 No round numbers detected, using first file")
+    
+    return selected_file
+
+
 def download_and_convert_to_csv(pattern=None, file_list=None):
     """Main function to download PDF and convert to simple CSV
     
@@ -318,9 +466,9 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         file_list: List of available files with 'name' and 'id' keys (will fetch dynamically if None)
     """
     
-    # Default pattern for PlayerStandings files (works with both MainEvent and TeamEvent)
+    # Default pattern for PlayerStandings files with round format (e.g., TeamEvent_3rdRound_PlayerStandings_*.pdf)
     if pattern is None:
-        pattern = r".*PlayerStandings.*\.pdf"
+        pattern = r".*Event_.*Round_PlayerStandings_.*\.pdf"
     
     # Initialize components
     folder_id = "1PuSjJY5PSxXHja8xDESEhWk1kDhpX9hJ"
@@ -359,14 +507,8 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
             print(f"   ... and {len(file_list) - 10} more files")
         return None
     
-    if len(matching_files) > 1:
-        print(f"📋 Found {len(matching_files)} matching files:")
-        for i, file_info in enumerate(matching_files):
-            print(f"  {i+1}. {file_info['name']}")
-        print("Using the first match...")
-    
-    # Use the first matching file
-    target_file = matching_files[0]
+    # Select the file with the highest round number
+    target_file = select_highest_round_file(matching_files)
     print(f"🎯 Selected file: {target_file['name']}")
 
     # Download if not already present
@@ -429,7 +571,7 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
 
         # Create output filename based on the source file
         base_name = os.path.splitext(target_file['name'])[0]
-        simple_csv_filename = f"downloads/{base_name}_processed.csv"
+        simple_csv_filename = f"downloads/latest.csv"
         
         if save_to_csv(simple_data, simple_csv_filename):
             print(f"\n💾 CSV saved to: {simple_csv_filename}")
@@ -460,5 +602,6 @@ if __name__ == "__main__":
     else:
         print(f"\n❌ Failed to create CSV file")
         
-    # Example: Run with custom pattern
-    # data = download_and_convert_to_csv(pattern=r"TeamEvent.*PlayerStandings.*\.pdf")
+    # Example: Run with custom pattern to match specific event types
+    # data = download_and_convert_to_csv(pattern=r"TeamEvent_.*Round_PlayerStandings_.*\.pdf")
+    # data = download_and_convert_to_csv(pattern=r"MainEvent_.*Round_PlayerStandings_.*\.pdf")
