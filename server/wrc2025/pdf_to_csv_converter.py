@@ -587,9 +587,360 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         # Summary statistics for numeric columns
         display_summary_statistics(simple_data)
 
+        # Generate HTML page
+        generate_html_page(simple_data)
+
         return simple_data
 
     return None
+
+
+def generate_html_page(simple_data, output_path="../static/wrc.html"):
+    """Generate a mobile-friendly HTML page displaying the player standings
+    
+    Args:
+        simple_data: List of dictionaries containing player data
+        output_path: Path where to save the HTML file
+    """
+    if not simple_data:
+        print("❌ No data to generate HTML page")
+        return False
+    
+    # Get column names
+    columns = list(simple_data[0].keys())
+    
+    html_content = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRC 2025 Player Standings</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }}
+        
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        
+        h1 {{
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+        }}
+        
+        .search-container {{
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: #f5f5f5;
+            padding: 10px 0;
+        }}
+        
+        .search-box {{
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            transition: border-color 0.3s;
+        }}
+        
+        .search-box:focus {{
+            border-color: #3498db;
+        }}
+        
+        .table-container {{
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }}
+        
+        .table-wrapper {{
+            overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
+        }}
+        
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }}
+        
+        thead {{
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }}
+        
+        th {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            padding: 12px 8px;
+            text-align: left;
+            border-right: 1px solid rgba(255,255,255,0.2);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        
+        th:last-child {{
+            border-right: none;
+        }}
+        
+        td {{
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #f0f0f0;
+        }}
+        
+        td:last-child {{
+            border-right: none;
+        }}
+        
+        tbody tr {{
+            transition: background-color 0.2s;
+        }}
+        
+        tbody tr:hover {{
+            background-color: #f8f9fa;
+        }}
+        
+        tbody tr:nth-child(even) {{
+            background-color: #fafafa;
+        }}
+        
+        .rank {{
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+        }}
+        
+        .player-name {{
+            font-weight: 600;
+            color: #2980b9;
+        }}
+        
+        .team-name {{
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }}
+        
+        .score {{
+            font-weight: bold;
+            text-align: right;
+        }}
+        
+        .score.positive {{
+            color: #27ae60;
+        }}
+        
+        .score.negative {{
+            color: #e74c3c;
+        }}
+        
+        .no-results {{
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+        }}
+        
+        @media (max-width: 768px) {{
+            .container {{
+                padding: 10px;
+            }}
+            
+            table {{
+                font-size: 12px;
+            }}
+            
+            th, td {{
+                padding: 8px 4px;
+            }}
+            
+            .search-box {{
+                font-size: 16px; /* Prevent zoom on iOS */
+            }}
+        }}
+        
+        @media (max-width: 480px) {{
+            th, td {{
+                padding: 6px 3px;
+            }}
+            
+            .team-name {{
+                display: none;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 WRC 2025 Player Standings</h1>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by player name...">
+        </div>
+        
+        <div class="table-container">
+            <div class="table-wrapper" id="tableWrapper">
+                <table>
+                    <thead>
+                        <tr>'''
+    
+    # Add column headers
+    for col in columns:
+        display_name = col.replace('_', ' ').title()  
+        html_content += f'<th>{display_name}</th>'
+    
+    html_content += '''
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">'''
+    
+    # Add data rows
+    for i, row in enumerate(simple_data):
+        html_content += f'<tr id="row-{i}">'
+        
+        for col in columns:
+            value = row.get(col, '')
+            css_class = ''
+            
+            # Add specific styling based on column type
+            if col == 'Rank':
+                css_class = 'rank'
+            elif col == 'Player_Name':
+                css_class = 'player-name'
+            elif col == 'Team_Name':
+                css_class = 'team-name'
+            elif 'Score' in col or 'Round_' in col:
+                css_class = 'score'
+                if isinstance(value, (int, float)) and value is not None:
+                    if value > 0:
+                        css_class += ' positive'
+                    elif value < 0:
+                        css_class += ' negative'
+            
+            # Format the value
+            if value is None or value == '':
+                display_value = '-'
+            elif isinstance(value, float):
+                display_value = f'{value:.1f}' if value != int(value) else str(int(value))
+            else:
+                display_value = str(value)
+            
+            html_content += f'<td class="{css_class}">{display_value}</td>'
+        
+        html_content += '</tr>'
+    
+    html_content += '''
+                    </tbody>
+                </table>
+                <div class="no-results" id="noResults" style="display: none;">
+                    No players found matching your search.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchBox = document.getElementById('searchBox');
+        const tableBody = document.getElementById('tableBody');
+        const tableWrapper = document.getElementById('tableWrapper');
+        const noResults = document.getElementById('noResults');
+        const rows = tableBody.getElementsByTagName('tr');
+
+        searchBox.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            let firstMatch = null;
+
+            // Show/hide rows based on search
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const playerNameCell = row.querySelector('.player-name');
+                
+                if (playerNameCell) {
+                    const playerName = playerNameCell.textContent.toLowerCase();
+                    
+                    if (searchTerm === '' || playerName.includes(searchTerm)) {
+                        row.style.display = '';
+                        visibleCount++;
+                        
+                        // Remember first match for scrolling
+                        if (firstMatch === null && searchTerm !== '') {
+                            firstMatch = row;
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+
+            // Show/hide no results message
+            if (visibleCount === 0 && searchTerm !== '') {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+
+            // Scroll to first match
+            if (firstMatch && searchTerm !== '') {
+                setTimeout(() => {
+                    const rect = firstMatch.getBoundingClientRect();
+                    const wrapperRect = tableWrapper.getBoundingClientRect();
+                    const scrollTop = tableWrapper.scrollTop + rect.top - wrapperRect.top - 60;
+                    
+                    tableWrapper.scrollTo({
+                        top: Math.max(0, scrollTop),
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        });
+
+        // Add some keyboard navigation
+        searchBox.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+    </script>
+</body>
+</html>'''
+    
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        print(f"🌐 HTML page generated: {output_path}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to generate HTML page: {e}")
+        return False
 
 
 if __name__ == "__main__":
@@ -599,6 +950,7 @@ if __name__ == "__main__":
     if data is not None:
         print(f"\n🎉 SUCCESS! Created CSV file with {len(data)} player records")
         print(f"📋 Columns: {list(data[0].keys()) if data else []}")
+        print(f"🌐 HTML page also generated for web viewing")
     else:
         print(f"\n❌ Failed to create CSV file")
         
