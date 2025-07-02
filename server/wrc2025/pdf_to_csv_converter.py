@@ -188,9 +188,15 @@ def process_player_standings_table(tables):
         "player no": "Player_No",
         "player no.": "Player_No",
         
-        # Country
+        # Country (English - preferred)
         "country": "Country",
-        "国": "Country",
+        "country region": "Country",
+        "countryregion": "Country",  # Normalized from "Country/Region"
+        
+        # Country (Japanese - backup)
+        "国": "Country_JP",
+        "国 地域": "Country_JP",
+        "国地域": "Country_JP",  # Normalized from "国/地域"
         "country jp": "Country_JP",
         "国名": "Country_JP",
         
@@ -374,6 +380,24 @@ def process_player_standings_table(tables):
                 else:
                     processed_row[our_column_name] = clean_string_value(cell_value)
 
+            # Prefer English country name over Japanese
+            english_country = processed_row.get("Country", "").strip()
+            japanese_country = processed_row.get("Country_JP", "").strip()
+            
+            if english_country:
+                # Use English country name if available
+                processed_row["Country"] = english_country
+            elif japanese_country:
+                # Fall back to Japanese country name if English is not available
+                processed_row["Country"] = japanese_country
+            else:
+                # No country information available
+                processed_row["Country"] = ""
+            
+            # Remove the Japanese country field to avoid confusion
+            if "Country_JP" in processed_row:
+                del processed_row["Country_JP"]
+
             # Only add rows that have at least a rank or player name
             if (processed_row.get("Rank") is not None or 
                 (processed_row.get("Player_Name") and processed_row.get("Player_Name").strip()) or
@@ -546,7 +570,6 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
     # Create simplified version with just key columns
     key_columns = [
         "Player_Name",
-        "Team_Name",
         "Country",
         "Total_Score",
         "Round_1",
@@ -749,9 +772,10 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
             color: #2980b9;
         }}
         
-        .team-name {{
+        .country {{
             color: #7f8c8d;
-            font-size: 0.9em;
+            font-size: 0.85em;
+            font-weight: normal;
         }}
         
         .score {{
@@ -797,8 +821,9 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
                 padding: 6px 3px;
             }}
             
-            .team-name {{
-                display: none;
+            .country {{
+                display: block;
+                margin-top: 2px;
             }}
         }}
     </style>
@@ -819,7 +844,10 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
     
     # Add column headers
     for col in columns:
-        if col.startswith('Round_'):
+        if col == 'Country':
+            # Skip Country column as it will be combined with Player_Name
+            continue
+        elif col.startswith('Round_'):
             # Convert Round_1, Round_2, etc. to H#1, H#2, etc.
             round_num = col.split('_')[1]
             display_name = f'H#{round_num}'
@@ -841,6 +869,10 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
         html_content += f'<tr id="row-{i}">'
         
         for col in columns:
+            if col == 'Country':
+                # Skip Country column as it's combined with Player_Name
+                continue
+                
             value = row.get(col, '')
             css_class = ''
             
@@ -849,8 +881,16 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
                 css_class = 'rank'
             elif col == 'Player_Name':
                 css_class = 'player-name'
-            elif col == 'Team_Name':
-                css_class = 'team-name'
+                # Combine player name with country
+                player_name = str(value) if value else ''
+                country = row.get('Country', '')
+                
+                if country and country.strip():
+                    display_value = f'{player_name} <span class="country">({country})</span>'
+                else:
+                    display_value = player_name
+                html_content += f'<td class="{css_class}">{display_value}</td>'
+                continue
             elif 'Score' in col or 'Round_' in col:
                 css_class = 'score'
                 if isinstance(value, (int, float)) and value is not None:
