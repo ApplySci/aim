@@ -815,7 +815,14 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
     
     # Add column headers
     for col in columns:
-        display_name = col.replace('_', ' ').title()  
+        if col.startswith('Round_'):
+            # Convert Round_1, Round_2, etc. to H#1, H#2, etc.
+            round_num = col.split('_')[1]
+            display_name = f'H#{round_num}'
+        elif col == 'Total_Score':
+            display_name = 'Total'
+        else:
+            display_name = col.replace('_', ' ').title()
         html_content += f'<th>{display_name}</th>'
     
     html_content += '''
@@ -849,8 +856,17 @@ def generate_html_page(simple_data, output_path="../static/wrc.html"):
             # Format the value
             if value is None or value == '':
                 display_value = '-'
-            elif isinstance(value, float):
-                display_value = f'{value:.1f}' if value != int(value) else str(int(value))
+            elif isinstance(value, (int, float)):
+                # Format numeric values with + prefix for positive scores and always 1 decimal place
+                if 'Score' in col or 'Round_' in col:
+                    if value > 0:
+                        display_value = f'+{value:.1f}'
+                    elif value < 0:
+                        display_value = f'{value:.1f}'
+                    else:  # value == 0
+                        display_value = '0.0'
+                else:
+                    display_value = f'{value:.1f}'
             else:
                 display_value = str(value)
             
