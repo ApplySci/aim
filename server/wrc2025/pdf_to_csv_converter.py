@@ -323,8 +323,16 @@ def process_player_standings_table(tables):
             if header_row_idx + 1 < len(raw_table):
                 # Sometimes the real column names are in the next row
                 next_row = raw_table[header_row_idx + 1]
-                # Use next row if it seems to have more detailed headers
-                if len([h for h in next_row if h and len(str(h).strip()) > 2]) > len([h for h in headers if h and len(str(h).strip()) > 2]):
+                
+                # Check if next row is actually better headers by looking for header-like keywords
+                # Don't just count cells with content - check for actual header keywords
+                current_header_score = sum(1 for h in headers if h and any(keyword in str(h).lower() 
+                                          for keyword in ['rank', 'no', 'name', 'country', 'total', '順位', '氏名', '国']))
+                next_row_header_score = sum(1 for h in next_row if h and any(keyword in str(h).lower() 
+                                           for keyword in ['rank', 'no', 'name', 'country', 'total', '順位', '氏名', '国']))
+                
+                # Only use next row as headers if it has MORE header keywords than current row
+                if next_row_header_score > current_header_score:
                     headers = next_row
                     start_row = header_row_idx + 2
                 else:
@@ -427,17 +435,26 @@ def process_player_standings_table(tables):
 
 
 def extract_round_number(filename):
-    """Extract round number from filename like 'TeamEvent_3rdRound_PlayerStandings_*.pdf'
+    """Extract round number from filename in various formats
+    
+    Handles:
+    - Old format: 'TeamEvent_3rdRound_PlayerStandings_*.pdf'
+    - New format: 'MainEvent_1stRound_Standings_*.pdf'
     
     Returns:
         int: Round number (e.g., 3 for '3rd'), or 0 if not found
     """
     # Pattern to match {nth}Round format where n can be 1st, 2nd, 3rd, 4th, etc.
-    pattern = r"MainEvent_(\d+)(?:st|nd|rd|th)Round_PlayerStandings_"
+    # Works for both old and new formats
+    patterns = [
+        r".*Event_(\d+)(?:st|nd|rd|th)Round_PlayerStandings_",  # Old format
+        r".*Event_(\d+)(?:st|nd|rd|th)Round_Standings_"         # New format
+    ]
     
-    match = re.search(pattern, filename)
-    if match:
-        return int(match.group(1))
+    for pattern in patterns:
+        match = re.search(pattern, filename)
+        if match:
+            return int(match.group(1))
     
     return 0
 
@@ -491,9 +508,10 @@ def download_and_convert_to_csv(pattern=None, file_list=None, html_output_path=N
         html_output_path: Custom path for HTML output (if None, uses default relative path)
     """
     
-    # Default pattern for PlayerStandings files with round format (e.g., TeamEvent_3rdRound_PlayerStandings_*.pdf)
+    # Default pattern for player standings files with round format
+    # Handles both old format (TeamEvent_3rdRound_PlayerStandings_*.pdf) and new format (MainEvent_1stRound_Standings_*.pdf)
     if pattern is None:
-        pattern = r".*Event_.*Round_PlayerStandings_.*\.pdf"
+        pattern = r".*Event_.*Round_.*Standings_.*\.pdf"
     
     # Initialize components
     folder_id = "1PuSjJY5PSxXHja8xDESEhWk1kDhpX9hJ"
@@ -595,15 +613,27 @@ def download_and_convert_to_csv(pattern=None, file_list=None, html_output_path=N
 
     print(f"✅ Successfully processed {len(data_rows)} player records")
 
-    # Create simplified version with just key columns
-    key_columns = [
+    # Create simplified version with key columns, dynamically including all available rounds
+    base_key_columns = [
         "Player_Name",
         "Country",
         "Total_Score",
-        "Round_1",
-        "Round_2",
-        "Round_3",
     ]
+    
+    # Dynamically find all available round columns
+    all_round_columns = set()
+    for row in data_rows:
+        for col in row.keys():
+            if col.startswith("Round_"):
+                all_round_columns.add(col)
+    
+    # Sort round columns numerically (Round_1, Round_2, etc.)
+    sorted_round_columns = sorted(all_round_columns, key=lambda x: int(x.split('_')[1]) if x.split('_')[1].isdigit() else 999)
+    
+    # Combine base columns with available round columns
+    key_columns = base_key_columns + sorted_round_columns
+    
+    print(f"📋 Available rounds detected: {sorted_round_columns}")
     
     # Filter to only include available key columns (excluding Rank since we'll calculate it)
     available_key_cols = [col for col in key_columns if any(col in row for row in data_rows)]
@@ -1241,10 +1271,6 @@ def process_selected_file(file_id, file_name):
         dict: Result information with success status and message
     """
     try:
-        # Debug: Show current working directory
-        current_dir = os.getcwd()
-        print(f"🔍 Current working directory: {current_dir}")
-        
         # Create file_list with just the selected file
         selected_file_list = [{
             'id': file_id,
@@ -1253,8 +1279,8 @@ def process_selected_file(file_id, file_name):
         
         # Determine the correct path for the HTML file
         # Assume we're running from the Flask app root (server directory)
+        current_dir = os.getcwd()
         html_output_path = os.path.join(current_dir, "static", "wrc.html")
-        print(f"🎯 HTML will be saved to: {html_output_path}")
         
         # Call the main conversion function with the specific file and HTML path
         result = download_and_convert_to_csv(pattern=None, file_list=selected_file_list, html_output_path=html_output_path)

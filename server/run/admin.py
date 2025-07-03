@@ -278,6 +278,14 @@ def update_wrc():
     """Display WRC file selection page"""
     try:
         # Import here to avoid issues if wrc2025 dependencies aren't available
+        import sys
+        import os
+        wrc_path = os.path.join(os.path.dirname(__file__), '..', 'wrc2025')
+        abs_wrc_path = os.path.abspath(wrc_path)
+        
+        if abs_wrc_path not in sys.path:
+            sys.path.append(abs_wrc_path)
+        
         from pdf_to_csv_converter import get_google_drive_file_list
         
         # Get file list from Google Drive
@@ -304,6 +312,14 @@ def process_wrc():
     """Process selected WRC file"""
     try:
         # Import here to avoid issues if wrc2025 dependencies aren't available
+        import sys
+        import os
+        wrc_path = os.path.join(os.path.dirname(__file__), '..', 'wrc2025')
+        abs_wrc_path = os.path.abspath(wrc_path)
+        
+        if abs_wrc_path not in sys.path:
+            sys.path.append(abs_wrc_path)
+            
         from pdf_to_csv_converter import process_selected_file
         
         file_id = request.form.get("file_id")
