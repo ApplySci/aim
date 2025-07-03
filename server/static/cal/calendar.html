@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Calendar</title>
+    <link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+    <h1>Tournament Calendar</h1>
+    
+    <div class="search-container">
+        <div style="position: relative;">
+            <input 
+                type="text" 
+                id="playerSearch" 
+                class="player-search" 
+                placeholder="Type to search for a player..."
+                autocomplete="off"
+            >
+            <div id="suggestions" class="suggestions"></div>
+        </div>
+    </div>
+    
+    <div id="results" class="results" style="display: none;">
+        <div id="permanentLink" class="permanent-link" style="display: none;">
+            <strong>Permanent direct link: </strong>
+            <a id="directLinkUrl" href="" target="_blank"></a>
+        </div>
+        
+        <div id="playerInfo" class="player-info"></div>
+        
+        <div id="calendarDownload" class="calendar-download" style="display: none;">
+            <div class="calendar-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="includeNotifications" />
+                    <span class="checkmark"></span>
+                    Add 5-minute notifications before each event
+                </label>
+            </div>
+            <button id="downloadButton" class="download-calendar">📅 Download Personal Calendar (.ics)</button>
+        </div>
+        
+        <div id="teamEventSection" style="display: none;">
+            <h3>Team Event</h3>
+            <div id="teamRoundsContainer" class="rounds-container"></div>
+        </div>
+        
+        <div id="mainEventSection" style="display: none;">
+            <h3>Main Event</h3>
+            <div id="mainRoundsContainer" class="rounds-container"></div>
+        </div>
+    </div>
+    
+    <div id="noResults" class="no-results" style="display: none;">
+        Select a player to view their tournament schedule.
+    </div>
+
+    <script src="makecalendar.js"></script>
+</body>
+</html>
