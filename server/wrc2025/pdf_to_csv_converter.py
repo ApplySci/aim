@@ -702,6 +702,11 @@ def download_and_convert_to_csv(pattern=None, file_list=None, html_output_path=N
         else:
             generate_html_page(simple_data, pdf_filename=target_file['name'])
 
+        # Update calendar.html and makecalendar.js files
+        round_number = determine_round_number(simple_data)
+        update_calendar_html(simple_data, round_number)
+        update_makecalendar_js(simple_data, round_number)
+
         return simple_data
 
     return None
@@ -1313,6 +1318,199 @@ def process_selected_file(file_id, file_name):
             'message': f'Error processing {file_name}: {str(e)}',
             'filename': file_name
         }
+
+
+def format_score(score):
+    """Format score with + prefix for positive values and 1 decimal place
+    
+    Args:
+        score: Numeric score value
+        
+    Returns:
+        str: Formatted score string (e.g., '+14.0', '-2.5', '0.0')
+    """
+    if score is None:
+        return "+0.0"
+    
+    score_val = float(score)
+    if score_val >= 0:
+        return f"+{score_val:.1f}"
+    else:
+        return f"{score_val:.1f}"
+
+
+def determine_round_number(simple_data):
+    """Determine the number of rounds based on available Round_X columns with actual data
+    
+    Args:
+        simple_data: List of dictionaries containing player data
+        
+    Returns:
+        int: Number of rounds with actual data (not None)
+    """
+    if not simple_data:
+        return 0
+    
+    # Find all Round_X columns with actual data
+    max_round_with_data = 0
+    for col in simple_data[0].keys():
+        if col.startswith('Round_'):
+            try:
+                round_num = int(col.split('_')[1])
+                
+                # Check if this round has actual data (not None) for any player
+                has_data = any(
+                    row.get(col) is not None 
+                    for row in simple_data
+                )
+                
+                if has_data:
+                    max_round_with_data = max(max_round_with_data, round_num)
+                    
+            except (ValueError, IndexError):
+                continue
+    
+    return max_round_with_data
+
+
+def update_calendar_html(simple_data, round_number):
+    """Update the calendar.html file with current round information
+    
+    Args:
+        simple_data: List of dictionaries containing player data
+        round_number: Number of rounds completed
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the parent directory (server) since we're running from wrc2025/
+    parent_dir = os.path.dirname(os.getcwd())
+    calendar_html_path = os.path.join(parent_dir, "static", "cal", "calendar.html")
+    calendar_css_path = os.path.join(parent_dir, "static", "cal", "calendar.css")
+    
+    try:
+        # Read the current calendar.html file
+        with open(calendar_html_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Find the h1 tag and add the round information
+        round_info = f"Scores and ranks as of the end of round {round_number}"
+        
+        # Replace the h1 content (remove existing round-info if present)
+        import re
+        content = re.sub(
+            r'<h1>Tournament Calendar</h1>(\s*<div class="round-info">[^<]*</div>)?',
+            f'<h1>Tournament Calendar</h1>\n    <div class="round-info">{round_info}</div>',
+            content
+        )
+        
+        # Write the updated HTML content back
+        with open(calendar_html_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Update the CSS file to add round-info styles if not present
+        try:
+            with open(calendar_css_path, 'r', encoding='utf-8') as f:
+                css_content = f.read()
+            
+            if '.round-info' not in css_content:
+                css_addition = '''
+.round-info {
+    text-align: center;
+    font-size: 1.2em;
+    color: #666;
+    margin-bottom: 20px;
+    font-weight: normal;
+}
+'''
+                css_content += css_addition
+                
+                with open(calendar_css_path, 'w', encoding='utf-8') as f:
+                    f.write(css_content)
+                
+                print(f"✅ Updated calendar.css with round-info styles")
+        except Exception as css_e:
+            print(f"⚠️ Warning: Could not update calendar.css: {css_e}")
+        
+        print(f"✅ Updated calendar.html with round {round_number} information")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to update calendar.html: {e}")
+        return False
+
+
+def update_makecalendar_js(simple_data, round_number):
+    """Update the makecalendar.js file with current player rankings and scores
+    
+    Args:
+        simple_data: List of dictionaries containing player data
+        round_number: Number of rounds completed
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the parent directory (server) since we're running from wrc2025/
+    parent_dir = os.path.dirname(os.getcwd())
+    makecalendar_js_path = os.path.join(parent_dir, "static", "cal", "makecalendar.js")
+    
+    try:
+        # Read the current makecalendar.js file
+        with open(makecalendar_js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Create a lookup map for player rankings and scores
+        player_lookup = {}
+        for player in simple_data:
+            name = player.get('Player_Name', '')
+            rank = player.get('Rank', '')
+            score = player.get('Total_Score', 0)
+            
+            if name:
+                # Clean the rank (remove = prefix if present)
+                rank_clean = rank.replace('=', '') if rank else ''
+                score_formatted = format_score(score)
+                player_lookup[name] = {
+                    'rank': rank_clean,
+                    'score': score_formatted
+                }
+        
+        # Find the getAllPlayerData function and update player names
+        import re
+        
+        # Pattern to match player data rows like: [1,"Japan","Aki Nikaido",1,1,1,1,1,1,1,1,1,1],
+        # This pattern works for both main event and team event data
+        pattern = r'\[([^"]+),"([^"]+)","([^"]+)",([^\]]+)\]'
+        
+        def replace_player_data(match):
+            first_field = match.group(1)  # Could be player ID or team number
+            country_or_team = match.group(2)  # Country or team name
+            name = match.group(3)  # Player name
+            remaining_data = match.group(4)  # Table data or other fields
+            
+            # Update player name with rank and score if available
+            if name in player_lookup:
+                rank = player_lookup[name]['rank']
+                score = player_lookup[name]['score']
+                updated_name = f"{name}, #{rank}, {score}"
+            else:
+                updated_name = name
+            
+            return f'[{first_field},"{country_or_team}","{updated_name}",{remaining_data}]'
+        
+        # Replace all player data entries (this will update both main event and team event data)
+        updated_content = re.sub(pattern, replace_player_data, content)
+        
+        # Write the updated content back
+        with open(makecalendar_js_path, 'w', encoding='utf-8') as f:
+            f.write(updated_content)
+        
+        print(f"✅ Updated makecalendar.js with player rankings and scores")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to update makecalendar.js: {e}")
+        return False
 
 
 if __name__ == "__main__":
