@@ -10,6 +10,7 @@ and other administrative tasks. Restricted to users with admin privileges.
 from functools import wraps
 import os
 import shutil
+import sys
 
 from flask import abort, Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required, current_user
@@ -27,6 +28,11 @@ from operations.firebase_backup import (
 )
 from write_sheet import googlesheet
 
+# Add wrc2025 directory to path so we can import from it
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+wrc2025_dir = os.path.join(parent_dir, 'wrc2025')
+sys.path.insert(0, wrc2025_dir)
 
 blueprint = Blueprint("admin", __name__)
 
@@ -263,3 +269,68 @@ def delete_backup():
         flash(f"Error deleting backup file: {str(e)}", "error")
     
     return redirect(url_for("admin.superadmin"))
+
+
+@blueprint.route("/admin/update_wrc", methods=["GET"])
+@superadmin_required
+@login_required
+def update_wrc():
+    """Display WRC file selection page"""
+    try:
+        # Import here to avoid issues if wrc2025 dependencies aren't available
+        from pdf_to_csv_converter import get_google_drive_file_list
+        
+        # Get file list from Google Drive
+        files = get_google_drive_file_list()
+        
+        if not files:
+            flash("Unable to fetch file list from Google Drive. Check credentials and connectivity.", "error")
+            return render_template("update_wrc.html", files=[])
+        
+        return render_template("update_wrc.html", files=files)
+        
+    except ImportError as e:
+        flash(f"WRC functionality not available: {e}", "error")
+        return redirect(url_for("admin.superadmin"))
+    except Exception as e:
+        flash(f"Error loading WRC update page: {e}", "error")
+        return redirect(url_for("admin.superadmin"))
+
+
+@blueprint.route("/admin/process_wrc", methods=["POST"])
+@superadmin_required
+@login_required
+def process_wrc():
+    """Process selected WRC file"""
+    try:
+        # Import here to avoid issues if wrc2025 dependencies aren't available
+        from pdf_to_csv_converter import process_selected_file
+        
+        file_id = request.form.get("file_id")
+        file_name = request.form.get("file_name")
+        
+        if not file_id or not file_name:
+            flash("No file selected", "error")
+            return redirect(url_for("admin.update_wrc"))
+        
+        # Process the selected file
+        result = process_selected_file(file_id, file_name)
+        
+        if result['success']:
+            flash(result['message'], "success")
+            # Also check if HTML file is accessible via URL
+            html_path = result.get('html_path', '')
+            if html_path and os.path.exists(html_path):
+                static_url = url_for('static', filename='wrc.html')
+                flash(f"HTML page available at: {static_url}", "info")
+        else:
+            flash(result['message'], "error")
+            
+        return redirect(url_for("admin.update_wrc"))
+        
+    except ImportError as e:
+        flash(f"WRC functionality not available: {e}", "error")
+        return redirect(url_for("admin.superadmin"))
+    except Exception as e:
+        flash(f"Error processing WRC file: {e}", "error")
+        return redirect(url_for("admin.update_wrc"))

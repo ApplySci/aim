@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_レイヤー_2" data-name="レイヤー 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 179.44 54.74">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#_新規グラデーションスウォッチ_1);
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: url(#_新規グラデーションスウォッチ_1-2);
+      }
+
+      .cls-3 {
+        fill: url(#_新規グラデーションスウォッチ_1-4);
+      }
+
+      .cls-4 {
+        fill: url(#_新規グラデーションスウォッチ_1-3);
+      }
+
+      .cls-5 {
+        fill: #190907;
+      }
+    </style>
+    <linearGradient id="_新規グラデーションスウォッチ_1" data-name="新規グラデーションスウォッチ 1" x1="10.59" y1="12.75" x2="48.29" y2="2.42" gradientTransform="translate(3.02 -7.4) rotate(15.18)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ebbe1a"/>
+      <stop offset="1" stop-color="#c76518"/>
+    </linearGradient>
+    <linearGradient id="_新規グラデーションスウォッチ_1-2" data-name="新規グラデーションスウォッチ 1" x1="2128.16" y1="7661.07" x2="2165.85" y2="7650.74" gradientTransform="translate(93.18 7998.07) rotate(-164.82)" xlink:href="#_新規グラデーションスウォッチ_1"/>
+    <linearGradient id="_新規グラデーションスウォッチ_1-3" data-name="新規グラデーションスウォッチ 1" x1="-2714.5" y1="4862.47" x2="-2676.8" y2="4852.14" gradientTransform="translate(4029.32 3902.68) rotate(105.18)" xlink:href="#_新規グラデーションスウォッチ_1"/>
+    <linearGradient id="_新規グラデーションスウォッチ_1-4" data-name="新規グラデーションスウォッチ 1" x1="-2718.29" y1="4901.95" x2="-2680.6" y2="4891.62" gradientTransform="translate(4026.95 3912.88) rotate(105.18)" xlink:href="#_新規グラデーションスウォッチ_1"/>
+  </defs>
+  <g id="_レイヤー_1-2" data-name="レイヤー 1">
+    <g>
+      <g>
+        <path class="cls-5" d="m91.67,33.38l-4.65-10.61,5.99-13.82h-5.81l-3.06,7.35c-.29-.69-1.07-2.48-3.18-7.25l-.04-.1h-6.13l6.42,14.35-4.17,10.08-10.17-24.33-.04-.1h-6.35l15.81,36.74.16.37h.43l.16-.37s1.79-4.11,3.59-8.22c.9-2.06,1.79-4.11,2.46-5.66.51-1.18.8-1.84.95-2.22l7.43,16.48h.42l15.38-36.89.1-.23h-6.02l-9.68,24.43Z"/>
+        <path class="cls-5" d="m139.36,23.06c0-8.52-6.18-14.12-16.33-14.12h-9.45v36.92h5.81v-8.8h3.64c.92,0,2.55-.05,3.36-.16l6.3,8.96h6.9l-7.49-10.55c4.53-2.29,7.27-6.55,7.27-12.25Zm-16.55,9.01h-3.42V14.1h3.42c7.06,0,10.58,3.37,10.58,8.96s-3.47,9.01-10.58,9.01Z"/>
+        <path class="cls-5" d="m174.93,35.71c-2.77,3.58-6.3,5.37-11.08,5.37-7.44,0-12.87-5.7-12.87-13.68s5.32-13.68,12.65-13.68c4.89,0,8.04,1.74,10.48,5.05l4.45-3.15c-3.2-4.51-7.93-7.17-14.77-7.17-10.53,0-18.84,8.04-18.84,18.95s8.14,18.95,18.68,18.95c7.17,0,12-2.5,15.8-7.55l-4.51-3.09Z"/>
+      </g>
+      <g>
+        <rect class="cls-1" x="9.22" y="5.16" width="40.09" height="4.94" transform="translate(-.98 7.93) rotate(-15.18)"/>
+        <rect class="cls-2" x="5.42" y="44.64" width="40.09" height="4.94" transform="translate(-11.44 8.31) rotate(-15.18)"/>
+        <rect class="cls-4" x="44.64" y="9.22" width="4.94" height="40.09" transform="translate(-6.02 13.35) rotate(-15.18)"/>
+        <rect class="cls-3" x="5.16" y="5.42" width="4.94" height="40.09" transform="translate(-6.4 2.89) rotate(-15.18)"/>
+      </g>
+    </g>
+  </g>
+</svg>

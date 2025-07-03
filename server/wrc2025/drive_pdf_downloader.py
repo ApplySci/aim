@@ -152,8 +152,14 @@ class GoogleDrivePDFDownloader:
             return url.split('/folders/')[1].split('?')[0]
         return url
     
-    def download_pdf_direct(self, file_id: str, filename: str) -> bool:
-        """Download PDF directly using file ID"""
+    def download_pdf_direct(self, file_id: str, filename: str, custom_download_dir: str = None) -> bool:
+        """Download PDF directly using file ID
+        
+        Args:
+            file_id: Google Drive file ID
+            filename: Name of the file to save
+            custom_download_dir: Custom directory to save the file (if None, uses 'downloads/')
+        """
         try:
             # Direct download URL for Google Drive files
             download_url = f"https://drive.google.com/uc?id={file_id}&export=download"
@@ -174,8 +180,15 @@ class GoogleDrivePDFDownloader:
                     response = requests.get(download_url, stream=True)
             
             if response.status_code == 200:
-                os.makedirs('downloads', exist_ok=True)
-                filepath = f"downloads/{filename}"
+                # Use custom directory if provided, otherwise default to 'downloads'
+                if custom_download_dir:
+                    download_dir = custom_download_dir
+                    filepath = os.path.join(download_dir, filename)
+                else:
+                    download_dir = 'downloads'
+                    filepath = f"downloads/{filename}"
+                
+                os.makedirs(download_dir, exist_ok=True)
                 
                 with open(filepath, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):

@@ -14,6 +14,7 @@
             <p class="wrap">Hi,<br>{{ current_user.email }}</p>
             {% if current_user.email == SUPERADMIN %}
                 <a href="{{ url_for('admin.superadmin') }}" {% if request.endpoint == 'admin.superadmin' %}class="active"{% endif %}>Superuser admin</a>
+                <a href="{{ url_for('admin.update_wrc') }}" {% if request.endpoint == 'admin.update_wrc' %}class="active"{% endif %}>Update WRC</a>
             {% endif %}
             <a href="{{ url_for('create.results_create') }}" {% if request.endpoint == 'create.results_create' %}class="active"{% endif %}>Create New Tournament</a>
             <a href="{{ url_for('run.past_tournaments') }}" {% if request.endpoint == 'run.past_tournaments' %}class="active"{% endif %}>Past Tournaments</a>

@@ -482,12 +482,13 @@ def select_highest_round_file(matching_files):
     return selected_file
 
 
-def download_and_convert_to_csv(pattern=None, file_list=None):
+def download_and_convert_to_csv(pattern=None, file_list=None, html_output_path=None):
     """Main function to download PDF and convert to simple CSV
     
     Args:
         pattern: Regex pattern to match files (default: .*PlayerStandings.*\\.pdf)
         file_list: List of available files with 'name' and 'id' keys (will fetch dynamically if None)
+        html_output_path: Custom path for HTML output (if None, uses default relative path)
     """
     
     # Default pattern for PlayerStandings files with round format (e.g., TeamEvent_3rdRound_PlayerStandings_*.pdf)
@@ -535,13 +536,40 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
     target_file = select_highest_round_file(matching_files)
     print(f"🎯 Selected file: {target_file['name']}")
 
-    # Download if not already present
-    download_path = f"downloads/{target_file['name']}"
+    # Download if not already present  
+    if html_output_path:
+        # Use consistent path structure when called from Flask app
+        current_dir = os.getcwd()
+        downloads_dir = os.path.join(current_dir, "wrc2025", "downloads")
+        download_path = os.path.join(downloads_dir, target_file['name'])
+    else:
+        download_path = f"downloads/{target_file['name']}"
+    
+    print(f"🔍 PDF download path: {os.path.abspath(download_path)}")
+    
+    # Ensure download directory exists before checking if file exists
+    download_dir = os.path.dirname(download_path)
+    os.makedirs(download_dir, exist_ok=True)
+    print(f"🔍 Download directory created/verified: {download_dir}")
+    
     if not os.path.exists(download_path):
         print("📥 Downloading PDF...")
-        success = downloader.download_pdf_direct(target_file["id"], target_file["name"])
+        # Pass the custom download directory if we're using custom paths
+        if html_output_path:
+            success = downloader.download_pdf_direct(target_file["id"], target_file["name"], download_dir)
+        else:
+            success = downloader.download_pdf_direct(target_file["id"], target_file["name"])
+        
         if not success:
             print("❌ Failed to download PDF")
+            return None
+        
+        # Verify the download was successful
+        if os.path.exists(download_path):
+            file_size = os.path.getsize(download_path)
+            print(f"✅ PDF downloaded successfully: {download_path} ({file_size} bytes)")
+        else:
+            print(f"❌ PDF download claimed success but file not found: {download_path}")
             return None
     else:
         print("✅ PDF already downloaded")
@@ -601,12 +629,33 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
 
         # Create output filename based on the source file
         base_name = os.path.splitext(target_file['name'])[0]
-        simple_csv_filename = f"downloads/latest.csv"
+        
+        # Determine CSV path - if we have a custom HTML path, put CSV in the same directory structure
+        if html_output_path:
+            # Put CSV in wrc2025/downloads/ relative to the Flask app root
+            current_dir = os.getcwd()
+            csv_downloads_dir = os.path.join(current_dir, "wrc2025", "downloads")
+            simple_csv_filename = os.path.join(csv_downloads_dir, "latest.csv")
+        else:
+            simple_csv_filename = f"downloads/latest.csv"
+        
+        # Debug: Show CSV path info
+        abs_csv_path = os.path.abspath(simple_csv_filename)
+        print(f"🔍 CSV will be saved to: {abs_csv_path}")
+        
+        # Ensure CSV directory exists
+        csv_dir = os.path.dirname(abs_csv_path)
+        os.makedirs(csv_dir, exist_ok=True)
+        print(f"🔍 CSV directory created/verified: {csv_dir}")
         
         if save_to_csv(simple_data, simple_csv_filename):
-            print(f"\n💾 CSV saved to: {simple_csv_filename}")
+            if os.path.exists(abs_csv_path):
+                csv_size = os.path.getsize(abs_csv_path)
+                print(f"\n💾 CSV saved successfully: {abs_csv_path} ({csv_size} bytes)")
+            else:
+                print(f"\n⚠️ CSV save reported success but file not found: {abs_csv_path}")
         else:
-            print(f"\n❌ Failed to save CSV file")
+            print(f"\n❌ Failed to save CSV file to: {abs_csv_path}")
 
         # Display data types
         print(f"\n📈 Data types:")
@@ -618,7 +667,10 @@ def download_and_convert_to_csv(pattern=None, file_list=None):
         display_summary_statistics(simple_data)
 
         # Generate HTML page
-        generate_html_page(simple_data, pdf_filename=target_file['name'])
+        if html_output_path:
+            generate_html_page(simple_data, output_path=html_output_path, pdf_filename=target_file['name'])
+        else:
+            generate_html_page(simple_data, pdf_filename=target_file['name'])
 
         return simple_data
 
@@ -668,6 +720,26 @@ def generate_html_page(simple_data, output_path="../static/wrc.html", pdf_filena
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
             color: #333;
+        }}
+        
+        .header-images {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 15px;
+        }}
+        
+        .qr-code {{
+            height: 120px;
+            width: 120px;
+            object-fit: contain;
+        }}
+        
+        .logo {{
+            height: 120px;
+            object-fit: contain;
         }}
         
         .container {{
@@ -823,6 +895,19 @@ def generate_html_page(simple_data, output_path="../static/wrc.html", pdf_filena
         }}
         
         @media (max-width: 768px) {{
+            .header-images {{
+                gap: 15px;
+            }}
+            
+            .qr-code {{
+                height: 100px;
+                width: 100px;
+            }}
+            
+            .logo {{
+                height: 60px;
+            }}
+            
             .container {{
                 padding: 10px;
             }}
@@ -1029,21 +1114,45 @@ def generate_html_page(simple_data, output_path="../static/wrc.html", pdf_filena
             }
         });
     </script>
+        
+        <div class="header-images">
+            <img src="wrcqr.png" alt="WRC QR Code" class="qr-code">
+            <img src="20205logo.svg" alt="2025 Logo" class="logo">
+        </div>
+    </div>
 </body>
 </html>'''
     
     try:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Get absolute path for clarity
+        abs_output_path = os.path.abspath(output_path)
+        output_dir = os.path.dirname(abs_output_path)
         
-        with open(output_path, 'w', encoding='utf-8') as f:
+        print(f"🔍 Attempting to write HTML to: {abs_output_path}")
+        print(f"🔍 Output directory: {output_dir}")
+        print(f"🔍 Directory exists: {os.path.exists(output_dir)}")
+        
+        # Create directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"🔍 Directory created/verified: {output_dir}")
+        
+        with open(abs_output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        print(f"🌐 HTML page generated: {output_path}")
-        return True
+        # Verify file was created
+        if os.path.exists(abs_output_path):
+            file_size = os.path.getsize(abs_output_path)
+            print(f"🌐 HTML page generated successfully: {abs_output_path} ({file_size} bytes)")
+            return True
+        else:
+            print(f"❌ HTML file not found after writing: {abs_output_path}")
+            return False
         
     except Exception as e:
         print(f"❌ Failed to generate HTML page: {e}")
+        print(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
         return False
 
 
@@ -1090,6 +1199,94 @@ def calculate_rankings(data_rows):
                 last_score = current_score
     
     return sorted_data
+
+
+def get_google_drive_file_list():
+    """Get list of PDF files from Google Drive folder for web interface
+    
+    Returns:
+        List of dictionaries with file information (name, id, size, createdTime, modifiedTime)
+        Returns empty list if unable to fetch files
+    """
+    try:
+        # Initialize components with same folder ID as main function
+        folder_id = "1PuSjJY5PSxXHja8xDESEhWk1kDhpX9hJ"
+        downloader = GoogleDrivePDFDownloader(folder_id)
+        
+        # Fetch file list
+        file_list = downloader.fetch_file_list("pdf")
+        
+        if not file_list:
+            print("❌ Failed to fetch file list from Google Drive")
+            return []
+        
+        # Sort by modified time (newest first)
+        file_list.sort(key=lambda x: x.get('modifiedTime', ''), reverse=True)
+        
+        return file_list
+        
+    except Exception as e:
+        print(f"❌ Error fetching file list: {e}")
+        return []
+
+
+def process_selected_file(file_id, file_name):
+    """Process a specific file selected from the web interface
+    
+    Args:
+        file_id: Google Drive file ID
+        file_name: Name of the file
+        
+    Returns:
+        dict: Result information with success status and message
+    """
+    try:
+        # Debug: Show current working directory
+        current_dir = os.getcwd()
+        print(f"🔍 Current working directory: {current_dir}")
+        
+        # Create file_list with just the selected file
+        selected_file_list = [{
+            'id': file_id,
+            'name': file_name
+        }]
+        
+        # Determine the correct path for the HTML file
+        # Assume we're running from the Flask app root (server directory)
+        html_output_path = os.path.join(current_dir, "static", "wrc.html")
+        print(f"🎯 HTML will be saved to: {html_output_path}")
+        
+        # Call the main conversion function with the specific file and HTML path
+        result = download_and_convert_to_csv(pattern=None, file_list=selected_file_list, html_output_path=html_output_path)
+        
+        if result is not None:
+            # Check if HTML file was actually created
+            if os.path.exists(html_output_path):
+                html_size = os.path.getsize(html_output_path)
+                html_info = f" HTML file created: {html_output_path} ({html_size} bytes)"
+            else:
+                html_info = f" ⚠️ HTML file not found at: {html_output_path}"
+            
+            return {
+                'success': True,
+                'message': f'Successfully processed {len(result)} player records from {file_name}.{html_info}',
+                'record_count': len(result),
+                'filename': file_name,
+                'html_path': html_output_path
+            }
+        else:
+            return {
+                'success': False,
+                'message': f'Failed to process {file_name}',
+                'filename': file_name
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error processing {file_name}: {str(e)}',
+            'filename': file_name
+        }
 
 
 if __name__ == "__main__":
