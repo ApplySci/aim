@@ -292,10 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Confirm before processing
         const fileName = fileNameInput.value;
-        if (!confirm(`Process file "${fileName}"?\n\nThis will download and convert the PDF to CSV format.`)) {
-            e.preventDefault();
-            return;
-        }
         
         // Disable the button to prevent double submission
         processBtn.disabled = true;
