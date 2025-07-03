@@ -70,7 +70,7 @@ function getAllPlayerData() {
         [29,"Japan","Takashi Furuhashi",29,29,29,29,29,29,29,29,29,29],
         [30,"Japan","Shunsuke Kikuchi",30,30,30,30,30,30,30,30,30,30],
         [31,"Japan","Tetsuya Tachibana",31,31,31,31,31,31,31,31,31,31],
-        [32,"Japan","Rumi Nikaido",32,32,32,32,32,32,32,32,32,32],
+        [32,"Japan","Asataro Nada",32,32,32,32,32,32,32,32,32,32],
         [33,"Japan","Daisuke Suzuki",33,33,33,33,33,33,33,33,33,33],
         [34,"Japan","Hiro Shibata",34,34,34,34,34,34,34,34,34,34],
         [35,"Japan","Hiroyuki Yamada",35,35,35,35,35,35,35,35,35,35],
@@ -80,7 +80,7 @@ function getAllPlayerData() {
         [39,"Japan","Jun Murakami",39,39,39,39,39,39,39,39,39,39],
         [40,"Japan","Hiroshi Daigo",40,40,40,40,40,40,40,40,40,40],
         [41,"Japan","Genta Takeuchi",41,41,41,41,41,41,41,41,41,41],
-        [42,"Japan","Futoshi Watanabe",42,42,42,42,42,42,42,42,42,42],
+        [42,"Japan","Seiichi Kondo",42,42,42,42,42,42,42,42,42,42],
         [43,"Japan","Akira Wakutsu",43,43,43,43,43,43,43,43,43,43],
         [44,"Japan","Takaki Asai",44,44,44,44,44,44,44,44,44,44],
         [45,"Japan","Takaharu Oi",45,45,45,45,45,45,45,45,45,45],
@@ -292,7 +292,7 @@ function getAllPlayerData() {
         [251,"Poland","Ula Szudlich",59,62,1,4,7,10,13,16,19,22],
         [252,"Austria","Anton Lu",60,63,2,5,8,11,14,17,20,23],
         [253,"United Kingdom","Gemma Sakamoto",61,64,3,6,9,12,15,18,21,24],
-        [254,"Netherlands","Chun Man",62,1,4,7,10,13,16,19,22,25],
+        [254,"Netherlands","Timo Heemstra",62,1,4,7,10,13,16,19,22,25],
         [255,"Italy","Loris Langeri",63,2,5,8,11,14,17,20,23,26],
         [256,"Poland","Olga Igarashi",64,3,6,9,12,15,18,21,24,27]
     ];
