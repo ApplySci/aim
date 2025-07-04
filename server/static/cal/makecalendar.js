@@ -15,6 +15,23 @@ const TOURNAMENT_DATA = {
     teamPlayersByTable: new Map() // Map of "round-table" -> [team players]
 };
 
+// Number of completed rounds (updated by PDF converter)
+const COMPLETED_ROUNDS = 5;
+
+// Utility function to format player name based on round completion
+function formatPlayerName(fullName, roundNumber) {
+    // If round is completed or this is team event, show just the name
+    if (roundNumber <= COMPLETED_ROUNDS) {
+        // Extract just the player name (remove rank and score)
+        const match = fullName.match(/^([^,]+)(?:, #\d+, [+-]?[\d.]+)?$/);
+        return match ? match[1] : fullName;
+    }
+    // For future rounds, show full name with rank and score
+    return fullName;
+}
+
+
+
 // Schedule data extracted from cal.ics
 const SCHEDULE_DATA = {
     teamEvent: {
@@ -745,7 +762,7 @@ function showPlayerSchedule(playerName) {
                     <ul class="tablemates">
                         ${roundInfo.tablemates.map(mate => `
                             <li class="tablemate">
-                                ${mate.name}
+                                ${formatPlayerName(mate.name, roundInfo.round)}
                                 <span class="country">(${mate.teamName})</span>
                             </li>
                         `).join('')}
@@ -777,7 +794,7 @@ function showPlayerSchedule(playerName) {
                     <ul class="tablemates">
                         ${roundInfo.tablemates.map(mate => `
                             <li class="tablemate">
-                                ${mate.name}
+                                ${formatPlayerName(mate.name, roundInfo.round)}
                                 <span class="country">(${mate.country})</span>
                             </li>
                         `).join('')}

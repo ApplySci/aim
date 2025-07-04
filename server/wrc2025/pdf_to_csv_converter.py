@@ -706,6 +706,7 @@ def download_and_convert_to_csv(pattern=None, file_list=None, html_output_path=N
         round_number = determine_round_number(simple_data)
         update_calendar_html(simple_data, round_number)
         update_makecalendar_js(simple_data, round_number)
+        update_calendar_display_logic(round_number)
 
         return simple_data
 
@@ -1383,10 +1384,13 @@ def update_calendar_html(simple_data, round_number):
     Returns:
         bool: True if successful, False otherwise
     """
-    # Get the parent directory (server) since we're running from wrc2025/
-    parent_dir = os.path.dirname(os.getcwd())
-    calendar_html_path = os.path.join(parent_dir, "static", "cal", "calendar.html")
-    calendar_css_path = os.path.join(parent_dir, "static", "cal", "calendar.css")
+    # Get the server directory based on script location (works regardless of cwd)
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # wrc2025/
+    server_dir = os.path.dirname(script_dir)  # server/
+    calendar_html_path = os.path.join(server_dir, "static", "cal", "calendar.html")
+    calendar_css_path = os.path.join(server_dir, "static", "cal", "calendar.css")
+    
+
     
     try:
         # Read the current calendar.html file
@@ -1450,9 +1454,12 @@ def update_makecalendar_js(simple_data, round_number):
     Returns:
         bool: True if successful, False otherwise
     """
-    # Get the parent directory (server) since we're running from wrc2025/
-    parent_dir = os.path.dirname(os.getcwd())
-    makecalendar_js_path = os.path.join(parent_dir, "static", "cal", "makecalendar.js")
+    # Get the server directory based on script location (works regardless of cwd)
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # wrc2025/
+    server_dir = os.path.dirname(script_dir)  # server/
+    makecalendar_js_path = os.path.join(server_dir, "static", "cal", "makecalendar.js")
+    
+
     
     try:
         # Read the current makecalendar.js file
@@ -1475,41 +1482,150 @@ def update_makecalendar_js(simple_data, round_number):
                     'score': score_formatted
                 }
         
-        # Find the getAllPlayerData function and update player names
         import re
         
-        # Pattern to match player data rows like: [1,"Japan","Aki Nikaido",1,1,1,1,1,1,1,1,1,1],
-        # This pattern works for both main event and team event data
-        pattern = r'\[([^"]+),"([^"]+)","([^"]+)",([^\]]+)\]'
+        # Update the completed rounds constant at the top of the file
+        content = re.sub(
+            r'(const COMPLETED_ROUNDS = )\d+;',
+            f'\\g<1>{round_number};',
+            content
+        )
         
-        def replace_player_data(match):
-            first_field = match.group(1)  # Could be player ID or team number
-            country_or_team = match.group(2)  # Country or team name
-            name = match.group(3)  # Player name
-            remaining_data = match.group(4)  # Table data or other fields
-            
-            # Update player name with rank and score if available
-            if name in player_lookup:
-                rank = player_lookup[name]['rank']
-                score = player_lookup[name]['score']
-                updated_name = f"{name}, #{rank}, {score}"
-            else:
-                updated_name = name
-            
-            return f'[{first_field},"{country_or_team}","{updated_name}",{remaining_data}]'
+        # If the constant doesn't exist, add it after the TOURNAMENT_DATA definition
+        if 'const COMPLETED_ROUNDS' not in content:
+            content = re.sub(
+                r'(const TOURNAMENT_DATA = \{[^}]*\};)',
+                f'\\1\n\n// Number of completed rounds (updated by PDF converter)\nconst COMPLETED_ROUNDS = {round_number};',
+                content,
+                flags=re.DOTALL
+            )
         
-        # Replace all player data entries (this will update both main event and team event data)
-        updated_content = re.sub(pattern, replace_player_data, content)
+        # Only update main event player data (in getAllPlayerData function), not team event data
+        # Pattern to match the getAllPlayerData function section
+        main_event_pattern = r'(function getAllPlayerData\(\) \{[\s\S]*?return \[[\s\S]*?)(\];[\s\S]*?\})'
+        
+        def update_main_event_section(match):
+            section_start = match.group(1)
+            section_end = match.group(2)
+            
+            # Pattern for individual player entries in main event data
+            player_pattern = r'\[(\d+),"([^"]+)","([^"]+)",([^\]]+)\]'
+            
+            def replace_main_event_player(player_match):
+                player_id = player_match.group(1)
+                country = player_match.group(2)
+                name = player_match.group(3)
+                table_data = player_match.group(4)
+                
+                # Update player name with rank and score
+                if name in player_lookup:
+                    rank = player_lookup[name]['rank']
+                    score = player_lookup[name]['score']
+                    updated_name = f"{name}, #{rank}, {score}"
+                else:
+                    updated_name = name
+                
+                return f'[{player_id},"{country}","{updated_name}",{table_data}]'
+            
+            # Replace player entries in the main event section
+            updated_section_start = re.sub(player_pattern, replace_main_event_player, section_start)
+            return updated_section_start + section_end
+        
+        # Apply the update to main event data only
+        content = re.sub(main_event_pattern, update_main_event_section, content, flags=re.DOTALL)
         
         # Write the updated content back
         with open(makecalendar_js_path, 'w', encoding='utf-8') as f:
-            f.write(updated_content)
+            f.write(content)
         
-        print(f"✅ Updated makecalendar.js with player rankings and scores")
+        print(f"✅ Updated makecalendar.js with player rankings and scores (main event only)")
         return True
         
     except Exception as e:
         print(f"❌ Failed to update makecalendar.js: {e}")
+        return False
+
+
+def update_calendar_display_logic(round_number):
+    """Add JavaScript logic to conditionally display rank/score based on completed rounds
+    
+    Args:
+        round_number: Number of rounds completed
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the server directory based on script location (works regardless of cwd)
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # wrc2025/
+    server_dir = os.path.dirname(script_dir)  # server/
+    makecalendar_js_path = os.path.join(server_dir, "static", "cal", "makecalendar.js")
+    
+
+    
+    try:
+        # Read the current makecalendar.js file
+        with open(makecalendar_js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Add utility function to format player names based on round completion
+        utility_function = '''
+// Utility function to format player name based on round completion
+function formatPlayerName(fullName, roundNumber) {
+    // If round is completed or this is team event, show just the name
+    if (roundNumber <= COMPLETED_ROUNDS) {
+        // Extract just the player name (remove rank and score)
+        const match = fullName.match(/^([^,]+)(?:, #\\\\d+, [+-]?[\\\\d.]+)?$/);
+        return match ? match[1] : fullName;
+    }
+    // For future rounds, show full name with rank and score
+    return fullName;
+}
+
+'''
+        
+        # Insert the utility function after the COMPLETED_ROUNDS constant
+        import re
+        
+        # Find the COMPLETED_ROUNDS constant and add the function after it
+        if 'function formatPlayerName' not in content:
+            content = re.sub(
+                r'(const COMPLETED_ROUNDS = \d+;)',
+                f'\\1\n{utility_function}',
+                content
+            )
+        
+        # Update the showPlayerSchedule function to use formatPlayerName
+        # Find the tablemates mapping section and update it
+        tablemates_pattern = r'(\$\{roundInfo\.tablemates\.map\(mate => `[\s\S]*?<li class="tablemate">[\s\S]*?)\$\{mate\.name\}([\s\S]*?`\)\.join\(\'\'\)\})'
+        
+        def update_tablemates_display(match):
+            before = match.group(1)
+            after = match.group(2)
+            return f'{before}${{formatPlayerName(mate.name, roundInfo.round)}}{after}'
+        
+        content = re.sub(tablemates_pattern, update_tablemates_display, content)
+        
+        # Also update team event tablemates display
+        # The pattern is slightly different for team events
+        team_tablemates_pattern = r'(\$\{roundInfo\.tablemates\.map\(mate => `[\s\S]*?<li class="tablemate">[\s\S]*?)\$\{mate\.name\}([\s\S]*?<span class="country">\(\$\{mate\.teamName\}\)</span>[\s\S]*?`\)\.join\(\'\'\)\})'
+        
+        def update_team_tablemates_display(match):
+            before = match.group(1)
+            after = match.group(2)
+            # For team events, always show just the name (no rank/score)
+            return f'{before}${{formatPlayerName(mate.name, 1)}}{after}'  # Use 1 to ensure name only
+        
+        content = re.sub(team_tablemates_pattern, update_team_tablemates_display, content)
+        
+        # Write the updated content back
+        with open(makecalendar_js_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print(f"✅ Updated calendar display logic for conditional rank/score display")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to update calendar display logic: {e}")
         return False
 
 
