@@ -1500,45 +1500,125 @@ def update_makecalendar_js(simple_data, round_number):
                 flags=re.DOTALL
             )
         
-        # Only update main event player data (in getAllPlayerData function), not team event data
-        # Pattern to match the getAllPlayerData function section
-        main_event_pattern = r'(function getAllPlayerData\(\) \{[\s\S]*?return \[[\s\S]*?)(\];[\s\S]*?\})'
+        # Add utility function to extract clean names from full names (for autocomplete)
+        clean_name_function = '''
+// Utility function to extract clean name from full name (removes rank and score)
+function getCleanPlayerName(fullName) {
+    // Extract just the player name (remove rank and score)
+    const match = fullName.match(/^([^,]+)(?:, #\\\\d+, [+-]?[\\\\d.]+)?$/);
+    return match ? match[1] : fullName;
+}
+
+// Utility function to create player name mapping for autocomplete
+function createPlayerNameMapping() {
+    const mapping = new Map();
+    TOURNAMENT_DATA.players.forEach(player => {
+        const cleanName = getCleanPlayerName(player.name);
+        mapping.set(cleanName, player.name);
+    });
+    return mapping;
+}
+
+'''
         
-        def update_main_event_section(match):
-            section_start = match.group(1)
-            section_end = match.group(2)
-            
-            # Pattern for individual player entries in main event data
-            player_pattern = r'\[(\d+),"([^"]+)","([^"]+)",([^\]]+)\]'
-            
-            def replace_main_event_player(player_match):
-                player_id = player_match.group(1)
-                country = player_match.group(2)
-                name = player_match.group(3)
-                table_data = player_match.group(4)
-                
-                # Update player name with rank and score
-                if name in player_lookup:
-                    rank = player_lookup[name]['rank']
-                    score = player_lookup[name]['score']
-                    updated_name = f"{name}, #{rank}, {score}"
-                else:
-                    updated_name = name
-                
-                return f'[{player_id},"{country}","{updated_name}",{table_data}]'
-            
-            # Replace player entries in the main event section
-            updated_section_start = re.sub(player_pattern, replace_main_event_player, section_start)
-            return updated_section_start + section_end
+        # Insert the utility functions after the formatPlayerName function
+        if 'function getCleanPlayerName' not in content:
+            content = re.sub(
+                r'(function formatPlayerName\(fullName, roundNumber\) \{[\s\S]*?\}\n\n)',
+                f'\\1{clean_name_function}',
+                content
+            )
         
-        # Apply the update to main event data only
-        content = re.sub(main_event_pattern, update_main_event_section, content, flags=re.DOTALL)
+        # Update the getAllPlayerNames function to return clean names
+        old_get_all_player_names = r'function getAllPlayerNames\(\) \{\s*return TOURNAMENT_DATA\.players\.map\(p => p\.name\)\.sort\(\);\s*\}'
+        new_get_all_player_names = '''function getAllPlayerNames() {
+    return TOURNAMENT_DATA.players.map(p => getCleanPlayerName(p.name)).sort();
+}'''
+        
+        content = re.sub(old_get_all_player_names, new_get_all_player_names, content)
+        
+        # Update the setupTypeahead function to handle clean names properly
+        old_setup_typeahead = r'function setupTypeahead\(\) \{[\s\S]*?// Load all player names\s*allPlayerNames = getAllPlayerNames\(\);'
+        new_setup_typeahead = '''function setupTypeahead() {
+    const searchInput = document.getElementById('playerSearch');
+    const suggestionsDiv = document.getElementById('suggestions');
+    
+    // Load all player names and create mapping
+    allPlayerNames = getAllPlayerNames();
+    const playerNameMapping = createPlayerNameMapping();'''
+        
+        content = re.sub(old_setup_typeahead, new_setup_typeahead, content)
+        
+        # Update the suggestion click handler to map clean names back to full names
+        old_suggestion_click = r'// Handle suggestion clicks\s*suggestionsDiv\.addEventListener\(\'click\', function\(e\) \{\s*if \(e\.target\.classList\.contains\(\'suggestion-item\'\)\) \{\s*const playerName = e\.target\.getAttribute\(\'data-name\'\);\s*searchInput\.value = playerName;\s*suggestionsDiv\.style\.display = \'none\';\s*showPlayerSchedule\(playerName\);\s*\}\s*\}\);'
+        new_suggestion_click = '''// Handle suggestion clicks
+    suggestionsDiv.addEventListener('click', function(e) {
+        if (e.target.classList.contains('suggestion-item')) {
+            const cleanPlayerName = e.target.getAttribute('data-name');
+            const fullPlayerName = playerNameMapping.get(cleanPlayerName);
+            searchInput.value = cleanPlayerName;
+            suggestionsDiv.style.display = 'none';
+            showPlayerSchedule(fullPlayerName);
+        }
+    });'''
+        
+        content = re.sub(old_suggestion_click, new_suggestion_click, content)
+        
+        # Update the enter key handler to map clean names back to full names
+        old_enter_key = r'// Handle enter key\s*searchInput\.addEventListener\(\'keydown\', function\(e\) \{\s*if \(e\.key === \'Enter\'\) \{\s*const suggestions = suggestionsDiv\.querySelectorAll\(\'\.suggestion-item\'\);\s*if \(suggestions\.length > 0\) \{\s*const playerName = suggestions\[0\]\.getAttribute\(\'data-name\'\);\s*searchInput\.value = playerName;\s*suggestionsDiv\.style\.display = \'none\';\s*showPlayerSchedule\(playerName\);\s*\}\s*\}\s*\}\);'
+        new_enter_key = '''// Handle enter key
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const suggestions = suggestionsDiv.querySelectorAll('.suggestion-item');
+            if (suggestions.length > 0) {
+                const cleanPlayerName = suggestions[0].getAttribute('data-name');
+                const fullPlayerName = playerNameMapping.get(cleanPlayerName);
+                searchInput.value = cleanPlayerName;
+                suggestionsDiv.style.display = 'none';
+                showPlayerSchedule(fullPlayerName);
+            }
+        }
+    });'''
+        
+        content = re.sub(old_enter_key, new_enter_key, content)
+        
+        # Update player data in both getAllPlayerData and getAllTeamData functions
+        # Pattern to match individual player entries in any data function
+        player_pattern = r'\[(\d+),"([^"]+)","([^"]+)",([^\]]+)\]'
+        
+        def replace_player_entry(player_match):
+            player_id = player_match.group(1)
+            country = player_match.group(2)
+            full_name = player_match.group(3)
+            table_data = player_match.group(4)
+            
+            # Extract clean player name (remove existing rank and score)
+            clean_name_match = re.match(r'^([^,]+)(?:, #\d+, [+-]?[\d.]+)?$', full_name)
+            if clean_name_match:
+                clean_name = clean_name_match.group(1).strip()
+            else:
+                clean_name = full_name.strip()
+            
+            # Update player name with current rank and score
+            if clean_name in player_lookup:
+                rank = player_lookup[clean_name]['rank']
+                score = player_lookup[clean_name]['score']
+                updated_name = f"{clean_name}, #{rank}, {score}"
+            else:
+                # Keep the clean name if no ranking data found
+                updated_name = clean_name
+            
+            return f'[{player_id},"{country}","{updated_name}",{table_data}]'
+        
+        # Apply the update to all player entries in the file
+        content = re.sub(player_pattern, replace_player_entry, content)
         
         # Write the updated content back
         with open(makecalendar_js_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print(f"✅ Updated makecalendar.js with player rankings and scores (main event only)")
+        print(f"✅ Updated makecalendar.js with player rankings and scores for all events")
+        print(f"✅ Updated autocomplete to show clean names while preserving functionality")
         return True
         
     except Exception as e:
