@@ -338,21 +338,36 @@ Future<void> setAlarm(
   int id,
   bool vibrate,
 ) async {
-  final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: when,
-      androidFullScreenIntent: false,
-      assetAudioPath: 'assets/audio/notif.mp3',
-      loopAudio: false,
-      vibrate: vibrate,
-      volumeSettings: VolumeSettings.fixed(),
-      notificationSettings: NotificationSettings(
-        title: title,
-        body: body,
-        stopButton: "Dismiss",
-        icon: "ic_launcher",
-      ));
-  await Alarm.set(alarmSettings: alarmSettings);
+  try {
+    Log.debug('Creating alarm settings for ID $id');
+    final alarmSettings = AlarmSettings(
+        id: id,
+        dateTime: when,
+        androidFullScreenIntent: false,
+        assetAudioPath: 'assets/audio/notif.mp3',
+        loopAudio: false,
+        vibrate: vibrate,
+        volumeSettings: VolumeSettings.fixed(),
+        notificationSettings: NotificationSettings(
+          title: title,
+          body: body,
+          stopButton: "Dismiss",
+          icon: "ic_launcher",
+        ));
+    
+    Log.debug('Setting alarm with Alarm.set()');
+    final success = await Alarm.set(alarmSettings: alarmSettings);
+    
+    if (success) {
+      Log.debug('Alarm $id set successfully');
+    } else {
+      Log.error('Failed to set alarm $id - Alarm.set returned false');
+    }
+  } catch (e, stack) {
+    Log.error('Exception setting alarm $id: $e');
+    Log.debug('Stack trace: $stack');
+    rethrow; // Re-throw so caller can handle
+  }
 }
 
 extension SeparatedBy<T> on Iterable<T> {

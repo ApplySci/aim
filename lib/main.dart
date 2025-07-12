@@ -5,6 +5,8 @@ import 'dart:math' show min;
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/utils/alarm_set.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_fgbg/flutter_fgbg.dart';
@@ -12,12 +14,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_10y.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'providers/migration.dart';
 import 'models.dart';
 import 'providers.dart';
 import 'services/notification_preferences.dart';
+import 'services/alarm_service.dart';
 import 'utils.dart';
 import 'views/alarm_page.dart';
 import 'views/player/player_page.dart';
@@ -99,47 +101,8 @@ class _MyAppState extends ConsumerState<_MyApp> {
     ref.listen<AsyncValue<List<AlarmInfo>>>(
       alarmScheduleProvider,
       (prev, next) async {
-        final prevData = prev?.valueOrNull;
-        final nextData = next.valueOrNull;
-
-        // Skip if the alarms are identical
-        if (prevData != null &&
-            nextData != null &&
-            prevData.length == nextData.length &&
-            prevData.every((prev) => nextData.any((next) =>
-            prev.id == next.id &&
-                prev.name == next.name &&
-                prev.alarm == next.alarm &&
-                prev.vibratePref == next.vibratePref &&
-                prev.player?.id == next.player?.id &&
-                prev.player?.name == next.player?.name &&
-                prev.player?.table == next.player?.table
-            ))) {
-          return;
-        }
-
-        final now = DateTime.now().toUtc();
-        Log.debug('stopping all alarms');
-
-        try {
-          await Alarm.stopAll();
-        } catch (e) {
-          Log.warn('exception when stopping all alarms');
-        }
-
-        if (nextData == null) return;
-
-        // set one alarm for each round
-        for (final (index, (id: _, :name, :alarm, :player, :vibratePref)) in nextData.indexed) {
-          if (now.isBefore(alarm)) {
-            final title = '$name starts in 5 minutes';
-            final body = player != null
-                ? '${player.name} is at table ${player.table}'
-                : '';
-            Log.debug('setting alarm: $title');
-            await setAlarm(alarm, title, body, index + 1, vibratePref);
-          }
-        }
+        // Use the AlarmService to handle updates
+        await AlarmService.updateAlarms(ref: ref);
       },
     );
 
