@@ -6,6 +6,7 @@
 <h2>Manage player substitutions / change the number of tables</h2>
 
 <p>{{ completed_rounds}} hanchan completed. Substitutions will be made for all hanchan from {{ completed_rounds + 1 }} onwards</p>
+<p><strong>Total dropouts so far:</strong> {{ total_dropouts }} player(s)</p>
 
 <div id="playerManagement">
     <div id="currentPlayersSection">
@@ -227,9 +228,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Data Initialization
     //
     let allPlayers = {{ players|tojson }};
-    let currentPlayers = allPlayers.filter(p => p.is_current);
-    let droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
-    let substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
+    let currentPlayers = allPlayers.filter(p => p.status === 'active' && p.seating_id);
+    let droppedPlayers = allPlayers.filter(p => p.status === 'dropped');
+    let substitutes = allPlayers.filter(p => p.status === 'substitute');
     let seating = {{ seating|tojson }};
     
     // Initial render
@@ -267,15 +268,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // New function to check if table reduction options should be displayed
     function updateTableReductionOptions() {
         const droppedCount = droppedPlayers.length;
+        const totalDropouts = {{ total_dropouts }};
         const completedRounds = {{ completed_rounds }};
         const tableReductionOption = document.getElementById('tableReductionOption');
         const optimizationSettings = document.getElementById('optimizationSettings');
+        const currentActiveCount = currentPlayers.length;
         
-        // TODO it isn't quite this simple. We need to account for 1-3 substitutes too.
-        if (completedRounds === 0 && droppedCount >= 4) {
+        // Calculate if we can reduce tables based on total active players
+        const canReduceTables = Math.floor(currentActiveCount / 4) < Math.ceil((currentActiveCount + totalDropouts) / 4);
+        
+        if (completedRounds === 0 && canReduceTables && totalDropouts >= 4) {
             tableReductionOption.style.display = 'block';
             reduceTableCountCheckbox.checked = true;
-            optimizationSettings.style.display = (currentPlayers.length >= 4 * {{ min_tables }}) ? 'none' : 'block';
+            optimizationSettings.style.display = (currentActiveCount >= 4 * {{ min_tables }}) ? 'none' : 'block';
+            
+            // Update the description to show total dropouts
+            const tableReductionText = document.querySelector('#tableReductionOption p');
+            tableReductionText.textContent = `With ${totalDropouts} total dropouts, the number of active tables has reduced from ${Math.ceil((currentActiveCount + totalDropouts) / 4)} to ${Math.ceil(currentActiveCount / 4)}. Would you like to:`;
         } else {
             tableReductionOption.style.display = 'none';
             reduceTableCountCheckbox.checked = false;
@@ -343,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
             const player = currentPlayers.find(p => p.registration_id === option.value);
             if (player) {
+                player.status = 'dropped';
                 player.is_current = false;
                 currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
                 droppedPlayers.push(player);
@@ -357,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(droppedPlayerSelect.selectedOptions).forEach(option => {
             const player = droppedPlayers.find(p => p.registration_id === option.value);
             if (player) {
+                player.status = 'active';
                 player.is_current = true;
                 droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
                 currentPlayers.push(player);

@@ -600,7 +600,7 @@ class GSP:
         self, live: gspread.Spreadsheet, players_to_remove: list[int]
     ) -> None:
         """
-        Remove specific players by clearing their seating IDs.
+        Remove specific players by clearing their seating IDs and setting status to 'dropped'.
 
         Args:
             live: Tournament's Google Sheet
@@ -613,10 +613,60 @@ class GSP:
         updates = []
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in players_to_remove:
+                # Clear seating ID (column A) and set status to 'dropped' (column D)
                 updates.append({"range": f"A{row_idx}", "values": [[""]]})
+                updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
 
         if updates:
             players_sheet.batch_update(updates)
+
+    def add_substitute_players(
+        self, live: gspread.Spreadsheet, substitute_assignments: dict[int, int]
+    ) -> None:
+        """
+        Set substitute players as active when they get seating assignments.
+
+        Args:
+            live: Tournament's Google Sheet
+            substitute_assignments: Dict mapping registration_id to new_seating_id
+        """
+        players_sheet = live.worksheet("players")
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
+
+        updates = []
+        for row_idx, player in enumerate(players, start=4):
+            registration_id = str(player[1])
+            if registration_id in substitute_assignments:
+                seating_id = substitute_assignments[registration_id]
+                # Set seating ID (column A) and status to 'active' (column D)
+                updates.append({"range": f"A{row_idx}", "values": [[str(seating_id)]]})
+                updates.append({"range": f"D{row_idx}", "values": [["active"]]})
+
+        if updates:
+            players_sheet.batch_update(updates)
+
+    def count_total_dropouts(self, live: gspread.Spreadsheet) -> int:
+        """
+        Count the total number of players who have dropped out.
+
+        Args:
+            live: Tournament's Google Sheet
+
+        Returns:
+            int: Number of players with status 'dropped'
+        """
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
+        
+        dropout_count = 0
+        for player in players:
+            # Check status column (index 3) for 'dropped'
+            status = player[3] if len(player) > 3 else ""
+            if status == "dropped":
+                dropout_count += 1
+        
+        return dropout_count
 
     def reassign_player_ids(
         self, live: gspread.Spreadsheet, reassignments: dict[int, int]

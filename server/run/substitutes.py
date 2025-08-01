@@ -54,27 +54,33 @@ def player_substitution():
 
     for p in raw_players:
         has_seating = p[0] != ""
-        is_sub = "sub" in str(p[1]).lower()  # Check registration ID for "sub"
+        # Get status from column D (index 3), fallback to old logic if not present
+        status = p[3] if len(p) > 3 and p[3] else ("active" if has_seating else ("substitute" if "sub" in str(p[1]).lower() else "substitute"))
+        is_sub = "sub" in str(p[1]).lower()  # Check registration ID for "sub" (for backward compatibility)
 
-        # Update counters
-        if has_seating:
+        # Update counters based on new status system
+        if status == "active" and has_seating:
             players_with_seating += 1
-            if is_sub:
-                subs_with_seating += 1
-        elif is_sub:
+        elif status == "substitute" and has_seating:
+            subs_with_seating += 1
+        elif status == "substitute" and not has_seating:
             subs_without_seating += 1
 
         player = {
             "registration_id": str(p[1]),
             "seating_id": p[0] if has_seating else None,
             "name": p[2] if len(p) > 2 else f"player {p[1]}",
-            "is_current": has_seating,
+            "status": status,
+            "is_current": status == "active" and has_seating,
         }
         players.append(player)
 
     # Get current seating arrangement
     seatlist = googlesheet.get_seating_from_batch(batch_data)
     seating = seatlist_to_seating(seatlist)
+
+    # Count total dropouts for table reduction logic
+    total_dropouts = googlesheet.count_total_dropouts(sheet)
 
     return render_template(
         "player_substitution.html",
@@ -85,6 +91,7 @@ def player_substitution():
         seating=seating,
         subs_with_seating=subs_with_seating,
         subs_without_seating=subs_without_seating,
+        total_dropouts=total_dropouts,
     )
 
 
