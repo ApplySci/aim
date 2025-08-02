@@ -83,7 +83,7 @@ def wrap_and_catch(myfunc):
 def select_tournament():
     # Move the import to the top of the function
     from models import Tournament
-    
+
     new_id = request.form.get("id")
     if new_id:
         try:
@@ -171,38 +171,68 @@ def _ranking_to_web(scores, games, players, done, schedule, tournament=None):
                 p = int(line[0])  # Ensure integer key for consistency
                 if p not in scores_by_player:
                     scores_by_player[p] = {}
-                scores_by_player[p][r] = (line[4], t)
-    if done == 0:
-        render_template("noranking.html", title=title, done=done)
-    else:
-        html = render_template(
-            "ranking.html",
-            title=title,
-            scores=sorted_scores,
-            round_name=roundName,
-            players=players,
-            webroot=webroot(tournament),
-            roundNames=_round_names(schedule),
-            done=done,
-            games=scores_by_player,
-        )
-    fn = os.path.join(tournament.full_web_directory, "ranking.html")
-    with open(fn, "w", encoding="utf-8") as f:
-        f.write(html)
+                if line[4] is None:  # Only include players who actually have scores
+                    # Skip missing/substitute players entirely rather than including them with None scores
+                    logging.info(
+                        f"Skipping player {p} in round {r} - no score available (table: {t})"
+                    )
+                else:
+                    scores_by_player[p][r] = (line[4], t)
+
+    # Validate the structure
+    for pid_key, rounds_data in scores_by_player.items():
+        if not isinstance(pid_key, int):
+            logging.error(
+                f"DEBUG: Non-integer player ID key: {pid_key} (type: {type(pid_key)})"
+            )
+        for round_key, round_data in rounds_data.items():
+            if not isinstance(round_data, tuple) or len(round_data) != 2:
+                logging.error(
+                    f"DEBUG: Invalid round data for player {pid_key}, round {round_key}: {round_data} (type: {type(round_data)})"
+                )
+        if done == 0:
+            render_template("noranking.html", title=title, done=done)
+        else:
+            html = render_template(
+                "ranking.html",
+                title=title,
+                scores=sorted_scores,
+                round_name=roundName,
+                players=players,
+                webroot=webroot(tournament),
+                roundNames=_round_names(schedule),
+                done=done,
+                games=scores_by_player,
+            )
+        fn = os.path.join(tournament.full_web_directory, "ranking.html")
+        with open(fn, "w", encoding="utf-8") as f:
+            f.write(html)
 
 
 @login_required
-def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
+def _send_topic_fcm(
+    topic: str,
+    title: str,
+    body: str,
+    notification_type: str,
+    schedule_data: dict = None,
+):
+    data = {
+        "tournament_id": current_user.live_tournament.firebase_doc,
+        "tournament_name": current_user.live_tournament.title,
+        "notification_type": notification_type,
+    }
+
+    # Include schedule data if provided
+    if schedule_data:
+        data["schedule_data"] = json.dumps(schedule_data)
+
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
             body=body,
         ),
-        data={
-            "tournament_id": current_user.live_tournament.firebase_doc,
-            "tournament_name": current_user.live_tournament.title,
-            "notification_type": notification_type,
-        },
+        data=data,
         topic=topic,
     )
 
@@ -344,8 +374,16 @@ def update_schedule(tournament_id=None):
 
         # Determine the response message
         if send_notifications:
+            # Include schedule data in the notification
+            notification_schedule_data = {
+                "rounds": seating,
+                "timezone": schedule["timezone"],
+            }
             _send_messages(
-                "seating & schedule updated", "seating", tournament=tournament
+                "seating & schedule updated",
+                "seating",
+                tournament=tournament,
+                schedule_data=notification_schedule_data,
             )
             message = "SEATING & SCHEDULE updated, notifications sent"
         else:
@@ -449,11 +487,15 @@ def update_players(tournament_id=None):
 
 
 @login_required
-def _send_messages(msg: str, notification_type: str, tournament=None):
+def _send_messages(
+    msg: str, notification_type: str, tournament=None, schedule_data: dict = None
+):
     if tournament is None:
         tournament = current_user.live_tournament
     firebase_id = tournament.firebase_doc
-    _send_topic_fcm(firebase_id, msg, tournament.title, notification_type)
+    _send_topic_fcm(
+        firebase_id, msg, tournament.title, notification_type, schedule_data
+    )
 
 
 @login_required
@@ -492,7 +534,7 @@ def _message_player_topics(
 
     for k, v in scores.items():
         key = int(k)
-        name = players[key] if key < len(players) else f"Player {k}" 
+        name = players[key] if key < len(players) else f"Player {k}"
         reg_id = reg_id_map.get(key)
         if reg_id:
             topic = f"{firebase_id}-{reg_id}"

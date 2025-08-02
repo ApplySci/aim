@@ -529,43 +529,47 @@ class GSP:
             reduce_table_count: Whether to permanently reduce the table count
         """
         seating_sheet = live.worksheet("seating")
-        
+
         if reduce_table_count:
             seatlist = self._remove_empty_tables(live, seatlist)
-        
+
         # Get current seating data to determine how many rows might need clearing
         try:
             current_seating_data = seating_sheet.get_all_values()[1:]  # Skip header
-            max_existing_row = len(current_seating_data) + 1  # +1 because of 0-based indexing, +1 for header
+            max_existing_row = (
+                len(current_seating_data) + 1
+            )  # +1 because of 0-based indexing, +1 for header
         except:
             max_existing_row = 1  # Just header row if error or empty
-        
+
         # Calculate the new extent
         new_last_row = len(seatlist) + 1  # +1 for header row
-        
+
         # Determine the total range we need to update
         update_end_row = max(new_last_row, max_existing_row)
-        
+
         if update_end_row > 1:  # Only update if there's data beyond the header
             # Prepare the complete values array
             values = []
-            
+
             # Add the new seating data
             values.extend(seatlist)
-            
+
             # Add empty rows to clear any remaining old data
             if max_existing_row > new_last_row:
                 empty_rows_count = max_existing_row - new_last_row
                 empty_rows = [["", "", "", "", "", ""]] * empty_rows_count
                 values.extend(empty_rows)
-            
+
             # Single batch update for the entire range
-            seating_sheet.batch_update([
-                {
-                    "range": f"A2:F{update_end_row}",
-                    "values": values,
-                }
-            ])
+            seating_sheet.batch_update(
+                [
+                    {
+                        "range": f"A2:F{update_end_row}",
+                        "values": values,
+                    }
+                ]
+            )
 
     def update_table_count(
         self, live: gspread.spreadsheet.Spreadsheet, table_count: int, seating: list
@@ -600,11 +604,12 @@ class GSP:
         self, live: gspread.Spreadsheet, players_to_remove: list[int]
     ) -> None:
         """
-        Remove specific players by clearing their seating IDs and setting status to 'dropped'.
+        Mark specific players as dropped by setting their status to 'dropped'.
+        Seating IDs are preserved to avoid breaking other systems.
 
         Args:
             live: Tournament's Google Sheet
-            players_to_remove: List of seating IDs to remove
+            players_to_remove: List of seating IDs to mark as dropped
         """
         players_sheet = live.worksheet("players")
         batch_data = self.batch_get_tournament_data(live)
@@ -613,11 +618,11 @@ class GSP:
         updates = []
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in players_to_remove:
-                # Clear seating ID (column A) and set status to 'dropped' (column D)
-                updates.append({"range": f"A{row_idx}", "values": [[""]]})
+                # Only set status to 'dropped' (column D) - preserve seating ID
                 updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
 
         if updates:
+            logging.info(f"Removing players: {updates}")
             players_sheet.batch_update(updates)
 
     def add_substitute_players(
@@ -658,14 +663,14 @@ class GSP:
         """
         batch_data = self.batch_get_tournament_data(live)
         players = self.get_players_from_batch(batch_data)
-        
+
         dropout_count = 0
         for player in players:
             # Check status column (index 3) for 'dropped'
             status = player[3] if len(player) > 3 else ""
             if status == "dropped":
                 dropout_count += 1
-        
+
         return dropout_count
 
     def reassign_player_ids(

@@ -71,7 +71,7 @@ def player_substitution():
             "seating_id": p[0] if has_seating else None,
             "name": p[2] if len(p) > 2 else f"player {p[1]}",
             "status": status,
-            "is_current": status == "active" and has_seating,
+            "is_current": status == "active",
         }
         players.append(player)
 
@@ -104,9 +104,10 @@ def confirm_substitutions():
     if not new_seating:
         return jsonify({"status": "error", "message": "No substitution data found"})
 
-    # Get the reduce table count preference from the request
+    # Get the reduce table count preference and dropped players from the request
     data = request.json or {}
     reduce_table_count = data.get("reduceTableCount", False)
+    dropped_players = data.get("droppedPlayers", [])
 
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
@@ -114,6 +115,37 @@ def confirm_substitutions():
     # Get current seating for backup using batch
     batch_data = googlesheet.batch_get_tournament_data(sheet)
     session["last_seating"] = googlesheet.get_seating_from_batch(batch_data)
+
+    # Update player statuses for dropped players BEFORE updating seating
+    if dropped_players:
+        googlesheet.remove_players(sheet, dropped_players)
+
+    # Update all player statuses to match the final seating arrangement
+    # Get the set of all seating IDs that appear in the new seating
+    active_seating_ids = {player for row in seatlist for player in row[2:6] if player}
+    
+    # Update player statuses based on whether they appear in the new seating
+    raw_players = googlesheet.get_players_from_batch(batch_data)
+    players_sheet = googlesheet.get_sheet(tournament.google_doc_id).worksheet("players")
+    status_updates = []
+    
+    for row_idx, p in enumerate(raw_players, start=4):
+        current_seating_id = p[0] if p[0] else None
+        registration_id = str(p[1])
+        current_status = p[3] if len(p) > 3 and p[3] else ""
+        
+        # Determine what the status should be based on the new seating
+        if current_seating_id and int(current_seating_id) in active_seating_ids:
+            # Player has a seating ID and appears in new seating - should be active
+            if current_status != "active":
+                status_updates.append({"range": f"D{row_idx}", "values": [["active"]]})
+        elif current_status == "active":
+            # Player was active but is no longer in seating - should be dropped
+            # (This handles cases where the dropped_players list might miss someone)
+            status_updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
+    
+    if status_updates:
+        players_sheet.batch_update(status_updates)
 
     # Pass the reduce_table_count parameter to update_seating
     googlesheet.update_seating(sheet, seatlist, reduce_table_count)
