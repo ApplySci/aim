@@ -55,8 +55,18 @@ def player_substitution():
     for p in raw_players:
         has_seating = p[0] != ""
         # Get status from column D (index 3), fallback to old logic if not present
-        status = p[3] if len(p) > 3 and p[3] else ("active" if has_seating else ("substitute" if "sub" in str(p[1]).lower() else "substitute"))
-        is_sub = "sub" in str(p[1]).lower()  # Check registration ID for "sub" (for backward compatibility)
+        status = (
+            p[3]
+            if len(p) > 3 and p[3]
+            else (
+                "active"
+                if has_seating
+                else ("substitute" if "sub" in str(p[1]).lower() else "substitute")
+            )
+        )
+        is_sub = (
+            "sub" in str(p[1]).lower()
+        )  # Check registration ID for "sub" (for backward compatibility)
 
         # Update counters based on new status system
         if status == "active" and has_seating:
@@ -72,6 +82,7 @@ def player_substitution():
             "name": p[2] if len(p) > 2 else f"player {p[1]}",
             "status": status,
             "is_current": status == "active",
+            "substituted_for": p[4] if len(p) > 4 else "",
         }
         players.append(player)
 
@@ -123,17 +134,17 @@ def confirm_substitutions():
     # Update all player statuses to match the final seating arrangement
     # Get the set of all seating IDs that appear in the new seating
     active_seating_ids = {player for row in seatlist for player in row[2:6] if player}
-    
+
     # Update player statuses based on whether they appear in the new seating
     raw_players = googlesheet.get_players_from_batch(batch_data)
     players_sheet = googlesheet.get_sheet(tournament.google_doc_id).worksheet("players")
     status_updates = []
-    
+
     for row_idx, p in enumerate(raw_players, start=4):
         current_seating_id = p[0] if p[0] else None
         registration_id = str(p[1])
         current_status = p[3] if len(p) > 3 and p[3] else ""
-        
+
         # Determine what the status should be based on the new seating
         if current_seating_id and int(current_seating_id) in active_seating_ids:
             # Player has a seating ID and appears in new seating - should be active
@@ -143,9 +154,29 @@ def confirm_substitutions():
             # Player was active but is no longer in seating - should be dropped
             # (This handles cases where the dropped_players list might miss someone)
             status_updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
-    
+
     if status_updates:
         players_sheet.batch_update(status_updates)
+
+    # Track substitutions by analyzing seating changes
+    old_seatlist = session["last_seating"]
+    old_seating = seatlist_to_seating(old_seatlist)
+
+    # Track automatic substitutions before updating seating
+    googlesheet.track_substitutions(sheet, old_seating, new_seating, dropped_players)
+
+    # If reducing table count, identify substitutes who are no longer playing
+    if reduce_table_count:
+        # Find players who were in the old seating but not in the new seating
+        old_active_ids = {
+            player for row in old_seatlist for player in row[2:6] if player
+        }
+        new_active_ids = {player for row in seatlist for player in row[2:6] if player}
+        no_longer_playing = old_active_ids - new_active_ids
+
+        if no_longer_playing:
+            # Clear substitution tracking for players no longer playing
+            googlesheet.clear_substitution_tracking(sheet, list(no_longer_playing))
 
     # Pass the reduce_table_count parameter to update_seating
     googlesheet.update_seating(sheet, seatlist, reduce_table_count)

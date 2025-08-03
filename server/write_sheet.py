@@ -693,6 +693,138 @@ class GSP:
                     row_idx, 1, str(reassignments[int(player[0])])
                 )
 
+    def track_substitutions(
+        self, 
+        live: gspread.Spreadsheet, 
+        old_seating: list, 
+        new_seating: list, 
+        dropped_player_seating_ids: list[int]
+    ) -> None:
+        """
+        Automatically track substitutions by analyzing seating changes.
+        Updates column E with the registration ID of the player being substituted for.
+        
+        Args:
+            live: Tournament's Google Sheet
+            old_seating: Previous seating arrangement (list of lists)
+            new_seating: New seating arrangement (list of lists) 
+            dropped_player_seating_ids: List of seating IDs that were dropped
+        """
+        players_sheet = live.worksheet("players")
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
+        
+        # Create mapping from seating_id to registration_id and existing substitution info
+        seating_to_registration = {}
+        seating_to_substituted_for = {}
+        
+        for player in players:
+            if player[0]:  # Has seating ID
+                seating_id = int(player[0])
+                registration_id = str(player[1])
+                substituted_for = player[4] if len(player) > 4 else ""
+                
+                seating_to_registration[seating_id] = registration_id
+                seating_to_substituted_for[seating_id] = substituted_for
+        
+        # Find substitutions by comparing seating positions
+        substitution_updates = []
+        
+        for round_idx in range(len(old_seating)):
+            if round_idx >= len(new_seating):
+                break
+                
+            for table_idx in range(len(old_seating[round_idx])):
+                if table_idx >= len(new_seating[round_idx]):
+                    break
+                    
+                for seat_idx in range(4):
+                    old_player = old_seating[round_idx][table_idx][seat_idx]
+                    new_player = new_seating[round_idx][table_idx][seat_idx]
+                    
+                    # If player changed and old player was dropped
+                    if (old_player != new_player and 
+                        old_player in dropped_player_seating_ids and
+                        new_player != 0):
+                        
+                        # Find what the dropped player was substituting for
+                        dropped_player_substituted_for = seating_to_substituted_for.get(old_player, "")
+                        
+                        if dropped_player_substituted_for:
+                            # Inheritance: new player inherits the original registration ID
+                            target_registration_id = dropped_player_substituted_for
+                        else:
+                            # Direct substitution: use dropped player's registration ID
+                            target_registration_id = seating_to_registration.get(old_player, "")
+                        
+                        if target_registration_id:
+                            # Find the new player's row and update column E
+                            for row_idx, player in enumerate(players, start=4):
+                                if player[0] and int(player[0]) == new_player:
+                                    substitution_updates.append({
+                                        "range": f"E{row_idx}", 
+                                        "values": [[target_registration_id]]
+                                    })
+                                    break
+        
+        if substitution_updates:
+            logging.info(f"Tracking substitutions: {substitution_updates}")
+            players_sheet.batch_update(substitution_updates)
+
+    def clear_substitution_tracking(
+        self, 
+        live: gspread.Spreadsheet, 
+        seating_ids_to_clear: list[int]
+    ) -> None:
+        """
+        Clear substitution tracking (column E) for players who are no longer playing.
+        
+        Args:
+            live: Tournament's Google Sheet
+            seating_ids_to_clear: List of seating IDs to clear substitution tracking for
+        """
+        players_sheet = live.worksheet("players")
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
+        
+        updates = []
+        for row_idx, player in enumerate(players, start=4):
+            if player[0] and int(player[0]) in seating_ids_to_clear:
+                # Clear column E (substituted for)
+                updates.append({"range": f"E{row_idx}", "values": [[""]]})
+        
+        if updates:
+            logging.info(f"Clearing substitution tracking: {updates}")
+            players_sheet.batch_update(updates)
+
+    def update_substitute_to_regular_status(
+        self, 
+        live: gspread.Spreadsheet, 
+        seating_ids: list[int]
+    ) -> None:
+        """
+        Update substitutes who are no longer actively substituting to regular substitute status.
+        Clears their column E and sets status to 'substitute'.
+        
+        Args:
+            live: Tournament's Google Sheet
+            seating_ids: List of seating IDs to update
+        """
+        players_sheet = live.worksheet("players")
+        batch_data = self.batch_get_tournament_data(live)
+        players = self.get_players_from_batch(batch_data)
+        
+        updates = []
+        for row_idx, player in enumerate(players, start=4):
+            if player[0] and int(player[0]) in seating_ids:
+                # Clear substitution tracking (column E) and set status to substitute
+                updates.append({"range": f"D{row_idx}", "values": [["substitute"]]})
+                updates.append({"range": f"E{row_idx}", "values": [[""]]})
+        
+        if updates:
+            logging.info(f"Updating substitutes to regular status: {updates}")
+            players_sheet.batch_update(updates)
+
     def apply_table_count_change(
         self, live: gspread.Spreadsheet, new_table_count: int
     ) -> None:
