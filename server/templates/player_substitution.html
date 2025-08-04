@@ -33,6 +33,26 @@
     </p>
 </div>
 
+<div id="automaticTableReduction" class="hidden">
+    <h4>Automatic Table Reduction Required</h4>
+    <p id="autoReductionMessage">Not enough substitutes available to fill tables. Some active substitutes must be deactivated.</p>
+    
+    <div id="substituteDeactivationSection">
+        <h5>Substitutes to Deactivate:</h5>
+        <div id="substituteDeactivationList">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        <p class="note">
+            <strong>Auto-selected by seating ID (highest first).</strong> You can change the selection - the system will automatically maintain the correct number of selections.
+        </p>
+    </div>
+    
+    <div>
+        <input type="checkbox" id="autoReduceTableCount" name="autoReduceTableCount" checked disabled>
+        <label for="autoReduceTableCount">Automatically reduce table count (required)</label>
+    </div>
+</div>
+
 <div id="optimizationSettings" class="hidden">
     <div>
         <p>We need to adjust the seating to accommodate the reduced number of tables.</p>
@@ -197,6 +217,67 @@
     border-radius: 4px;
     border: 1px solid #ced4da;
 }
+
+#automaticTableReduction {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 4px;
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+#automaticTableReduction h4 {
+    color: #856404;
+    margin-top: 0;
+}
+
+#substituteDeactivationSection {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+#substituteDeactivationList {
+    margin: 10px 0;
+}
+
+.substitute-deactivation-item {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+    padding: 8px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.substitute-deactivation-item input[type="checkbox"] {
+    transform: scale(1.2);
+    margin-right: 15px;
+}
+
+.substitute-deactivation-item.recommended {
+    background-color: #e7f3ff;
+    border-color: #b3d9ff;
+}
+
+.substitute-deactivation-item label {
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+}
+
+.substitute-deactivation-item:hover {
+    background-color: #f8f9fa;
+    border-color: #6c757d;
+}
+
+.substitute-deactivation-item.recommended:hover {
+    background-color: #d1ecf1;
+    border-color: #85c1e9;
+}
 </style>
 
 {% endblock %}
@@ -232,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let droppedPlayers = allPlayers.filter(p => p.status === 'dropped');
     let substitutes = allPlayers.filter(p => p.status === 'substitute');
     let seating = {{ seating|tojson }};
+    let automaticTableReductionState = { required: false, substitutesToDeactivate: [] };
     
     // Initial render
     renderPlayers();
@@ -270,6 +352,276 @@ document.addEventListener('DOMContentLoaded', function() {
         return result;
     }
 
+    //
+    // Automatic Table Reduction Logic
+    //
+    function checkAutomaticTableReduction() {
+        const activeSubstitutes = currentPlayers.filter(p => p.substituted_for && p.substituted_for !== "");
+        const availableSubstitutes = substitutes.length;
+        const currentActiveCount = currentPlayers.length;
+        
+        // Calculate players needed to fill to next multiple of 4
+        const playersNeededForNextTable = (4 - (currentActiveCount % 4)) % 4;
+        
+        // Check if we need automatic table reduction
+        const mustReduceTables = playersNeededForNextTable > availableSubstitutes && activeSubstitutes.length > 0;
+        
+        if (mustReduceTables) {
+            // Calculate target player count (largest multiple of 4 <= current count)
+            const targetPlayerCount = Math.floor(currentActiveCount / 4) * 4;
+            const substitutesToDeactivateCount = currentActiveCount - targetPlayerCount;
+            
+            // Sort active substitutes by seating ID (descending) for priority deactivation
+            const sortedActiveSubstitutes = activeSubstitutes
+                .filter(p => p.seating_id) // Ensure seating_id exists
+                .sort((a, b) => parseInt(b.seating_id) - parseInt(a.seating_id));
+            
+            const substitutesToDeactivate = sortedActiveSubstitutes.slice(0, Math.min(substitutesToDeactivateCount, sortedActiveSubstitutes.length));
+            
+            console.log('Automatic table reduction required:');
+            console.log('  Current active count:', currentActiveCount);
+            console.log('  Target player count:', targetPlayerCount);
+            console.log('  Available substitutes:', availableSubstitutes);
+            console.log('  Active substitutes:', activeSubstitutes.length);
+            console.log('  Substitutes to deactivate:', substitutesToDeactivate);
+            
+            return {
+                required: true,
+                currentActiveCount: currentActiveCount,
+                targetPlayerCount: targetPlayerCount,
+                substitutesToDeactivate: substitutesToDeactivate,
+                availableSubstitutes: availableSubstitutes,
+                playersNeededForNextTable: playersNeededForNextTable
+            };
+        }
+        
+        return { required: false };
+    }
+
+    function renderAutomaticTableReductionUI(reductionState) {
+        const automaticTableReduction = document.getElementById('automaticTableReduction');
+        const autoReductionMessage = document.getElementById('autoReductionMessage');
+        const substituteDeactivationList = document.getElementById('substituteDeactivationList');
+        
+        if (!reductionState.required) {
+            automaticTableReduction.style.display = 'none';
+            return;
+        }
+        
+        // Show the automatic table reduction section
+        automaticTableReduction.style.display = 'block';
+        
+        // Calculate required deactivations
+        const requiredDeactivations = reductionState.currentActiveCount - reductionState.targetPlayerCount;
+        
+        // Update message
+        const tablesFrom = Math.ceil(reductionState.currentActiveCount / 4);
+        const tablesTo = Math.ceil(reductionState.targetPlayerCount / 4);
+        autoReductionMessage.textContent = `Not enough substitutes available (${reductionState.availableSubstitutes} available, ${reductionState.playersNeededForNextTable} needed). ` +
+            `Tables will reduce from ${tablesFrom} to ${tablesTo}. Exactly ${requiredDeactivations} active substitute${requiredDeactivations !== 1 ? 's' : ''} must be deactivated.`;
+        
+        // Clear existing list
+        substituteDeactivationList.innerHTML = '';
+        
+        // Create a helper function to find player name by registration ID
+        function getPlayerNameByRegistrationId(regId) {
+            const player = allPlayers.find(p => p.registration_id === regId);
+            return player ? player.name : regId;
+        }
+        
+        // Get and sort active substitutes by seating ID (descending)
+        const activeSubstitutes = currentPlayers
+            .filter(p => p.substituted_for && p.substituted_for !== "")
+            .filter(p => p.seating_id)
+            .sort((a, b) => parseInt(b.seating_id) - parseInt(a.seating_id));
+        
+        // Store required deactivations count for checkbox management
+        substituteDeactivationList.dataset.requiredCount = requiredDeactivations;
+        
+        // Create checkboxes for each substitute that could be deactivated
+        activeSubstitutes.forEach((substitute, index) => {
+            const div = document.createElement('div');
+            div.className = 'substitute-deactivation-item';
+            
+            const isRecommended = index < requiredDeactivations;
+            if (isRecommended) {
+                div.classList.add('recommended');
+            }
+            
+            const substitutedForName = getPlayerNameByRegistrationId(substitute.substituted_for);
+            
+            div.innerHTML = `
+                <input type="checkbox" id="deactivate_${substitute.registration_id}" 
+                       ${isRecommended ? 'checked' : ''} 
+                       data-registration-id="${substitute.registration_id}"
+                       data-seating-id="${substitute.seating_id}"
+                       data-priority="${index}">
+                <label for="deactivate_${substitute.registration_id}">
+                    ${substitute.name} (Seating ID: ${substitute.seating_id}, substituting for: ${substitutedForName})
+                </label>
+            `;
+            
+            substituteDeactivationList.appendChild(div);
+        });
+        
+        // Add smart checkbox behavior
+        setupSmartCheckboxBehavior();
+    }
+
+    function setupSmartCheckboxBehavior() {
+        const substituteDeactivationList = document.getElementById('substituteDeactivationList');
+        const requiredCount = parseInt(substituteDeactivationList.dataset.requiredCount);
+        const checkboxes = substituteDeactivationList.querySelectorAll('input[type="checkbox"]');
+        
+        // Add event listeners to all checkboxes
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function(event) {
+                handleSmartCheckboxChange(requiredCount, event.target);
+            });
+        });
+    }
+
+    function handleSmartCheckboxChange(requiredCount, clickedCheckbox) {
+        const checkboxes = document.querySelectorAll('#substituteDeactivationList input[type="checkbox"]');
+        const checkedBoxes = document.querySelectorAll('#substituteDeactivationList input[type="checkbox"]:checked');
+        const checkedCount = checkedBoxes.length;
+        
+        console.log(`Smart checkbox change: clicked=${clickedCheckbox.dataset.registrationId}, checked=${clickedCheckbox.checked}, total checked=${checkedCount}, required=${requiredCount}`);
+        
+        let adjustmentsMade = false;
+        let adjustedCheckboxes = [];
+        
+        if (checkedCount < requiredCount) {
+            // User unchecked a box - need to check more boxes
+            // Find the highest priority unchecked box (excluding the one the user just unchecked)
+            const uncheckedBoxes = Array.from(checkboxes)
+                .filter(cb => !cb.checked && cb !== clickedCheckbox)
+                .sort((a, b) => parseInt(a.dataset.priority) - parseInt(b.dataset.priority));
+            
+            console.log('Need to auto-check boxes:', uncheckedBoxes.map(cb => cb.dataset.registrationId));
+            
+            const toCheck = requiredCount - checkedCount;
+            for (let i = 0; i < toCheck && i < uncheckedBoxes.length; i++) {
+                uncheckedBoxes[i].checked = true;
+                adjustmentsMade = true;
+                adjustedCheckboxes.push(uncheckedBoxes[i]);
+                
+                console.log(`Auto-checked: ${uncheckedBoxes[i].dataset.registrationId}`);
+                
+                // Add visual feedback with animation
+                const item = uncheckedBoxes[i].closest('.substitute-deactivation-item');
+                item.classList.add('recommended');
+                item.style.transition = 'all 0.3s ease';
+                item.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    item.style.transform = 'scale(1)';
+                }, 300);
+            }
+        } else if (checkedCount > requiredCount) {
+            // User checked a box - need to uncheck some boxes
+            // Find the lowest priority checked boxes (excluding the one the user just checked)
+            const checkedBoxesSorted = Array.from(checkedBoxes)
+                .filter(cb => cb !== clickedCheckbox)
+                .sort((a, b) => parseInt(b.dataset.priority) - parseInt(a.dataset.priority));
+            
+            console.log('Need to auto-uncheck boxes:', checkedBoxesSorted.map(cb => cb.dataset.registrationId));
+            
+            const toUncheck = checkedCount - requiredCount;
+            for (let i = 0; i < toUncheck; i++) {
+                checkedBoxesSorted[i].checked = false;
+                adjustmentsMade = true;
+                adjustedCheckboxes.push(checkedBoxesSorted[i]);
+                
+                console.log(`Auto-unchecked: ${checkedBoxesSorted[i].dataset.registrationId}`);
+                
+                // Add visual feedback for the unchecked item
+                const item = checkedBoxesSorted[i].closest('.substitute-deactivation-item');
+                item.classList.remove('recommended');
+                item.style.transition = 'all 0.3s ease';
+                item.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    item.style.transform = 'scale(1)';
+                }, 300);
+            }
+        }
+        
+        // Update visual feedback for all checkboxes
+        checkboxes.forEach(checkbox => {
+            const item = checkbox.closest('.substitute-deactivation-item');
+            if (checkbox.checked) {
+                item.classList.add('recommended');
+            } else {
+                item.classList.remove('recommended');
+            }
+        });
+        
+        // Highlight the clicked checkbox to show user's choice was respected
+        const clickedItem = clickedCheckbox.closest('.substitute-deactivation-item');
+        clickedItem.style.transition = 'all 0.3s ease';
+        clickedItem.style.boxShadow = '0 0 0 3px rgba(40, 167, 69, 0.3)';
+        setTimeout(() => {
+            clickedItem.style.boxShadow = '';
+        }, 1000);
+        
+        // Show a brief tooltip if adjustments were made
+        if (adjustmentsMade) {
+            const action = clickedCheckbox.checked ? 'checked' : 'unchecked';
+            const adjustedNames = adjustedCheckboxes.map(cb => 
+                allPlayers.find(p => p.registration_id === cb.dataset.registrationId)?.name || cb.dataset.registrationId
+            );
+            showSmartSelectionFeedback(requiredCount, action, adjustedNames);
+        }
+    }
+
+    function showSmartSelectionFeedback(requiredCount, action = 'adjusted', adjustedNames = []) {
+        // Create or update feedback message
+        let feedback = document.getElementById('smartSelectionFeedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.id = 'smartSelectionFeedback';
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 4px;
+                font-size: 14px;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            `;
+            document.body.appendChild(feedback);
+        }
+        
+        // Create contextual message based on the action
+        let message;
+        const namesText = adjustedNames.length > 0 ? ` (${adjustedNames.join(', ')})` : '';
+        
+        if (action === 'checked') {
+            message = `✓ Your selection respected - automatically unselected${namesText} to maintain exactly ${requiredCount}`;
+        } else if (action === 'unchecked') {
+            message = `✓ Your selection respected - automatically selected${namesText} to maintain exactly ${requiredCount}`;
+        } else {
+            message = `✓ Selection adjusted to maintain exactly ${requiredCount} substitute${requiredCount !== 1 ? 's' : ''}`;
+        }
+        
+        feedback.textContent = message;
+        feedback.style.opacity = '1';
+        
+        // Auto-hide after 3 seconds (longer for more informative messages)
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 300);
+        }, 3000);
+    }
+
     // New function to check if table reduction options should be displayed
     function updateTableReductionOptions() {
         const droppedCount = droppedPlayers.length;
@@ -279,7 +631,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const optimizationSettings = document.getElementById('optimizationSettings');
         const currentActiveCount = currentPlayers.length;
         
-        // Calculate if we can reduce tables based on total active players
+        // Check for automatic table reduction first
+        automaticTableReductionState = checkAutomaticTableReduction();
+        renderAutomaticTableReductionUI(automaticTableReductionState);
+        
+        if (automaticTableReductionState.required) {
+            // Hide manual table reduction options when automatic is required
+            tableReductionOption.style.display = 'none';
+            optimizationSettings.style.display = 'block';
+            return;
+        }
+        
+        // Original manual table reduction logic
         const canReduceTables = Math.floor(currentActiveCount / 4) < Math.ceil((currentActiveCount + totalDropouts) / 4);
         
         if (completedRounds === 0 && canReduceTables && totalDropouts >= 4) {
@@ -447,7 +810,27 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateButton.addEventListener('click', async function() {
         try {
             const droppedOut = getDroppedOutPlayers();
-            if (droppedOut.length === 0) {
+            
+            // Handle automatic table reduction
+            let substitutesToDeactivate = [];
+            if (automaticTableReductionState.required) {
+                // Get selected substitutes to deactivate from UI
+                const checkboxes = document.querySelectorAll('#substituteDeactivationList input[type="checkbox"]:checked');
+                substitutesToDeactivate = Array.from(checkboxes).map(cb => ({
+                    registration_id: cb.dataset.registrationId,
+                    seating_id: parseInt(cb.dataset.seatingId)
+                }));
+                
+                // Validate that the correct number of substitutes are selected
+                const requiredDeactivations = automaticTableReductionState.currentActiveCount - automaticTableReductionState.targetPlayerCount;
+                if (substitutesToDeactivate.length !== requiredDeactivations) {
+                    // This should not happen with smart checkboxes, but add safety check
+                    alert(`Error: Expected ${requiredDeactivations} substitutes to be selected, but found ${substitutesToDeactivate.length}. Please refresh the page and try again.`);
+                    return;
+                }
+                
+                console.log('Automatic table reduction - substitutes to deactivate:', substitutesToDeactivate);
+            } else if (droppedOut.length === 0) {
                 alert('Please select players to substitute');
                 return;
             }
@@ -462,8 +845,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const minTables = {{ min_tables }};
             
             // Decide on optimization strategy based on table counts
-            const reduceTableCount = reduceTableCountCheckbox.checked;
+            const reduceTableCount = automaticTableReductionState.required || reduceTableCountCheckbox.checked;
             let newSeating;
+            
+            // If automatic table reduction is required, deactivate substitutes first
+            if (automaticTableReductionState.required) {
+                optimizationProgress.textContent += "Deactivating substitutes for automatic table reduction...\n";
+                
+                try {
+                    await makeApiRequest('{{ url_for("run.sub.deactivate_substitutes") }}', {
+                        substitutesToDeactivate: substitutesToDeactivate
+                    });
+                    optimizationProgress.textContent += "Substitutes deactivated successfully.\n";
+                } catch (error) {
+                    optimizationProgress.textContent += `Error deactivating substitutes: ${error.message}\n`;
+                    throw error;
+                }
+            }
             
             // TODO when we're getting predefined seating, we're going to have to reallocate seating numbers too.
             // preserve the existing order, and just renumber them 1-n. Apply this to the google sheet.
@@ -540,13 +938,37 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmButton.textContent = "Processing...";
         document.body.style.cursor = 'wait';
         
-        // Get the reduce table count preference
-        const reduceTableCount = reduceTableCountCheckbox.checked;
+        // Get the reduce table count preference and automatic table reduction state
+        const reduceTableCount = automaticTableReductionState.required || reduceTableCountCheckbox.checked;
         const droppedPlayers = getDroppedOutPlayers();
+        
+        // Get substitutes to deactivate if in automatic mode
+        let substitutesToDeactivate = [];
+        if (automaticTableReductionState.required) {
+            const checkboxes = document.querySelectorAll('#substituteDeactivationList input[type="checkbox"]:checked');
+            substitutesToDeactivate = Array.from(checkboxes).map(cb => ({
+                registration_id: cb.dataset.registrationId,
+                seating_id: parseInt(cb.dataset.seatingId)
+            }));
+            
+            // Final validation before confirmation
+            const requiredDeactivations = automaticTableReductionState.currentActiveCount - automaticTableReductionState.targetPlayerCount;
+            if (substitutesToDeactivate.length !== requiredDeactivations) {
+                alert(`Error: Expected ${requiredDeactivations} substitutes to be selected, but found ${substitutesToDeactivate.length}. Please refresh the page and try again.`);
+                // Re-enable buttons and restore cursor if validation fails
+                confirmButton.disabled = false;
+                cancelButton.disabled = false;
+                confirmButton.textContent = "Do these substitutions";
+                document.body.style.cursor = 'default';
+                return;
+            }
+        }
         
         const requestData = {
             reduceTableCount: reduceTableCount,
-            droppedPlayers: droppedPlayers
+            droppedPlayers: droppedPlayers,
+            automaticTableReduction: automaticTableReductionState.required,
+            substitutesToDeactivate: substitutesToDeactivate
         };
         
         console.log('=== CONFIRM SUBSTITUTIONS REQUEST ===');

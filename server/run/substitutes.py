@@ -119,11 +119,15 @@ def confirm_substitutions():
     data = request.json or {}
     reduce_table_count = data.get("reduceTableCount", False)
     dropped_players = data.get("droppedPlayers", [])
+    automatic_table_reduction = data.get("automaticTableReduction", False)
+    substitutes_to_deactivate = data.get("substitutesToDeactivate", [])
 
     logging.info(f"=== SUBSTITUTION REQUEST ===")
     logging.info(f"Request data: {data}")
     logging.info(f"Reduce table count: {reduce_table_count}")
     logging.info(f"Dropped players: {dropped_players}")
+    logging.info(f"Automatic table reduction: {automatic_table_reduction}")
+    logging.info(f"Substitutes to deactivate: {substitutes_to_deactivate}")
 
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
@@ -147,6 +151,29 @@ def confirm_substitutions():
     if dropped_players:
         logging.info(f"Marking players as dropped: {dropped_players}")
         googlesheet.remove_players(sheet, dropped_players)
+
+    # Handle automatic table reduction by deactivating selected substitutes
+    if automatic_table_reduction and substitutes_to_deactivate:
+        logging.info(f"=== AUTOMATIC TABLE REDUCTION ===")
+        seating_ids_to_deactivate = [sub["seating_id"] for sub in substitutes_to_deactivate]
+        logging.info(f"Deactivating substitutes with seating IDs: {seating_ids_to_deactivate}")
+        
+        # Sort by descending seating ID for logging consistency
+        seating_ids_to_deactivate.sort(reverse=True)
+        
+        try:
+            googlesheet.update_substitute_to_regular_status(sheet, seating_ids_to_deactivate)
+            logging.info(f"Successfully deactivated {len(seating_ids_to_deactivate)} substitutes")
+        except Exception as e:
+            logging.error(f"Error deactivating substitutes: {str(e)}")
+            return jsonify({"status": "error", "message": f"Failed to deactivate substitutes: {str(e)}"})
+    elif automatic_table_reduction:
+        logging.info("Automatic table reduction requested but no substitutes to deactivate")
+    
+    # Force table reduction when automatic table reduction is active
+    if automatic_table_reduction:
+        reduce_table_count = True
+        logging.info("Forcing table count reduction due to automatic table reduction")
 
     # Re-fetch player data after removing players to get current state
     fresh_batch_data = googlesheet.batch_get_tournament_data(sheet)
@@ -454,6 +481,92 @@ def analyze_seating():
     players_to_ignore = [0] + list(all_possible_players - players_in_changed_rounds)
     new_stats = make_stats(data["seating"], ignore_players=players_to_ignore)
     return jsonify({"status": "success", "current": current_stats, "new": new_stats})
+
+
+@blueprint.route("/check_table_reduction", methods=["POST"])
+@admin_or_editor_required
+@tournament_required
+@login_required
+def check_table_reduction():
+    """Check if automatic table reduction is required."""
+    data = request.json or {}
+    current_players = data.get("currentPlayers", [])
+    available_substitutes = data.get("availableSubstitutes", [])
+    
+    if not current_players:
+        return jsonify({"status": "error", "message": "No current players data provided"}), 400
+
+    # Get active substitutes (players with substituted_for field)
+    active_substitutes = [p for p in current_players if p.get("substituted_for")]
+    current_active_count = len(current_players)
+    
+    # Calculate players needed to fill to next multiple of 4
+    players_needed_for_next_table = (4 - (current_active_count % 4)) % 4
+    
+    # Check if automatic table reduction is required
+    must_reduce_tables = players_needed_for_next_table > len(available_substitutes) and len(active_substitutes) > 0
+    
+    if must_reduce_tables:
+        # Calculate target player count (largest multiple of 4 <= current count)
+        target_player_count = (current_active_count // 4) * 4
+        substitutes_to_deactivate_count = current_active_count - target_player_count
+        
+        # Sort active substitutes by seating ID (descending) for priority deactivation
+        sorted_active_substitutes = sorted(
+            [s for s in active_substitutes if s.get("seating_id")],
+            key=lambda x: int(x["seating_id"]),
+            reverse=True
+        )
+        
+        recommended_substitutes = sorted_active_substitutes[:substitutes_to_deactivate_count]
+        
+        return jsonify({
+            "status": "success",
+            "automaticReductionRequired": True,
+            "currentActiveCount": current_active_count,
+            "targetPlayerCount": target_player_count,
+            "availableSubstitutes": len(available_substitutes),
+            "playersNeededForNextTable": players_needed_for_next_table,
+            "recommendedSubstitutes": recommended_substitutes
+        })
+    
+    return jsonify({
+        "status": "success",
+        "automaticReductionRequired": False
+    })
+
+
+@blueprint.route("/deactivate_substitutes", methods=["POST"])
+@admin_or_editor_required
+@tournament_required
+@login_required
+def deactivate_substitutes():
+    """Deactivate selected substitutes for automatic table reduction."""
+    data = request.json
+    if not data or "substitutesToDeactivate" not in data:
+        return jsonify({"status": "error", "message": "No substitutes data provided"}), 400
+
+    substitutes_to_deactivate = data["substitutesToDeactivate"]
+    if not substitutes_to_deactivate:
+        return jsonify({"status": "error", "message": "No substitutes selected for deactivation"}), 400
+
+    tournament = current_user.live_tournament
+    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    
+    try:
+        # Convert to seating IDs for the googlesheet function
+        seating_ids = [sub["seating_id"] for sub in substitutes_to_deactivate]
+        
+        logging.info(f"Deactivating substitutes with seating IDs: {seating_ids}")
+        
+        # Use existing function to update substitute status
+        googlesheet.update_substitute_to_regular_status(sheet, seating_ids)
+        
+        return jsonify({"status": "success", "message": f"Deactivated {len(seating_ids)} substitutes"})
+        
+    except Exception as e:
+        logging.error(f"Error deactivating substitutes: {str(e)}")
+        return jsonify({"status": "error", "message": f"Failed to deactivate substitutes: {str(e)}"}), 500
 
 
 @blueprint.route("/get_predefined_seating", methods=["POST"])
