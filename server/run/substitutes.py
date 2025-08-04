@@ -120,6 +120,11 @@ def confirm_substitutions():
     reduce_table_count = data.get("reduceTableCount", False)
     dropped_players = data.get("droppedPlayers", [])
 
+    logging.info(f"=== SUBSTITUTION REQUEST ===")
+    logging.info(f"Request data: {data}")
+    logging.info(f"Reduce table count: {reduce_table_count}")
+    logging.info(f"Dropped players: {dropped_players}")
+
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
     seatlist = seating_to_seatlist(new_seating)
@@ -127,20 +132,165 @@ def confirm_substitutions():
     batch_data = googlesheet.batch_get_tournament_data(sheet)
     session["last_seating"] = googlesheet.get_seating_from_batch(batch_data)
 
+    logging.info(f"New seating seatlist (first 3 rows): {seatlist[:3]}")
+    logging.info(f"Old seating (from session, first 3 rows): {session['last_seating'][:3]}")
+
+    # Get old seating IDs for comparison
+    old_seatlist = session["last_seating"]
+    old_active_ids = {player for row in old_seatlist for player in row[2:6] if player}
+    new_active_ids = {player for row in seatlist for player in row[2:6] if player}
+
+    logging.info(f"Old active seating IDs: {sorted(old_active_ids)}")
+    logging.info(f"New active seating IDs: {sorted(new_active_ids)}")
+
     # Update player statuses for dropped players BEFORE updating seating
     if dropped_players:
+        logging.info(f"Marking players as dropped: {dropped_players}")
         googlesheet.remove_players(sheet, dropped_players)
 
-    # Update all player statuses to match the final seating arrangement
+    # Re-fetch player data after removing players to get current state
+    fresh_batch_data = googlesheet.batch_get_tournament_data(sheet)
+    raw_players = googlesheet.get_players_from_batch(fresh_batch_data)
+    
+    logging.info(f"Player data after marking dropouts:")
+    for i, p in enumerate(raw_players[:10]):  # Log first 10 players
+        status = p[3] if len(p) > 3 and p[3] else "no_status"
+        logging.info(f"  Player {i+1}: seating_id={p[0]}, reg_id={p[1]}, name={p[2] if len(p) > 2 else 'no_name'}, status={status}")
+
+    # Identify new seating IDs that were created for substitutes
+    max_old_id = max(old_active_ids) if old_active_ids else 0
+    new_substitute_ids = [sid for sid in new_active_ids if sid > max_old_id]
+    new_substitute_ids.sort()  # Ensure consistent ordering
+
+    logging.info(f"Max old seating ID: {max_old_id}")
+    logging.info(f"New substitute seating IDs needed: {new_substitute_ids}")
+
+    # Get all substitute players (all with status="substitute" are available)
+    all_substitutes = []
+    for p in raw_players:
+        has_seating = p[0] != ""
+        status = p[3] if len(p) > 3 and p[3] else ""
+        if status == "substitute":
+            all_substitutes.append({
+                'registration_id': str(p[1]),
+                'seating_id': int(p[0]) if has_seating else None,
+                'name': p[2] if len(p) > 2 else f"player {p[1]}"
+            })
+
+    # Sort substitutes for consistent assignment order  
+    all_substitutes.sort(key=lambda x: x['registration_id'])
+
+    logging.info(f"All substitute players found (all available):")
+    for sub in all_substitutes:
+        logging.info(f"  {sub['name']} (reg_id: {sub['registration_id']}, seating_id: {sub['seating_id']})")
+    
+    # Check if we have enough substitutes for the number needed
+    substitutes_needed = len(new_substitute_ids)
+    substitutes_available = len(all_substitutes)
+    
+    logging.info(f"Optimizer generated substitute seating IDs: {new_substitute_ids}")
+    logging.info(f"Substitutes needed: {substitutes_needed}")
+    logging.info(f"Substitutes available: {substitutes_available}")
+    
+    if substitutes_available < substitutes_needed:
+        logging.warning(f"INSUFFICIENT SUBSTITUTES: Need {substitutes_needed} but only have {substitutes_available} available!")
+        logging.warning(f"Will proceed with partial substitution using {substitutes_available} substitutes")
+        # Continue processing with available substitutes rather than failing completely
+    
+    # Create mapping from optimizer's substitute IDs to actual substitute seating IDs
+    # Strategy: Use existing substitute seating IDs where possible, assign new ones as needed
+    id_mapping = {}
+    actual_substitute_ids = []
+    
+    # First, collect existing substitute seating IDs
+    existing_substitute_ids = [sub['seating_id'] for sub in all_substitutes if sub['seating_id'] is not None]
+    existing_substitute_ids.sort()
+    
+    # Then, determine what new seating IDs we need for substitutes without IDs
+    unassigned_substitutes = [sub for sub in all_substitutes if sub['seating_id'] is None]
+    
+    if existing_substitute_ids:
+        actual_substitute_ids.extend(existing_substitute_ids)
+        logging.info(f"Using existing substitute seating IDs: {existing_substitute_ids}")
+    
+    if unassigned_substitutes:
+        # Find the next available seating IDs for unassigned substitutes
+        all_used_ids = old_active_ids.copy()
+        if existing_substitute_ids:
+            all_used_ids.update(existing_substitute_ids)
+        
+        next_seating_id = max(all_used_ids) + 1 if all_used_ids else 1
+        new_ids = list(range(next_seating_id, next_seating_id + len(unassigned_substitutes)))
+        actual_substitute_ids.extend(new_ids)
+        logging.info(f"Assigning new seating IDs {new_ids} to unassigned substitutes")
+        
+        # Create assignments for unassigned substitutes
+        substitute_assignments = {}
+        for i, sub in enumerate(unassigned_substitutes):
+            substitute_assignments[sub['registration_id']] = new_ids[i]
+            logging.info(f"Assigning seating ID {new_ids[i]} to {sub['name']} (reg_id: {sub['registration_id']})")
+        
+        # Apply substitute assignments
+        if substitute_assignments:
+            logging.info(f"Calling add_substitute_players with: {substitute_assignments}")
+            googlesheet.add_substitute_players(sheet, substitute_assignments)
+    
+    # Create mapping from optimizer IDs to actual substitute IDs
+    actual_substitute_ids.sort()
+    
+    # Only map as many substitutes as we actually have available
+    max_mappings = min(len(new_substitute_ids), len(actual_substitute_ids))
+    
+    for i in range(max_mappings):
+        optimizer_id = new_substitute_ids[i]
+        actual_id = actual_substitute_ids[i]
+        id_mapping[optimizer_id] = actual_id
+        logging.info(f"Mapping optimizer substitute ID {optimizer_id} -> actual substitute ID {actual_id}")
+    
+    # Log any unmapped optimizer IDs (indicates insufficient substitutes)
+    unmapped_optimizer_ids = new_substitute_ids[max_mappings:] if max_mappings < len(new_substitute_ids) else []
+    if unmapped_optimizer_ids:
+        logging.warning(f"Unable to map optimizer substitute IDs {unmapped_optimizer_ids} - insufficient substitute players!")
+    
+    # Apply the ID mapping to the seating arrangement
+    if id_mapping or unmapped_optimizer_ids:
+        logging.info(f"Applying ID mapping to seating: {id_mapping}")
+        for round_idx in range(len(new_seating)):
+            for table_idx in range(len(new_seating[round_idx])):
+                for seat_idx in range(4):
+                    seat_id = new_seating[round_idx][table_idx][seat_idx]
+                    if seat_id in id_mapping:
+                        new_seating[round_idx][table_idx][seat_idx] = id_mapping[seat_id]
+                        logging.info(f"  Round {round_idx+1}, Table {table_idx+1}, Seat {seat_idx+1}: {seat_id} -> {id_mapping[seat_id]}")
+                    elif seat_id in unmapped_optimizer_ids:
+                        # Set unmapped substitute positions to empty (0) since we don't have substitutes for them
+                        new_seating[round_idx][table_idx][seat_idx] = 0
+                        logging.warning(f"  Round {round_idx+1}, Table {table_idx+1}, Seat {seat_idx+1}: {seat_id} -> 0 (no substitute available)")
+        
+        # Update the seatlist to reflect the corrected seating arrangement
+        seatlist = seating_to_seatlist(new_seating)
+        
+        # Store the corrected seating in session for future reference
+        session["new_seating"] = new_seating
+        
+        logging.info(f"=== SEATING CORRECTION COMPLETE ===")
+        logging.info(f"Successfully mapped {len(id_mapping)} substitute IDs")
+        if unmapped_optimizer_ids:
+            logging.info(f"Failed to map {len(unmapped_optimizer_ids)} substitute IDs due to insufficient substitutes")
+
+    # Update remaining player statuses to match the final seating arrangement
     # Get the set of all seating IDs that appear in the new seating
     active_seating_ids = {player for row in seatlist for player in row[2:6] if player}
 
-    # Update player statuses based on whether they appear in the new seating
-    raw_players = googlesheet.get_players_from_batch(batch_data)
+    # Re-fetch player data after substitute assignments
+    final_batch_data = googlesheet.batch_get_tournament_data(sheet)
+    final_raw_players = googlesheet.get_players_from_batch(final_batch_data)
     players_sheet = googlesheet.get_sheet(tournament.google_doc_id).worksheet("players")
     status_updates = []
 
-    for row_idx, p in enumerate(raw_players, start=4):
+    logging.info(f"Final player status check - active seating IDs: {sorted(active_seating_ids)}")
+    
+    for row_idx, p in enumerate(final_raw_players, start=4):
         current_seating_id = p[0] if p[0] else None
         registration_id = str(p[1])
         current_status = p[3] if len(p) > 3 and p[3] else ""
@@ -149,17 +299,19 @@ def confirm_substitutions():
         if current_seating_id and int(current_seating_id) in active_seating_ids:
             # Player has a seating ID and appears in new seating - should be active
             if current_status != "active":
+                logging.info(f"  Player {registration_id} (seat {current_seating_id}): {current_status} -> active")
                 status_updates.append({"range": f"D{row_idx}", "values": [["active"]]})
         elif current_status == "active":
             # Player was active but is no longer in seating - should be dropped
             # (This handles cases where the dropped_players list might miss someone)
+            logging.info(f"  Player {registration_id} (seat {current_seating_id}): active -> dropped (not in new seating)")
             status_updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
 
+    logging.info(f"Final status updates to apply: {status_updates}")
     if status_updates:
         players_sheet.batch_update(status_updates)
 
     # Track substitutions by analyzing seating changes
-    old_seatlist = session["last_seating"]
     old_seating = seatlist_to_seating(old_seatlist)
 
     # Track automatic substitutions before updating seating
@@ -168,10 +320,6 @@ def confirm_substitutions():
     # If reducing table count, identify substitutes who are no longer playing
     if reduce_table_count:
         # Find players who were in the old seating but not in the new seating
-        old_active_ids = {
-            player for row in old_seatlist for player in row[2:6] if player
-        }
-        new_active_ids = {player for row in seatlist for player in row[2:6] if player}
         no_longer_playing = old_active_ids - new_active_ids
 
         if no_longer_playing:

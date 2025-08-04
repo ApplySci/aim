@@ -262,7 +262,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getDroppedOutPlayers() {
-        return droppedPlayers.map(player => parseInt(player.seating_id));
+        const result = droppedPlayers.map(player => parseInt(player.seating_id)).filter(id => !isNaN(id));
+        console.log('getDroppedOutPlayers called:');
+        console.log('  droppedPlayers:', droppedPlayers);
+        console.log('  seating_ids:', droppedPlayers.map(p => p.seating_id));
+        console.log('  result:', result);
+        return result;
     }
 
     // New function to check if table reduction options should be displayed
@@ -349,15 +354,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Handlers
     //
     moveToDroppedButton.addEventListener('click', function() {
+        console.log('=== MOVING PLAYERS TO DROPPED ===');
         Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
             const player = currentPlayers.find(p => p.registration_id === option.value);
             if (player) {
+                console.log('Moving player to dropped:', player);
                 player.status = 'dropped';
                 player.is_current = false;
                 currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
                 droppedPlayers.push(player);
             }
         });
+        console.log('After move - currentPlayers:', currentPlayers.length);
+        console.log('After move - droppedPlayers:', droppedPlayers.length);
         renderPlayers();
         // Check table reduction options after moving players
         updateTableReductionOptions();
@@ -533,16 +542,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Get the reduce table count preference
         const reduceTableCount = reduceTableCountCheckbox.checked;
+        const droppedPlayers = getDroppedOutPlayers();
+        
+        const requestData = {
+            reduceTableCount: reduceTableCount,
+            droppedPlayers: droppedPlayers
+        };
+        
+        console.log('=== CONFIRM SUBSTITUTIONS REQUEST ===');
+        console.log('Request data being sent:', requestData);
         
         fetch('{{ url_for("run.sub.confirm_substitutions") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                reduceTableCount: reduceTableCount,
-                droppedPlayers: getDroppedOutPlayers()
-            }),
+            body: JSON.stringify(requestData),
         })
         .then(response => response.json())
         .then(data => {
