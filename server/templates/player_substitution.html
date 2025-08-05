@@ -863,18 +863,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // Seating strategy decision
+            const completedRounds = {{ completed_rounds }};
+            
             // TODO when we're getting predefined seating, we're going to have to reallocate seating numbers too.
             // preserve the existing order, and just renumber them 1-n. Apply this to the google sheet.
             try {
-                if (reduceTableCount && oldTableCount > minTables && newTableCount >= minTables) {
-                    // Use predefined seating template
+                if (reduceTableCount && completedRounds === 0 && oldTableCount > minTables && newTableCount >= minTables) {
+                    // Use predefined seating template only when no rounds have been completed
                     newSeating = await getPredefinedSeating(
                         newTableCount, 
-                        "Using predefined optimal seating template...\n"
+                        "Using predefined optimal seating template (no rounds completed)...\n"
                     );
-                } else if (reduceTableCount && oldTableCount > minTables) { // & we know newTableCount < minTables
-                    // First get min_tables seating plan, then optimize down
-                    const message = `Getting seating plan for minimum ${minTables} tables first...\n`;
+                } else if (reduceTableCount && completedRounds === 0 && oldTableCount > minTables) { // & we know newTableCount < minTables
+                    // First get min_tables seating plan, then optimize down (only when no rounds completed)
+                    const message = `Getting seating plan for minimum ${minTables} tables first (no rounds completed)...\n`;
                     try {
                         const baseSeating = await getPredefinedSeating(minTables, message);
                         
@@ -883,10 +886,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         newSeating = await runOptimization(droppedOut, selectedTime, baseSeating);
                     } catch (error) {
                         // Fall back to regular optimization
+                        optimizationProgress.textContent += "Predefined seating failed, using optimization algorithm...\n";
                         newSeating = await runOptimization(droppedOut, selectedTime);
                     }
                 } else {
-                    // Normal optimization
+                    // Use optimization algorithm when rounds have been completed or other conditions not met
+                    if (completedRounds > 0) {
+                        optimizationProgress.textContent += `Using optimization algorithm (${completedRounds} rounds already completed)...\n`;
+                    } else {
+                        optimizationProgress.textContent += "Using optimization algorithm...\n";
+                    }
                     newSeating = await runOptimization(droppedOut, selectedTime);
                 }
             } catch (error) {

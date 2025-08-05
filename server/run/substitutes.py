@@ -308,6 +308,9 @@ def confirm_substitutions():
     # Update remaining player statuses to match the final seating arrangement
     # Get the set of all seating IDs that appear in the new seating
     active_seating_ids = {player for row in seatlist for player in row[2:6] if player}
+    
+    # Create set of seating IDs that were explicitly dropped (should remain dropped)
+    explicitly_dropped_seating_ids = set(dropped_players) if dropped_players else set()
 
     # Re-fetch player data after substitute assignments
     final_batch_data = googlesheet.batch_get_tournament_data(sheet)
@@ -316,15 +319,24 @@ def confirm_substitutions():
     status_updates = []
 
     logging.info(f"Final player status check - active seating IDs: {sorted(active_seating_ids)}")
+    logging.info(f"Explicitly dropped seating IDs: {sorted(explicitly_dropped_seating_ids)}")
     
     for row_idx, p in enumerate(final_raw_players, start=4):
         current_seating_id = p[0] if p[0] else None
         registration_id = str(p[1])
         current_status = p[3] if len(p) > 3 and p[3] else ""
 
+        # Convert seating_id to int for comparison
+        seating_id_int = int(current_seating_id) if current_seating_id else None
+
         # Determine what the status should be based on the new seating
-        if current_seating_id and int(current_seating_id) in active_seating_ids:
-            # Player has a seating ID and appears in new seating - should be active
+        if seating_id_int and seating_id_int in explicitly_dropped_seating_ids:
+            # Player was explicitly dropped - ensure they stay dropped regardless of seating
+            if current_status != "dropped":
+                logging.info(f"  Player {registration_id} (seat {current_seating_id}): {current_status} -> dropped (explicitly dropped)")
+                status_updates.append({"range": f"D{row_idx}", "values": [["dropped"]]})
+        elif seating_id_int and seating_id_int in active_seating_ids:
+            # Player has a seating ID and appears in new seating - should be active (unless explicitly dropped)
             if current_status != "active":
                 logging.info(f"  Player {registration_id} (seat {current_seating_id}): {current_status} -> active")
                 status_updates.append({"range": f"D{row_idx}", "values": [["active"]]})
