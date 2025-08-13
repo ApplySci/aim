@@ -838,6 +838,159 @@ class GSP:
         """Convert batch results data to the expected format"""
         return batch_data["results_raw"]
 
+    # --- Player status helpers for substitutions ---
+
+    def list_players(self, live: gspread.spreadsheet.Spreadsheet) -> list[dict]:
+        """
+        Read players from the 'players' sheet and parse status columns.
+
+        Returns list of dicts with keys:
+          seating_id (int|None), registration_id (str), name (str),
+          status (str in {playing, removed, sub_waiting}), replaces_registration_id (str|None),
+          is_sub (bool)
+        """
+        batch_data = self.batch_get_tournament_data(live)
+        raw = self.get_players_from_batch(batch_data)
+
+        players: list[dict] = []
+        for row in raw:
+            seating_id = None
+            try:
+                if len(row) > 0 and row[0] != "":
+                    seating_id = int(row[0])
+            except Exception:
+                seating_id = None
+
+            registration_id = str(row[1]) if len(row) > 1 else ""
+            name = row[2] if len(row) > 2 else f"player {registration_id}"
+            status = (row[3] if len(row) > 3 else "").strip().lower() if len(row) > 3 else ""
+            replaces_registration_id = str(row[4]).strip() if len(row) > 4 and row[4] != "" else None
+
+            # Back-compat inference if status missing
+            if status == "":
+                if seating_id:
+                    status = "playing"
+                else:
+                    if "sub" in registration_id.lower():
+                        status = "sub_waiting"
+                    else:
+                        status = "removed"
+
+            is_sub = "sub" in registration_id.lower()
+
+            players.append(
+                {
+                    "seating_id": seating_id,
+                    "registration_id": registration_id,
+                    "name": name,
+                    "status": status,
+                    "replaces_registration_id": replaces_registration_id,
+                    "is_sub": is_sub,
+                }
+            )
+
+        return players
+
+    def _find_player_row_by_registration_id(self, live: gspread.spreadsheet.Spreadsheet, registration_id: str) -> int | None:
+        """
+        Find the sheet row index (1-based) for a player by registration_id.
+        Returns None if not found.
+        """
+        players_sheet = live.worksheet("players")
+        vals = players_sheet.get("B4:B5000")  # registration_id column
+        for idx, cell in enumerate(vals, start=4):
+            if len(cell) > 0 and str(cell[0]) == str(registration_id):
+                return idx
+        return None
+
+    def update_player_status(
+        self,
+        live: gspread.spreadsheet.Spreadsheet,
+        registration_id: str,
+        status: str,
+        seating_id: int | None = None,
+        replaces_registration_id: str | None = None,
+    ) -> None:
+        """
+        Update a player's status and related columns atomically.
+        """
+        players_sheet = live.worksheet("players")
+        row_idx = self._find_player_row_by_registration_id(live, registration_id)
+        if row_idx is None:
+            logging.warning(f"update_player_status: reg_id {registration_id} not found")
+            return
+
+        updates = []
+        # Column A: seating_id
+        updates.append({"range": f"A{row_idx}", "values": [["" if seating_id is None else str(seating_id)]]})
+        # Column D: status
+        updates.append({"range": f"D{row_idx}", "values": [[status]]})
+        # Column E: replaces_registration_id
+        updates.append({"range": f"E{row_idx}", "values": [[replaces_registration_id or ""]]})
+
+        players_sheet.batch_update(updates)
+
+    def batch_apply_player_changes(self, live: gspread.spreadsheet.Spreadsheet, changes: list[dict]) -> None:
+        """
+        Batch update players' seating_id, status, and replaces_registration_id.
+        'changes' items: {registration_id, seating_id, status, replaces_registration_id}
+        """
+        players_sheet = live.worksheet("players")
+        updates = []
+        for ch in changes:
+            reg = ch.get("registration_id")
+            row_idx = self._find_player_row_by_registration_id(live, reg)
+            if row_idx is None:
+                logging.warning(f"batch_apply_player_changes: reg_id {reg} not found")
+                continue
+            seating_id = ch.get("seating_id")
+            status = ch.get("status")
+            replaces = ch.get("replaces_registration_id") or ""
+            updates.append({"range": f"A{row_idx}", "values": [["" if seating_id is None else str(seating_id)]]})
+            updates.append({"range": f"D{row_idx}", "values": [[status]]})
+            updates.append({"range": f"E{row_idx}", "values": [[replaces]]})
+
+        if updates:
+            players_sheet.batch_update(updates)
+
+    def snapshot_player_columns(self, live: gspread.spreadsheet.Spreadsheet) -> list[list[str]]:
+        """
+        Snapshot the values of columns A, D, E (seating_id, status, replaces_reg_id) from row 4 down.
+        Returns a list of rows [[A, D, E], ...].
+        """
+        players_sheet = live.worksheet("players")
+        try:
+            values = players_sheet.get("A4:E5000")
+            # Trim to A, D, E
+            snapshot = []
+            for row in values:
+                a = row[0] if len(row) > 0 else ""
+                d = row[3] if len(row) > 3 else ""
+                e = row[4] if len(row) > 4 else ""
+                snapshot.append([a, d, e])
+            return snapshot
+        except Exception as e:
+            logging.error(f"snapshot_player_columns failed: {str(e)}")
+            return []
+
+    def restore_player_columns(self, live: gspread.spreadsheet.Spreadsheet, snapshot: list[list[str]]) -> None:
+        """
+        Restore columns A, D, E from a snapshot taken by snapshot_player_columns.
+        """
+        if not snapshot:
+            return
+        players_sheet = live.worksheet("players")
+        updates = []
+        start_row = 4
+        end_row = start_row + len(snapshot) - 1
+        colA = [[row[0] if len(row) > 0 else ""] for row in snapshot]
+        colD = [[row[1] if len(row) > 1 else ""] for row in snapshot]
+        colE = [[row[2] if len(row) > 2 else ""] for row in snapshot]
+        updates.append({"range": f"A{start_row}:A{end_row}", "values": colA})
+        updates.append({"range": f"D{start_row}:D{end_row}", "values": colD})
+        updates.append({"range": f"E{start_row}:E{end_row}", "values": colE})
+        players_sheet.batch_update(updates)
+
     def count_completed_hanchan(self, live: gspread.spreadsheet.Spreadsheet) -> int:
         """
         Count completed hanchan by checking the trigger data

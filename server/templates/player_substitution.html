@@ -227,9 +227,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Data Initialization
     //
     let allPlayers = {{ players|tojson }};
-    let currentPlayers = allPlayers.filter(p => p.is_current);
-    let droppedPlayers = allPlayers.filter(p => !p.is_current && p.seating_id);
-    let substitutes = allPlayers.filter(p => !p.is_current && !p.seating_id);
+    let currentPlayers = allPlayers.filter(p => p.status === 'playing');
+    let droppedPlayers = allPlayers.filter(p => p.status === 'removed');
+    let substitutes = allPlayers.filter(p => p.status === 'sub_waiting');
     let seating = {{ seating|tojson }};
     
     // Initial render
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getDroppedOutPlayers() {
-        return droppedPlayers.map(player => parseInt(player.seating_id));
+        return droppedPlayers.filter(p => p.seating_id).map(player => parseInt(player.seating_id));
     }
 
     // New function to check if table reduction options should be displayed
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(currentPlayerSelect.selectedOptions).forEach(option => {
             const player = currentPlayers.find(p => p.registration_id === option.value);
             if (player) {
-                player.is_current = false;
+                player.status = 'removed';
                 currentPlayers = currentPlayers.filter(p => p.registration_id !== player.registration_id);
                 droppedPlayers.push(player);
             }
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(droppedPlayerSelect.selectedOptions).forEach(option => {
             const player = droppedPlayers.find(p => p.registration_id === option.value);
             if (player) {
-                player.is_current = true;
+                player.status = 'playing';
                 droppedPlayers = droppedPlayers.filter(p => p.registration_id !== player.registration_id);
                 currentPlayers.push(player);
             }
@@ -426,11 +426,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     calculateButton.addEventListener('click', async function() {
         try {
-            const droppedOut = getDroppedOutPlayers();
-            if (droppedOut.length === 0) {
-                alert('Please select players to substitute');
-                return;
-            }
+            const removedRegs = droppedPlayers.map(p => p.registration_id);
+            const returningRegs = allPlayers
+                .filter(p => p.original_status === 'removed' && p.status === 'playing')
+                .map(p => p.registration_id);
             
             // Setup UI for calculation
             const { optimizationProgress, previewContent, statsContainer, currentStats, newStats } = setupCalculationUI();
@@ -441,40 +440,41 @@ document.addEventListener('DOMContentLoaded', function() {
             const oldTableCount = {{ (players_with_seating / 4)|round(0, 'ceil')|int }};
             const minTables = {{ min_tables }};
             
-            // Decide on optimization strategy based on table counts
             const reduceTableCount = reduceTableCountCheckbox.checked;
             let newSeating;
             
             // TODO when we're getting predefined seating, we're going to have to reallocate seating numbers too.
             // preserve the existing order, and just renumber them 1-n. Apply this to the google sheet.
+            // Ask server to plan substitutions deterministically
+            const plan = await makeApiRequest('{{ url_for("run.sub.plan_substitutions") }}', {
+                removed: removedRegs,
+                returning: returningRegs
+            });
+            optimizationProgress.textContent += (plan.messages || []).join('\n') + (plan.messages?.length ? '\n' : '');
+
             try {
-                if (reduceTableCount && oldTableCount > minTables && newTableCount >= minTables) {
-                    // Use predefined seating template
-                    newSeating = await getPredefinedSeating(
-                        newTableCount, 
-                        "Using predefined optimal seating template...\n"
-                    );
-                } else if (reduceTableCount && oldTableCount > minTables) { // & we know newTableCount < minTables
-                    // First get min_tables seating plan, then optimize down
-                    const message = `Getting seating plan for minimum ${minTables} tables first...\n`;
-                    try {
-                        const baseSeating = await getPredefinedSeating(minTables, message);
-                        
-                        // Now optimize this seating plan down to the required table count
+                if ({{ completed_rounds }} === 0) {
+                    if (plan.strategy === 'prearranged') {
+                        newSeating = await getPredefinedSeating(plan.newTableCount, "Using predefined optimal seating template...\n");
+                    } else if (plan.strategy === 'prearranged_then_optimize') {
+                        const baseSeating = await getPredefinedSeating({{ min_tables }}, `Getting seating plan for minimum {{ min_tables }} tables first...\n`);
                         optimizationProgress.textContent += "Optimizing down to required table count...\n";
-                        newSeating = await runOptimization(droppedOut, selectedTime, baseSeating);
-                    } catch (error) {
-                        // Fall back to regular optimization
-                        newSeating = await runOptimization(droppedOut, selectedTime);
+                        newSeating = await runOptimization(plan.omitPlayers, selectedTime, baseSeating, plan.substitutes || []);
+                    } else {
+                        newSeating = await runOptimization(plan.omitPlayers, selectedTime, null, plan.substitutes || []);
                     }
                 } else {
-                    // Normal optimization
-                    newSeating = await runOptimization(droppedOut, selectedTime);
+                    // completed rounds >= 1
+                    if (plan.newTableCount !== oldTableCount) {
+                        newSeating = await runOptimization(plan.omitPlayers, selectedTime, null, plan.substitutes || []);
+                    } else {
+                        // If table count unchanged, still allow optimization on demand
+                        newSeating = await runOptimization(plan.omitPlayers, selectedTime, null, plan.substitutes || []);
+                    }
                 }
             } catch (error) {
-                // Final fallback to direct optimization
                 optimizationProgress.textContent += `We hit an error, so we are using direct optimization...\n`;
-                newSeating = await runOptimization(droppedOut, selectedTime);
+                newSeating = await runOptimization(plan.omitPlayers, selectedTime, null, plan.substitutes || []);
             }
             
             // Generate and display preview
@@ -577,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Helper function to run optimization with worker
-    async function runOptimization(droppedOut, timeLimit, baseSeating = null) {
+    async function runOptimization(omitPlayers, timeLimit, baseSeating = null, substitutes = []) {
         const worker = new Worker("{{ url_for('static', filename='js/seating/optimizer.worker.js') }}");
         
         return new Promise((resolve, reject) => {
@@ -594,11 +594,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const workerData = {
                 seats: baseSeating || seating,
                 fixedRounds: {{ completed_rounds }},
-                omitPlayers: droppedOut,
-                substitutes: Array.from(
-                    {length: 4}, 
-                    (_, i) => Math.max(...seating[0].flat()) + 1 + i
-                ),
+                omitPlayers: omitPlayers,
+                substitutes: substitutes,
                 timeLimit: timeLimit
             };
             
