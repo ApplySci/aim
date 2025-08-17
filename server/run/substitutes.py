@@ -327,6 +327,12 @@ def confirm_substitutions():
     # Get the reduce table count preference from the request
     data = request.json or {}
     reduce_table_count = data.get("reduceTableCount", False)
+    
+    # Determine if this is a permanent table reduction
+    # Permanent reduction occurs when:
+    # 1. We're reducing tables before hanchan 1 (completed_rounds == 0)
+    # 2. User has explicitly chosen to reduce table count (reduce_table_count == True)
+    is_permanent_reduction = reduce_table_count and plan_info.get("completedRounds", 0) == 0
 
     tournament = current_user.live_tournament
     sheet = googlesheet.get_sheet(tournament.google_doc_id)
@@ -341,46 +347,80 @@ def confirm_substitutions():
     except Exception as e:
         logging.error(f"Failed to snapshot player columns: {str(e)}")
 
-    # Apply minimal renumbering for prearranged strategies at round 0
+    # Apply renumbering for prearranged strategies at round 0
     try:
         if plan_info.get("completedRounds", 0) == 0 and plan_info.get("strategy") in (
             "prearranged",
             "prearranged_then_optimize",
         ):
-            # Determine target M from seating
-            target_ids = set()
-            for rnd in new_seating:
-                for tbl in rnd:
-                    for pid in tbl:
-                        if pid:
-                            target_ids.add(int(pid))
-            if target_ids:
-                max_target = max(target_ids)
-                # Build map from current active ids to constrained 1..M keeping as many as possible
-                # Gather playing players from plan_changes
-                playing_regs = [c["registration_id"] for c in plan_changes if c.get("status") == "playing"]
-                # Build dict reg->current id from changes
-                reg_to_id = {c["registration_id"]: c.get("seating_id") for c in plan_changes}
-                current_active_ids = [reg_to_id.get(r) for r in playing_regs if reg_to_id.get(r)]
-                keep = [pid for pid in current_active_ids if 1 <= int(pid) <= max_target]
-                keep_set = set(int(x) for x in keep)
-                free = [x for x in range(1, max_target + 1) if x not in keep_set]
-                # Map any ids not in 1..M to smallest free
+            # Gather playing players from plan_changes
+            playing_regs = [c["registration_id"] for c in plan_changes if c.get("status") == "playing"]
+            # Build dict reg->current id from changes
+            reg_to_id = {c["registration_id"]: c.get("seating_id") for c in plan_changes}
+            current_active_ids = [reg_to_id.get(r) for r in playing_regs if reg_to_id.get(r)]
+            
+            if is_permanent_reduction:
+                # For permanent table reduction, renumber all players 1..N with no gaps
+                logging.info(f"Permanent table reduction detected. Renumbering players to ensure consecutive numbering 1..{len(current_active_ids)}")
+                
+                # Sort players by their current seating ID to preserve relative order
+                current_active_ids.sort(key=lambda x: int(x))
                 remap = {}
-                for pid in current_active_ids:
-                    if int(pid) not in keep_set:
-                        if free:
-                            new_id = free.pop(0)
-                            remap[int(pid)] = new_id
+                for i, old_id in enumerate(current_active_ids, 1):
+                    if int(old_id) != i:
+                        remap[int(old_id)] = i
+                        
                 if remap:
-                    logging.debug(f"Applying minimal renumber map: {remap}")
+                    logging.info(f"Applying permanent reduction renumber map: {remap}")
                     # Update plan_changes seating_id according to remap
                     for ch in plan_changes:
                         sid = ch.get("seating_id")
                         if sid and int(sid) in remap:
                             ch["seating_id"] = remap[int(sid)]
+                    
+                    # Also update the seating arrangement
+                    for rnd in new_seating:
+                        for tbl in rnd:
+                            for i, pid in enumerate(tbl):
+                                if pid and int(pid) in remap:
+                                    tbl[i] = remap[int(pid)]
+                    
+                    # Apply the renumbering to the Google Sheet player IDs
+                    googlesheet.reassign_player_ids(sheet, remap)
+                    logging.info("Permanent table reduction renumbering completed successfully")
+                else:
+                    logging.info("Permanent table reduction: No renumbering needed (players already numbered 1..N)")
+            else:
+                # Apply minimal renumbering (existing logic)
+                # Determine target M from seating
+                target_ids = set()
+                for rnd in new_seating:
+                    for tbl in rnd:
+                        for pid in tbl:
+                            if pid:
+                                target_ids.add(int(pid))
+                if target_ids:
+                    max_target = max(target_ids)
+                    # Build map from current active ids to constrained 1..M keeping as many as possible
+                    keep = [pid for pid in current_active_ids if 1 <= int(pid) <= max_target]
+                    keep_set = set(int(x) for x in keep)
+                    free = [x for x in range(1, max_target + 1) if x not in keep_set]
+                    # Map any ids not in 1..M to smallest free
+                    remap = {}
+                    for pid in current_active_ids:
+                        if int(pid) not in keep_set:
+                            if free:
+                                new_id = free.pop(0)
+                                remap[int(pid)] = new_id
+                    if remap:
+                        logging.debug(f"Applying minimal renumber map: {remap}")
+                        # Update plan_changes seating_id according to remap
+                        for ch in plan_changes:
+                            sid = ch.get("seating_id")
+                            if sid and int(sid) in remap:
+                                ch["seating_id"] = remap[int(sid)]
     except Exception as e:
-        logging.error(f"Minimal renumbering failed: {str(e)}", exc_info=True)
+        logging.error(f"Renumbering failed: {str(e)}", exc_info=True)
 
     # Apply player changes
     try:
