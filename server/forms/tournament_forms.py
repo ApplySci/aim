@@ -219,9 +219,9 @@ class TournamentForm(FlaskForm):
 
     # Fields specific to tournament creation
     table_count = IntegerField(
-        "Number of tables (players divided by 4) [4-43]",
+        "Number of tables (players divided by 4) [3-43]",
         default=10,
-        validators=[DataRequired(), NumberRange(min=4, max=43)],
+        validators=[DataRequired(), NumberRange(min=3, max=43)],
     )
     hanchan_count = IntegerField(
         "Number of hanchan [2-15]",
