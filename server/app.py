@@ -26,6 +26,7 @@ from create.tournament_setup import blueprint as bp_create
 from oauth_setup import config_oauth, config_login_manager, config_db, config_jinja
 from run.admin import blueprint as bp_admin
 from root import blueprint as bp_root
+from ip import blueprint as bp_ip
 from run.run import blueprint as bp_run
 from run.cloud_edit import blueprint as bp_edit
 from run.export import blueprint as bp_export
@@ -39,6 +40,7 @@ def create_app():
     for bp in (
         bp_accounts,
         bp_create,
+        bp_ip,
         bp_root,
         bp_run,
         bp_admin,
