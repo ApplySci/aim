@@ -153,7 +153,6 @@ class GSP:
                             "ours": ours
                         })
                 
-                logging.info(f"Successfully listed {len(out)} sheets for {user_email}")
                 return out
                 
             except (GspreadAPIError, HttpError, RefreshError) as e:
