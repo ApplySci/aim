@@ -87,6 +87,9 @@ class GSP:
         Return the list of sheets that the user has access to, with titles,
         and a boolean flag to indicate whether WE (server admin) are the owner.
 
+        Uses the Drive API directly to minimize quota usage by fetching file metadata
+        and permissions in batched calls rather than opening each sheet individually.
+
         Args:
             user_email (str): gmail address of the user whose sheets we must list
             max_retries (int): maximum number of retry attempts
@@ -98,47 +101,81 @@ class GSP:
         """
         for attempt in range(max_retries):
             try:
-                # get the list of all the sheets that the user has access to
-                sheet_dict: list = self.client.list_spreadsheet_files()
-                # sort them with the most recently created, first
-                sheet_dict.sort(key=lambda x: x["createdTime"], reverse=True)
-
+                # Use Drive API to get spreadsheets with permissions in one efficient call
+                drive_service = build("drive", "v3", credentials=self.creds)
+                
+                # Query for all Google Sheets files, requesting permissions in the response
+                query = "mimeType='application/vnd.google-apps.spreadsheet'"
+                fields = "files(id,name,createdTime,permissions(emailAddress,role))"
+                
+                results = drive_service.files().list(
+                    q=query,
+                    spaces='drive',
+                    fields=fields,
+                    orderBy='createdTime desc',
+                    pageSize=100  # Adjust as needed, max is 1000
+                ).execute()
+                
+                files = results.get('files', [])
+                
+                # Process results - now we have all data in one API call!
                 out = []
-                for one in sheet_dict:
+                for file in files:
+                    file_id = file.get('id')
+                    file_name = file.get('name', 'Untitled')
+                    created_time = file.get('createdTime', '')
+                    permissions = file.get('permissions', [])
+                    
                     ours = False
-                    this_user_can_see_this_sheet: bool = False
-                    try:
-                        sheet = self.client.open_by_key(one["id"])
-                        details: dict = {
-                            "id": one["id"],
-                            "title": sheet.title,
-                            "created": one["createdTime"],
-                        }
-                        try:
-                            perms = sheet.list_permissions()
-                            for perm in perms:
-                                if perm["emailAddress"] == user_email:
-                                    this_user_can_see_this_sheet = True
-                                if perm["role"] == "owner":
-                                    ours = perm["emailAddress"] in OUR_EMAILS
-                        except (GspreadAPIError, HttpError) as e:
-                            logging.error(
-                                f"Error listing permissions for sheet {one['id']}: {str(e)}"
-                            )
-                            ours = False
-                        if this_user_can_see_this_sheet:
-                            details["ours"] = ours
-                            out.append(details)
-                    except (GspreadAPIError, HttpError) as e:
-                        logging.error(f"Error accessing sheet {one['id']}: {str(e)}")
-                        continue
+                    this_user_can_see_this_sheet = False
+                    
+                    # Check permissions
+                    for perm in permissions:
+                        # Skip permissions without emailAddress (e.g., "anyone with link")
+                        if "emailAddress" not in perm:
+                            continue
+                        
+                        email = perm.get("emailAddress", "")
+                        role = perm.get("role", "")
+                        
+                        if email.lower() == user_email.lower():
+                            this_user_can_see_this_sheet = True
+                        
+                        if role == "owner" and email in OUR_EMAILS:
+                            ours = True
+                    
+                    # Only include sheets the user can see
+                    if this_user_can_see_this_sheet:
+                        out.append({
+                            "id": file_id,
+                            "title": file_name,
+                            "created": created_time,
+                            "ours": ours
+                        })
+                
+                logging.info(f"Successfully listed {len(out)} sheets for {user_email}")
                 return out
+                
             except (GspreadAPIError, HttpError, RefreshError) as e:
+                error_msg = str(e)
+                
+                # Check if it's a quota error
+                if "429" in error_msg or "Quota exceeded" in error_msg:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    logging.warning(
+                        f"Quota exceeded (attempt {attempt + 1}/{max_retries}). "
+                        f"Waiting {wait_time}s before retry..."
+                    )
+                    if attempt < max_retries - 1:
+                        time.sleep(wait_time)
+                        continue
+                
+                # For other errors, use standard retry logic
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
                     logging.error(
-                        f"Max retries reached. Unable to list sheets: {str(e)}"
+                        f"Max retries reached. Unable to list sheets: {error_msg}"
                     )
                     return []
 
