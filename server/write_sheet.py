@@ -669,11 +669,16 @@ class GSP:
         batch_data = self.batch_get_tournament_data(live)
         players = self.get_players_from_batch(batch_data)
 
+        # Collect all updates and apply them in a single batch call
+        updates = []
         for row_idx, player in enumerate(players, start=4):
             if player[0] and int(player[0]) in reassignments:
-                players_sheet.update_cell(
-                    row_idx, 1, str(reassignments[int(player[0])])
-                )
+                new_id = str(reassignments[int(player[0])])
+                updates.append({"range": f"A{row_idx}", "values": [[new_id]]})
+        
+        # Apply all updates in one API call
+        if updates:
+            players_sheet.batch_update(updates)
 
     def apply_table_count_change(
         self, live: gspread.Spreadsheet, new_table_count: int

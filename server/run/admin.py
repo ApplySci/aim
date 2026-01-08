@@ -156,18 +156,33 @@ def superadmin():
     try:
         # Get active tournaments from Firestore
         active_tournaments = []
-        for tournament in (
-            db.session.query(Tournament).filter(Tournament.past_data == None).all()
-        ):
-            if tournament.firebase_doc:
-                doc_ref = firestore_client.collection("tournaments").document(
-                    tournament.firebase_doc
-                )
-                doc = doc_ref.get()
+        tournaments_with_firebase = [
+            t for t in db.session.query(Tournament).filter(Tournament.past_data == None).all()
+            if t.firebase_doc
+        ]
+        
+        # Batch get all Firestore documents in one API call
+        if tournaments_with_firebase:
+            doc_refs = [
+                firestore_client.collection("tournaments").document(t.firebase_doc)
+                for t in tournaments_with_firebase
+            ]
+            # Firestore supports batch get of up to 500 documents at once
+            docs = firestore_client.get_all(doc_refs)
+            
+            # Create a mapping of firebase_doc to tournament
+            firebase_doc_to_tournament = {
+                t.firebase_doc: t for t in tournaments_with_firebase
+            }
+            
+            # Process the batch results
+            for doc in docs:
                 if doc.exists:
                     status = doc.to_dict().get("status")
                     if status in ("upcoming", "test"):
-                        active_tournaments.append(tournament)
+                        tournament = firebase_doc_to_tournament.get(doc.id)
+                        if tournament:
+                            active_tournaments.append(tournament)
 
         # Get archived tournaments
         archived_tournaments = (
