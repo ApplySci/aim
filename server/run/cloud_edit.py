@@ -95,19 +95,25 @@ def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
     dates = get_dates_from_sheet()
 
-    # Parse the dates and format them for the datetime-local input
-    start_date = datetime.strptime(dates[1], "%A %d %B %Y, %H:%M")
-    end_date = datetime.strptime(dates[2], "%A %d %B %Y, %H:%M")
-    end_date_plus_3 = end_date + timedelta(hours=3)
+    # Parse the dates from the sheet (these are hanchan start times in local timezone)
+    first_hanchan = datetime.strptime(dates[1], "%A %d %B %Y, %H:%M")
+    last_hanchan = datetime.strptime(dates[2], "%A %d %B %Y, %H:%M")
+    
+    # Calculate suggested tournament start/end times using same offsets as creation
+    # Start: 45 minutes before first hanchan
+    # End: 150 minutes after last hanchan starts
+    suggested_start = first_hanchan - timedelta(minutes=45)
+    suggested_end = last_hanchan + timedelta(minutes=150)
 
-    formatted_start_date = start_date.strftime("%Y-%m-%dT%H:%M")
-    formatted_end_date = end_date_plus_3.strftime("%Y-%m-%dT%H:%M")
+    formatted_start_date = suggested_start.strftime("%Y-%m-%dT%H:%M")
+    formatted_end_date = suggested_end.strftime("%Y-%m-%dT%H:%M")
 
-    # Format end_date_plus_3 in the same friendly format as the original dates
-    friendly_end_date = end_date_plus_3.strftime("%A %d %B %Y, %H:%M")
+    # Format in friendly format for button text
+    friendly_start_date = suggested_start.strftime("%A %d %B %Y, %H:%M")
+    friendly_end_date = suggested_end.strftime("%A %d %B %Y, %H:%M")
 
     form = EditTournamentForm(
-        is_edit=True, custom_start_date=start_date, custom_end_date=end_date
+        is_edit=True, custom_start_date=first_hanchan, custom_end_date=last_hanchan
     )
 
     if request.method == "GET":
@@ -213,7 +219,7 @@ def edit_tournament():
         timezone=dates[0],
         startdate=formatted_start_date,
         enddate=formatted_end_date,
-        friendly_startdate=dates[1],
+        friendly_startdate=friendly_start_date,
         friendly_enddate=friendly_end_date,
     )
 
