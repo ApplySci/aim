@@ -10,7 +10,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
-import 'package:alarm/model/volume_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -46,21 +45,21 @@ enum TournamentRules {
       'WRO' => TournamentRules.wrRules,
       'EMA' => TournamentRules.ema,
       // Then try to match based on enum names
-      String name when TournamentRules.values.any(
-        (rule) => rule.name.toLowerCase() == name.toLowerCase()
-      ) => TournamentRules.values.firstWhere(
-        (rule) => rule.name.toLowerCase() == name.toLowerCase()
-      ),
+      String name
+          when TournamentRules.values
+              .any((rule) => rule.name.toLowerCase() == name.toLowerCase()) =>
+        TournamentRules.values.firstWhere(
+            (rule) => rule.name.toLowerCase() == name.toLowerCase()),
       _ => TournamentRules.other,
     };
   }
 
   String get displayName => switch (this) {
-    TournamentRules.wrLeague => 'WRL',
-    TournamentRules.wrRules => 'WR other',
-    TournamentRules.ema => 'EMA',
-    TournamentRules.other => 'Other',
-  };
+        TournamentRules.wrLeague => 'WRL',
+        TournamentRules.wrRules => 'WR other',
+        TournamentRules.ema => 'EMA',
+        TournamentRules.other => 'Other',
+      };
 }
 
 // Notification-related constants
@@ -108,17 +107,17 @@ class Log {
   static Future<void> init() async {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();
-    
+
     // On startup, move current run logs to previous run
     final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
     if (currentRunLogs.isNotEmpty) {
       await _prefs.setStringList(_previousRunKey, currentRunLogs);
       await _prefs.setStringList(_currentRunKey, []);
     }
-    
+
     // Check if we need to clean up old logs (once per day)
     await _cleanupOldLogsIfNeeded();
-    
+
     _initialized = true;
   }
 
@@ -126,7 +125,7 @@ class Log {
   static Future<void> _cleanupOldLogsIfNeeded() async {
     final now = DateTime.now();
     final lastCleanupString = _prefs.getString(_lastCleanupKey);
-    
+
     // If we've cleaned up in the last 24 hours, don't do it again
     if (lastCleanupString != null) {
       final lastCleanup = DateTime.parse(lastCleanupString);
@@ -134,37 +133,38 @@ class Log {
         return;
       }
     }
-    
+
     // Update the last cleanup time
     await _prefs.setString(_lastCleanupKey, now.toIso8601String());
-    
+
     // Clean up current run logs
     final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
     if (currentRunLogs.isNotEmpty) {
       final cutoffTime = now.subtract(const Duration(hours: 24));
       final filteredLogs = _filterLogsNewerThan(currentRunLogs, cutoffTime);
-      
+
       // Only update if we actually removed something
       if (filteredLogs.length < currentRunLogs.length) {
         await _prefs.setStringList(_currentRunKey, filteredLogs);
       }
     }
-    
+
     // Clean up previous run logs
     final previousRunLogs = _prefs.getStringList(_previousRunKey) ?? [];
     if (previousRunLogs.isNotEmpty) {
       final cutoffTime = now.subtract(const Duration(hours: 24));
       final filteredLogs = _filterLogsNewerThan(previousRunLogs, cutoffTime);
-      
+
       // Only update if we actually removed something
       if (filteredLogs.length < previousRunLogs.length) {
         await _prefs.setStringList(_previousRunKey, filteredLogs);
       }
     }
   }
-  
+
   /// Filters logs to only keep those newer than the cutoff time
-  static List<String> _filterLogsNewerThan(List<String> logs, DateTime cutoffTime) {
+  static List<String> _filterLogsNewerThan(
+      List<String> logs, DateTime cutoffTime) {
     return logs.where((logString) {
       try {
         final logEntry = jsonDecode(logString) as List<dynamic>;
@@ -205,7 +205,7 @@ class Log {
 
     // Output to debug console in debug mode
     debugPrint('[${typeString.toUpperCase()}] $text');
-    
+
     // Store in SharedPreferences
     if (_initialized) {
       final currentLogs = _prefs.getStringList(_currentRunKey) ?? [];
@@ -220,30 +220,33 @@ class Log {
 
   static List<List<String>> getAllLogs() {
     if (!_initialized) return [];
-    
+
     final currentRunLogs = _prefs.getStringList(_currentRunKey) ?? [];
     final previousRunLogs = _prefs.getStringList(_previousRunKey) ?? [];
-    
+
     final List<List<String>> allLogs = [];
-    
+
     if (previousRunLogs.isNotEmpty) {
       allLogs.add(['--- Previous Run ---']);
-      allLogs.addAll(previousRunLogs.map((log) => 
-        _formatLogEntry(jsonDecode(log) as List<dynamic>)).toList());
+      allLogs.addAll(previousRunLogs
+          .map((log) => _formatLogEntry(jsonDecode(log) as List<dynamic>))
+          .toList());
     }
-    
+
     if (currentRunLogs.isNotEmpty) {
       allLogs.add(['--- Current Run ---']);
-      allLogs.addAll(currentRunLogs.map((log) => 
-        _formatLogEntry(jsonDecode(log) as List<dynamic>)).toList());
+      allLogs.addAll(currentRunLogs
+          .map((log) => _formatLogEntry(jsonDecode(log) as List<dynamic>))
+          .toList());
     }
-    
+
     return allLogs;
   }
-  
+
   static List<String> _formatLogEntry(List<dynamic> logEntry) {
     final timestamp = DateTime.parse(logEntry[0] as String).toLocal();
-    final timeString = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
+    final timeString =
+        '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
     final type = logEntry[1] as String;
     final message = logEntry[2] as String;
     return ['$timeString [${type.toUpperCase()}] $message'];
@@ -260,16 +263,16 @@ class Log {
     await _prefs.setStringList(_previousRunKey, []);
     logs.clear();
   }
-  
+
   /// Public method to manually trigger cleaning up of old logs
   static Future<void> cleanupOldLogs() async {
     if (!_initialized) return;
-    
+
     // Force cleanup by resetting the last cleanup time
     await _prefs.remove(_lastCleanupKey);
     await _cleanupOldLogsIfNeeded();
   }
-  
+
   /// Called when app is resumed from background
   /// Checks if logs need to be cleaned up
   static Future<void> onAppResume() async {
@@ -354,10 +357,10 @@ Future<void> setAlarm(
           stopButton: "Dismiss",
           icon: "ic_launcher",
         ));
-    
+
     Log.debug('Setting alarm with Alarm.set()');
     final success = await Alarm.set(alarmSettings: alarmSettings);
-    
+
     if (success) {
       Log.debug('Alarm $id set successfully');
     } else {

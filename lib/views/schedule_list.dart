@@ -41,7 +41,8 @@ final filterByPlayerProvider = Provider((ref) {
 
   // Check player list as fallback
   final playerList = ref.watch(playerListProvider);
-  final regularPlayer = playerList.value?.firstWhereOrNull((e) => e.id == playerId);
+  final regularPlayer =
+      playerList.value?.firstWhereOrNull((e) => e.id == playerId);
   if (regularPlayer != null) return regularPlayer;
 
   // If not found and we have a seat number, look up by seat
@@ -71,7 +72,7 @@ final roundListProvider = StreamProvider((ref) async* {
       .map(
         (round) => (
           id: round.id,
-          name: roundMap![round.id]!.name,
+          name: roundMap[round.id]!.name,
           start: roundMap[round.id]!.start,
           tables: [
             for (final table in round.tables)
@@ -120,18 +121,17 @@ final orderedRoundList =
   roundListProvider,
 ]);
 
-bool isRoundOver(round, tz.TZDateTime now, int endRound) {
-  return now.isAfter(round.start.add(const Duration(minutes: 45)))
-        || (round.id is int ? round.id : int.parse(round.id)) <= endRound;
+bool isRoundOver(Round round, tz.TZDateTime now, int endRound) {
+  return now.isAfter(round.start.add(const Duration(minutes: 45))) ||
+      int.parse(round.id) <= endRound;
 }
 
 final filteredRoundList = StreamProvider.family<Iterable<Round>, When>(
   (ref, when) async* {
-
     final rankingList = await ref.watch(allRankingsProvider.future);
     final int endRound = (rankingList.containsKey('roundDone'))
-       ? int.parse(rankingList['roundDone'])
-       : 0;
+        ? int.parse(rankingList['roundDone'])
+        : 0;
 
     final roundList = await ref.watch(orderedRoundList(when).future);
     tz.TZDateTime? now;
@@ -194,13 +194,13 @@ class ScheduleList extends ConsumerWidget {
                         subtitle: useEventTimezone
                             ? Text(
                                 '${DateFormat('EEEE d MMMM').format(round.start)}\n'
-                                '${formatTimeWithDifference(round.start, localTimeZone)}'
-                              )
+                                '${formatTimeWithDifference(round.start, localTimeZone)}')
                             : (() {
-                                final localDateTime = tz.TZDateTime.from(round.start, localTimeZone);
+                                final localDateTime = tz.TZDateTime.from(
+                                    round.start, localTimeZone);
                                 return Text(
-                                    '${DateFormat('EEEE d MMMM').format(localDateTime)}\n'
-                                    '${DateFormat('HH:mm').format(localDateTime)} (phone time)',
+                                  '${DateFormat('EEEE d MMMM').format(localDateTime)}\n'
+                                  '${DateFormat('HH:mm').format(localDateTime)} (phone time)',
                                 );
                               })(),
                         visualDensity: VisualDensity.compact,
@@ -221,7 +221,8 @@ class ScheduleList extends ConsumerWidget {
                                 title: Text(table.name),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
                                 child: AssignedTable(players: table.players),
                               ),
                             ]),
@@ -247,13 +248,10 @@ class AssignedTable extends ConsumerWidget {
   final Map<Wind, PlayerData> players;
 
   void onTap(BuildContext context, PlayerData player) =>
-      Navigator.of(context).pushNamed (
-        ROUTES.player,
-        arguments: {
-          'playerId': player.id,
-          'seat': player.seat,
-        }
-      );
+      Navigator.of(context).pushNamed(ROUTES.player, arguments: {
+        'playerId': player.id,
+        'seat': player.seat,
+      });
 
   @override
   Widget build(context, ref) {
@@ -269,12 +267,14 @@ class AssignedTable extends ConsumerWidget {
         width: 2,
         color: const Color(0x88888888),
       ),
-      columnWidths: useWinds ? {
-        0: IntrinsicColumnWidth(),
-        1: FlexColumnWidth(),
-      } : {
-        0: FlexColumnWidth(),
-      },
+      columnWidths: useWinds
+          ? {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            }
+          : {
+              0: FlexColumnWidth(),
+            },
       children: [
         for (final (:wind, :player) in playerWinds)
           TableRow(

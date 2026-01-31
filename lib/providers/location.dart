@@ -5,9 +5,10 @@ import 'package:timezone/timezone.dart';
 import 'firestore.dart';
 import '/providers/shared_preferences.dart';
 
-final timezoneProvider = FutureProvider(
-  (ref) => FlutterTimezone.getLocalTimezone(),
-);
+final timezoneProvider = FutureProvider<String>((ref) async {
+  final info = await FlutterTimezone.getLocalTimezone();
+  return info.identifier;
+});
 
 final localLocationProvider = FutureProvider((ref) async {
   return getLocation(await ref.watch(timezoneProvider.future));

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/utils.dart';
 import '/providers/firestore.dart';
 import '/views/schedule_list.dart';
-import '/views/tab_scaffold.dart';
 
 class Seating extends ConsumerWidget {
   const Seating({super.key});

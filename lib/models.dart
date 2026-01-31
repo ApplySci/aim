@@ -449,7 +449,7 @@ class GameData extends Equatable {
   final RoundId roundId;
   final List<Hanchan> tables;
 
-  factory GameData.fromMap(key, Map value) {
+  factory GameData.fromMap(String key, Map value) {
     final roundId = key as RoundId;
     final tables = value.entries.where((e) => e.key != 'missing').map((e) {
       final tableId = e.key as TableId;

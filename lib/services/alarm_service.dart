@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:alarm/alarm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -30,13 +29,13 @@ class AlarmService {
   }) async {
     try {
       Log.debug('Starting alarm update process');
-      
+
       // Check if alarms are enabled
       final prefs = await SharedPreferences.getInstance();
       final alarmsEnabled = prefs.getBool('alarm') ?? true;
-      
+
       Log.debug('Alarm preferences check: alarmsEnabled = $alarmsEnabled');
-      
+
       if (!alarmsEnabled) {
         Log.debug('Alarms disabled, clearing all alarms');
         await Alarm.stopAll();
@@ -73,11 +72,11 @@ class AlarmService {
       Log.debug('Proceeding with alarm system update');
       // Update system alarms
       await _updateSystemAlarms(alarmInfos, ref: ref);
-      
+
       Log.debug('Storing current alarm state');
       // Store current alarm state for comparison
       await _storeCurrentAlarmState(alarmInfos, prefs);
-      
+
       Log.debug('Alarm update completed successfully');
     } catch (e, stack) {
       Log.error('Error updating alarms: $e');
@@ -93,11 +92,11 @@ class AlarmService {
   }) async {
     try {
       Log.debug('_calculateAlarmSchedule START');
-      
+
       // Get tournament ID
       final tId = tournamentId ?? prefs.getString('tournamentId');
       Log.debug('Using tournament ID: $tId');
-      
+
       if (tId == null) {
         Log.debug('No tournament ID available');
         return [];
@@ -112,7 +111,7 @@ class AlarmService {
         final playerMap = jsonDecode(selectedPlayerData) as Map<String, dynamic>;
         final playerId = playerMap[tId] as String?;
         Log.debug('Player ID for tournament $tId: $playerId');
-        
+
         if (playerId != null) {
           Log.debug('Fetching player data for: $playerId');
           selectedPlayer = await _getPlayerData(tId, playerId, ref: ref);
@@ -135,11 +134,11 @@ class AlarmService {
       Log.debug('Fetching schedule data...');
       final scheduleData = await _getScheduleData(tId, ref: ref);
       Log.debug('Schedule data result: ${scheduleData?.rounds.length ?? 0} rounds');
-      
+
       Log.debug('Fetching seating data...');
       final seatingData = await _getSeatingData(tId, ref: ref);
       Log.debug('Seating data result: ${seatingData?.length ?? 0} rounds');
-      
+
       if (scheduleData == null || seatingData == null) {
         Log.debug('No schedule or seating data available');
         return [];
@@ -149,7 +148,7 @@ class AlarmService {
       Log.debug('Getting timezone...');
       final location = await _getTimezone(scheduleData, ref: ref);
       Log.debug('Using timezone: ${location.name}');
-      
+
       // Get vibration preference
       final vibratePref = prefs.getBool('vibrate') ?? true;
       Log.debug('Vibration preference: $vibratePref');
@@ -358,7 +357,7 @@ class AlarmService {
     // Use tournament timezone or local timezone
     try {
       final localTimezone = await FlutterTimezone.getLocalTimezone();
-      return getLocation(localTimezone);
+      return getLocation(localTimezone.identifier);
     } catch (e) {
       Log.debug('Error getting timezone: $e');
       return UTC;
@@ -370,17 +369,17 @@ class AlarmService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final currentStateJson = prefs.getString('current_alarm_state');
-      
+
       if (currentStateJson == null) return false;
-      
+
       final currentState = jsonDecode(currentStateJson) as List<dynamic>;
-      
+
       if (currentState.length != newAlarms.length) return false;
-      
+
       for (int i = 0; i < newAlarms.length; i++) {
         final newAlarm = newAlarms[i];
         final currentAlarm = currentState[i] as Map<String, dynamic>;
-        
+
         if (newAlarm.id != currentAlarm['id'] ||
             newAlarm.name != currentAlarm['name'] ||
             newAlarm.alarm.millisecondsSinceEpoch != currentAlarm['alarm_millis'] ||
@@ -391,7 +390,7 @@ class AlarmService {
           return false;
         }
       }
-      
+
       return true;
     } catch (e) {
       Log.debug('Error comparing alarms: $e');
@@ -406,12 +405,12 @@ class AlarmService {
       await setAlarm(when, title, body, id, vibrate);
     } catch (e) {
       Log.debug('Normal alarm setting failed, attempting background approach: $e');
-      
+
       // If that fails, try background alarm modification approach
       try {
         // Check if alarm already exists
         final existingAlarm = await Alarm.getAlarm(id);
-        
+
         if (existingAlarm != null) {
           // Modify existing alarm
           Log.debug('Modifying existing alarm $id');
@@ -436,11 +435,11 @@ class AlarmService {
     try {
       final now = DateTime.now().toUtc();
       Log.debug('Current time (UTC): ${now.toIso8601String()}');
-      
+
       // Determine if we're in background context
       final isBackground = ref == null;
       Log.debug('Running in background context: $isBackground');
-      
+
       if (!isBackground) {
         // Only try stopAll() in foreground context
         Log.debug('Attempting to stop all existing alarms (foreground)');
@@ -453,26 +452,26 @@ class AlarmService {
       } else {
         Log.debug('🚫 SKIPPING stopAll() in background context - will overwrite existing alarms');
       }
-      
+
       // Set new alarms
       Log.debug('📋 Setting ${alarmInfos.length} new alarms');
       int successCount = 0;
       int failureCount = 0;
-      
+
       for (final (index, alarm) in alarmInfos.indexed) {
         final alarmTimeUtc = alarm.alarm.toUtc();
         Log.debug('🔍 Processing alarm $index: ${alarm.name}');
         Log.debug('  ⏰ Alarm time (UTC): ${alarmTimeUtc.toIso8601String()}');
         Log.debug('  📅 Is in future: ${now.isBefore(alarmTimeUtc)}');
-        
+
         if (now.isBefore(alarmTimeUtc)) {
           final title = '${alarm.name} starts in 5 minutes';
           final body = alarm.player != null
               ? '${alarm.player!.name} is at table ${alarm.player!.table}'
               : '';
-          
+
           Log.debug('⚡ Setting alarm ${index + 1}: $title');
-          
+
           try {
             await setAlarm(
               alarmTimeUtc,
@@ -491,15 +490,15 @@ class AlarmService {
           Log.debug('⏭️  Skipping past alarm $index: ${alarm.name}');
         }
       }
-      
+
       Log.debug('🏁 System alarm update completed: $successCount successful, $failureCount failed');
-      
+
       if (successCount > 0) {
         Log.debug('🎉 Background alarm update was successful!');
       } else if (alarmInfos.where((a) => now.isBefore(a.alarm.toUtc())).isNotEmpty) {
         Log.error('💔 No alarms were set despite having future alarms available');
       }
-      
+
     } catch (e) {
       Log.error('💥 Critical error updating system alarms: $e');
     }
@@ -517,7 +516,7 @@ class AlarmService {
         'player_name': alarm.player?.name,
         'player_table': alarm.player?.table,
       }).toList();
-      
+
       await prefs.setString('current_alarm_state', jsonEncode(alarmState));
     } catch (e) {
       Log.debug('Error storing alarm state: $e');
@@ -529,56 +528,56 @@ class AlarmService {
     try {
       Log.debug('🚨 AlarmService.handleScheduleUpdateMessage START');
       Log.debug('Timestamp: ${DateTime.now().toIso8601String()}');
-      
+
       final data = message.data;
       final tournamentId = data['tournament_id'];
       final notificationType = data['notification_type'];
-      
+
       Log.debug('Message data validation:');
       Log.debug('  - tournament_id: $tournamentId');
       Log.debug('  - notification_type: $notificationType');
-      
+
       if (tournamentId == null) {
         Log.error('❌ No tournament_id in message data');
         return;
       }
-      
+
       if (notificationType != 'schedule' && notificationType != 'seating') {
         Log.debug('❌ Not a schedule/seating update message (type: $notificationType)');
         return;
       }
-      
+
       Log.debug('✅ Valid schedule/seating update message confirmed');
-      
+
       // Check current app state
       final prefs = await SharedPreferences.getInstance();
       final currentTournamentId = prefs.getString('tournamentId');
       final alarmsEnabled = prefs.getBool('alarm') ?? true;
-      
+
       Log.debug('Current app state check:');
       Log.debug('  - Current tournament: "$currentTournamentId"');
       Log.debug('  - Message tournament: "$tournamentId"');
       Log.debug('  - Alarms enabled: $alarmsEnabled');
-      
+
       if (!alarmsEnabled) {
         Log.debug('❌ Alarms disabled - clearing all alarms and exiting');
         await Alarm.stopAll();
         return;
       }
-      
+
       if (currentTournamentId != tournamentId) {
         Log.debug('❌ Tournament mismatch - message for different tournament');
         return;
       }
-      
+
       Log.debug('✅ Proceeding with alarm update for tournament: $tournamentId');
-      
+
       // Update alarms with the new schedule
       await updateAlarms(
         tournamentId: tournamentId,
         forceUpdate: true,
       );
-      
+
       Log.debug('✅ AlarmService.handleScheduleUpdateMessage COMPLETED');
     } catch (e, stack) {
       Log.error('💥 CRITICAL ERROR in handleScheduleUpdateMessage: $e');
@@ -588,4 +587,4 @@ class AlarmService {
 }
 
 // Provider for the alarm service
-final alarmServiceProvider = Provider((ref) => AlarmService._()); 
+final alarmServiceProvider = Provider((ref) => AlarmService._());

@@ -19,6 +19,9 @@ class TournamentInfo extends ConsumerWidget {
   @override
   Widget build(context, ref) {
     final tournament = ref.watch(tournamentProvider);
+    final localTimeZone = ref.watch(localLocationProvider);
+    final tournamentLocation = ref.watch(tournamentLocationProvider);
+    final useEventTimezone = ref.watch(timezonePrefProvider);
 
     return tournament.when(
       skipLoadingOnReload: true,
@@ -106,7 +109,44 @@ class TournamentInfo extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.calendar_month),
             title: const Text('Event Date'),
-            subtitle: Text(tournament.when),
+            subtitle: localTimeZone.when(
+              loading: () => Text(tournament.when),
+              error: (_, __) => Text(tournament.when),
+              data: (localTz) => tournamentLocation.when(
+                loading: () => Text(tournament.when),
+                error: (_, __) => Text(tournament.when),
+                data: (eventTz) {
+                  final startDateTime = tournament.startDate.toDate();
+                  final endDateTime = tournament.endDate.toDate();
+                  
+                  if (useEventTimezone) {
+                    // Show times in event timezone with difference indicator
+                    final startTz = tz.TZDateTime.from(startDateTime, eventTz);
+                    final endTz = tz.TZDateTime.from(endDateTime, eventTz);
+                    
+                    String formatDate(tz.TZDateTime dt) {
+                      return '${DateFormat('HH:mm').format(dt)} ${DateFormat('d MMM y').format(dt)}';
+                    }
+                    
+                    final startFormatted = formatDate(startTz);
+                    final endFormatted = formatDate(endTz);
+                    final timeDiff = formatTimeWithDifference(startTz, localTz).split(' ').skip(1).join(' ');
+                    
+                    return Text('$startFormatted - $endFormatted ${timeDiff.isNotEmpty ? timeDiff : ""}');
+                  } else {
+                    // Show times in local timezone
+                    final startLocal = tz.TZDateTime.from(startDateTime, localTz);
+                    final endLocal = tz.TZDateTime.from(endDateTime, localTz);
+                    
+                    String formatDate(tz.TZDateTime dt) {
+                      return '${DateFormat('HH:mm').format(dt)} ${DateFormat('d MMM y').format(dt)}';
+                    }
+                    
+                    return Text('${formatDate(startLocal)} - ${formatDate(endLocal)}');
+                  }
+                },
+              ),
+            ),
             visualDensity: VisualDensity.compact,
           ),
           const ListTile(
