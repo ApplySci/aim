@@ -9,6 +9,7 @@ content. Includes sanitization of user-provided HTML content.
 from datetime import datetime, timedelta
 import os
 import json
+from zoneinfo import ZoneInfo
 
 import bleach
 from flask import (
@@ -112,6 +113,19 @@ def edit_tournament():
     if request.method == "GET":
         tournament_data = get_tournament_data(firebase_id)
         if tournament_data:
+            # Convert UTC dates from Firestore to local timezone for display
+            timezone_string = dates[0]
+            tz = ZoneInfo(timezone_string)
+            if tournament_data.get("start_date"):
+                start_dt = tournament_data["start_date"]
+                # If it's a timezone-aware datetime, convert to local time
+                if hasattr(start_dt, 'tzinfo') and start_dt.tzinfo is not None:
+                    tournament_data["start_date"] = start_dt.astimezone(tz).replace(tzinfo=None)
+            if tournament_data.get("end_date"):
+                end_dt = tournament_data["end_date"]
+                if hasattr(end_dt, 'tzinfo') and end_dt.tzinfo is not None:
+                    tournament_data["end_date"] = end_dt.astimezone(tz).replace(tzinfo=None)
+            
             form.process(data=tournament_data)
 
         # Populate form with local database data
@@ -121,12 +135,23 @@ def edit_tournament():
         form.status.data = current_user.live_tournament.status
     else:
         if form.validate_on_submit():
+            # Convert naive local datetimes to timezone-aware UTC datetimes
+            # (same as how hanchan times are handled in write_sheet.py)
+            timezone_string = dates[0]
+            tz = ZoneInfo(timezone_string)
+            start_date_utc = None
+            end_date_utc = None
+            if form.start_date.data:
+                start_date_utc = form.start_date.data.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
+            if form.end_date.data:
+                end_date_utc = form.end_date.data.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
+
             updated_data = {
                 "name": form.title.data,
                 "address": form.address.data,
                 "country": form.country.data,
-                "start_date": form.start_date.data,
-                "end_date": form.end_date.data,
+                "start_date": start_date_utc,
+                "end_date": end_date_utc,
                 "rules": form.rules.data,
                 "status": form.status.data,
                 "url": form.url.data,

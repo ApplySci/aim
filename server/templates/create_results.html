@@ -136,6 +136,27 @@
             </div>
             </label>
         </fieldset>
+        <fieldset>
+            <legend>Tournament Start and End Times</legend>
+            <p><small>These times are used for display purposes. They are pre-populated based on the hanchan times 
+            (start = 45 minutes before first hanchan, end = 150 minutes after last hanchan starts), 
+            but you can adjust them as needed.</small></p>
+            <div id="tournament-time-notification" style="visibility: hidden; opacity: 0; padding: 8px; margin: 8px 0; min-height: 1.5em; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724; transition: opacity 0.3s ease;"></div>
+            <p>
+                {{ form.start_date.label }}<br>
+                {{ form.start_date(type="datetime-local") }}
+                {% for error in form.start_date.errors %}
+                    <span class=error>[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.end_date.label }}<br>
+                {{ form.end_date(type="datetime-local") }}
+                {% for error in form.end_date.errors %}
+                    <span class=error>[{{ error }}]</span>
+                {% endfor %}
+            </p>
+        </fieldset>
         <p>{{ form.submit() }}</p>
     </fieldset>
     </form>
@@ -150,19 +171,127 @@ var hanchanField = document.getElementById('hanchan_name');
 var otherField = document.getElementById('other_name');
 var hanchanCountField = document.getElementById('hanchan_count');
 
+// Track the previous hanchan times and offsets
+var previousFirstHanchanTime = null;
+var previousLastHanchanTime = null;
+var startOffset = -45; // Default: 45 minutes before first hanchan
+var endOffset = 150;   // Default: 150 minutes after last hanchan
+var notificationTimeout = null;
+
+function formatDateTimeLocal(date) {
+    var year = date.getFullYear();
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    var day = ('0' + date.getDate()).slice(-2);
+    var hours = ('0' + date.getHours()).slice(-2);
+    var minutes = ('0' + date.getMinutes()).slice(-2);
+    return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+}
+
+function formatTimeForDisplay(date) {
+    var hours = ('0' + date.getHours()).slice(-2);
+    var minutes = ('0' + date.getMinutes()).slice(-2);
+    return hours + ':' + minutes;
+}
+
+function showNotification(message) {
+    var notification = document.getElementById('tournament-time-notification');
+    notification.textContent = message;
+    notification.style.visibility = 'visible';
+    notification.style.opacity = '1';
+    
+    // Clear any existing timeout
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+    }
+    
+    // Auto-hide after 5 seconds
+    notificationTimeout = setTimeout(function() {
+        notification.style.opacity = '0';
+        // Keep visibility hidden after fade completes
+        setTimeout(function() {
+            notification.style.visibility = 'hidden';
+        }, 300);
+    }, 5000);
+}
+
 function setDefaultDateTime(input, roundNumber) {
     if (input.value === '') {
         var previousInput = document.getElementById('round_dates-' + (roundNumber - 2));
         if (previousInput && previousInput.value !== '') {
             var previousDateTime = new Date(previousInput.value);
             previousDateTime.setMinutes(previousDateTime.getMinutes() + 105); // Add 1 hour 45 minutes
-            var year = previousDateTime.getFullYear();
-            var month = ('0' + (previousDateTime.getMonth() + 1)).slice(-2);
-            var date = ('0' + previousDateTime.getDate()).slice(-2);
-            var hours = ('0' + previousDateTime.getHours()).slice(-2);
-            var minutes = ('0' + previousDateTime.getMinutes()).slice(-2);
-            input.value = year + '-' + month + '-' + date + 'T' + hours + ':' + minutes;
+            input.value = formatDateTimeLocal(previousDateTime);
+            // Update tournament times since we just set a default value
+            updateTournamentTimes();
         }
+    }
+}
+
+function updateTournamentTimes() {
+    var hanchanCount = parseInt(hanchanCountField.value);
+    var firstRoundInput = document.getElementById('round_dates-0');
+    var lastRoundInput = document.getElementById('round_dates-' + (hanchanCount - 1));
+    var startDateInput = document.getElementById('start_date');
+    var endDateInput = document.getElementById('end_date');
+    var notifications = [];
+    
+    // Handle first hanchan / tournament start time
+    if (firstRoundInput && firstRoundInput.value && startDateInput) {
+        var firstHanchanTime = new Date(firstRoundInput.value);
+        
+        if (previousFirstHanchanTime === null) {
+            // First time setting - use default offset
+            var tournamentStart = new Date(firstHanchanTime);
+            tournamentStart.setMinutes(tournamentStart.getMinutes() + startOffset);
+            startDateInput.value = formatDateTimeLocal(tournamentStart);
+        } else if (firstHanchanTime.getTime() !== previousFirstHanchanTime.getTime()) {
+            // First hanchan time changed - calculate and apply the preserved offset
+            // First, update offset based on current tournament start (user may have adjusted it)
+            if (startDateInput.value) {
+                var currentTournamentStart = new Date(startDateInput.value);
+                startOffset = Math.round((currentTournamentStart.getTime() - previousFirstHanchanTime.getTime()) / 60000);
+            }
+            
+            // Apply offset to new first hanchan time
+            var newTournamentStart = new Date(firstHanchanTime);
+            newTournamentStart.setMinutes(newTournamentStart.getMinutes() + startOffset);
+            startDateInput.value = formatDateTimeLocal(newTournamentStart);
+            notifications.push('Tournament start time adjusted to ' + formatTimeForDisplay(newTournamentStart));
+        }
+        
+        previousFirstHanchanTime = new Date(firstHanchanTime);
+    }
+    
+    // Handle last hanchan / tournament end time
+    if (lastRoundInput && lastRoundInput.value && endDateInput) {
+        var lastHanchanTime = new Date(lastRoundInput.value);
+        
+        if (previousLastHanchanTime === null) {
+            // First time setting - use default offset
+            var tournamentEnd = new Date(lastHanchanTime);
+            tournamentEnd.setMinutes(tournamentEnd.getMinutes() + endOffset);
+            endDateInput.value = formatDateTimeLocal(tournamentEnd);
+        } else if (lastHanchanTime.getTime() !== previousLastHanchanTime.getTime()) {
+            // Last hanchan time changed - calculate and apply the preserved offset
+            // First, update offset based on current tournament end (user may have adjusted it)
+            if (endDateInput.value) {
+                var currentTournamentEnd = new Date(endDateInput.value);
+                endOffset = Math.round((currentTournamentEnd.getTime() - previousLastHanchanTime.getTime()) / 60000);
+            }
+            
+            // Apply offset to new last hanchan time
+            var newTournamentEnd = new Date(lastHanchanTime);
+            newTournamentEnd.setMinutes(newTournamentEnd.getMinutes() + endOffset);
+            endDateInput.value = formatDateTimeLocal(newTournamentEnd);
+            notifications.push('Tournament end time adjusted to ' + formatTimeForDisplay(newTournamentEnd));
+        }
+        
+        previousLastHanchanTime = new Date(lastHanchanTime);
+    }
+    
+    // Show notification if any adjustments were made
+    if (notifications.length > 0) {
+        showNotification(notifications.join('. ') + '.');
     }
 }
 
@@ -196,11 +325,16 @@ function set_datetime_fields() {
         datetimeInputs.innerHTML += inputHtml;
     }
 
-    // Set default values for empty fields
+    // Set default values for empty fields and add change listeners
     for (var i = 0; i < hanchan_count; i++) {
         var input = document.getElementById('round_dates-' + i);
         setDefaultDateTime(input, i + 1);
+        // Add change listener to update tournament times when hanchan times change
+        input.addEventListener('change', updateTournamentTimes);
     }
+    
+    // Update tournament start/end times based on current hanchan times
+    updateTournamentTimes();
 }
 
 function updateLabels() {

@@ -3,6 +3,7 @@
 creates the front-end pages for the user to set up a new google scoresheet.
 """
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from itertools import zip_longest  # Add this import at the top of the file
 import os
 import threading
@@ -97,13 +98,29 @@ def results_create():
         db.session.commit()
         current_user.live_tournament = tournament
 
-        # Calculate end_date by adding 3 hours to the last round date
-        end_date = form.round_dates[-1].data + timedelta(hours=3)
+        # Use form start_date/end_date if provided, otherwise calculate from round dates
+        if form.start_date.data:
+            start_date = form.start_date.data
+        else:
+            # Default: 45 minutes before the first hanchan
+            start_date = form.round_dates[0].data - timedelta(minutes=45)
+        
+        if form.end_date.data:
+            end_date = form.end_date.data
+        else:
+            # Default: 150 minutes (2.5 hours) after the last hanchan starts
+            end_date = form.round_dates[-1].data + timedelta(minutes=150)
+
+        # Convert naive local datetimes to timezone-aware UTC datetimes
+        # (same as how hanchan times are handled in write_sheet.py)
+        tz = ZoneInfo(form.timezone.data)
+        start_date_utc = start_date.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
+        end_date_utc = end_date.replace(tzinfo=tz).astimezone(ZoneInfo("UTC"))
 
         firestore_data = {
             "name": form.title.data,
-            "start_date": form.round_dates[0].data,
-            "end_date": end_date,
+            "start_date": start_date_utc,
+            "end_date": end_date_utc,
             "status": "upcoming",
             "rules": form.rules.data,
             "country": form.country.data,
