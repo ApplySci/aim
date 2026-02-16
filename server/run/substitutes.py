@@ -11,12 +11,15 @@ import importlib
 
 from flask import (
     Blueprint,
+    flash,
     jsonify,
+    redirect,
     request,
     render_template,
     session,
     Response,
     stream_with_context,
+    url_for,
 )
 from flask_login import current_user
 
@@ -27,7 +30,7 @@ from oauth_setup import (
     MIN_TABLES,
     tournament_required,
 )
-from write_sheet import googlesheet
+from write_sheet import SheetNotFoundError, googlesheet
 
 blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 
@@ -38,7 +41,11 @@ blueprint = Blueprint("sub", __name__, url_prefix="/sub")
 @login_required
 def player_substitution():
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        flash(e.message_html, "sheet_not_found")
+        return redirect(url_for("run.run_tournament"))
 
     batch_data = googlesheet.batch_get_tournament_data(sheet)
     completed_rounds = googlesheet.count_completed_hanchan_from_batch(batch_data)
@@ -100,7 +107,10 @@ def plan_substitutions():
     returning_regs = data.get("returning", [])
 
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        return jsonify({"status": "error", "message": str(e)})
 
     logging.debug(f"Plan substitutions: removed={removed_regs}, returning={returning_regs}")
 
@@ -335,7 +345,10 @@ def confirm_substitutions():
     is_permanent_reduction = reduce_table_count and plan_info.get("completedRounds", 0) == 0
 
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        return jsonify({"status": "error", "message": str(e)})
 
     # Get current seating for backup using batch
     batch_data = googlesheet.batch_get_tournament_data(sheet)
@@ -465,7 +478,10 @@ def undo_substitution():
         return jsonify({"status": "error", "message": "No previous seating found"})
 
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        return jsonify({"status": "error", "message": str(e)})
 
     try:
         googlesheet.update_seating(sheet, last_seating)
@@ -530,7 +546,10 @@ def analyze_seating():
 
     # Get current seating for comparison
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        return jsonify({"status": "error", "message": str(e)})
     batch_data = googlesheet.batch_get_tournament_data(sheet)
     current_seatlist = googlesheet.get_seating_from_batch(batch_data)
     current_seating = seatlist_to_seating(current_seatlist)
@@ -602,7 +621,10 @@ def get_predefined_seating():
         return jsonify({"status": "error", "message": "No table count specified"}), 400
 
     tournament = current_user.live_tournament
-    sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    try:
+        sheet = googlesheet.get_sheet(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        return jsonify({"status": "error", "message": str(e)})
 
     # Get total number of rounds in the tournament
     batch_data = googlesheet.batch_get_tournament_data(sheet)

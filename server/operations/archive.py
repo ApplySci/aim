@@ -239,7 +239,7 @@ def archive_tournament(tournament: Tournament) -> dict | bool:
             metadata_ref,
             {
                 "last_updated": datetime.now(timezone.utc).isoformat(),
-                "api_base_url": "https://wr.mahjong.ie",
+                "api_base_url": "https://wr.energynumbers.info",
             },
             merge=True,
         )

@@ -35,7 +35,7 @@ from wtforms.validators import (
 )
 from wtforms.widgets import TextInput
 
-from write_sheet import googlesheet
+from write_sheet import SheetNotFoundError, googlesheet
 
 ALLOWED_TAGS = [
     "p",
@@ -83,6 +83,8 @@ def validate_end_date(form, field):
 def validate_google_doc_id(form, field):
     try:
         googlesheet.get_sheet(field.data)
+    except SheetNotFoundError as e:
+        raise ValidationError(str(e))
     except Exception:
         raise ValidationError("Invalid Google Doc ID or insufficient permissions.")
 
@@ -196,7 +198,7 @@ class TournamentForm(FlaskForm):
     )
     url_icon = StringField(
         "Icon URL",
-        default="https://wr.mahjong.ie/static/wrl512.png",
+        default="https://wr.energynumbers.info/static/wrl512.png",
         validators=[Optional(), URL(), url_ok],
     )
     google_doc_id = StringField(

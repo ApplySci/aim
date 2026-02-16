@@ -158,11 +158,12 @@ def results_create():
 
         # Process scorer emails for database access
         for email in scorer_emails:
-            scorer = db.session.query(User).filter_by(email=email).first()
+            email_lower = email.lower()
+            scorer = db.session.query(User).filter_by(email=email_lower).first()
             if scorer is None:
-                scorer = User(email=email)
+                scorer = User(email=email_lower)
                 db.session.add(scorer)
-            db.session.add(Access(email, tournament=tournament, role=Role.scorer))
+            db.session.add(Access(email_lower, tournament=tournament, role=Role.scorer))
 
         db.session.commit()
         base_dir = tournament.full_web_directory

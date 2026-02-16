@@ -34,7 +34,7 @@ from operations.queries import (
     get_past_tournament_summaries,
 )
 from operations.transforms import tournaments_to_summaries
-from write_sheet import googlesheet
+from write_sheet import SheetNotFoundError, googlesheet
 from . import substitutes
 
 blueprint = Blueprint("run", __name__, url_prefix="/run")
@@ -218,7 +218,12 @@ def _send_topic_fcm(topic: str, title: str, body: str, notification_type: str):
 @login_required
 def run_tournament():
     tournament = current_user.live_tournament
-    sheet = _get_sheet()
+    try:
+        sheet = _get_sheet()
+    except SheetNotFoundError as e:
+        flash(e.message_html, "sheet_not_found")
+        return redirect(url_for("run.select_tournament"))
+
     batch_data = googlesheet.batch_get_tournament_data(sheet)
     schedule = googlesheet.get_schedule_from_batch(batch_data)
     hanchan_count = googlesheet.count_completed_hanchan_from_batch(batch_data)
@@ -356,6 +361,10 @@ def update_schedule(tournament_id=None):
             return jsonify({"status": message}), 200
         else:
             return _handle_web_response(message, tournament, "success")
+    except SheetNotFoundError as e:
+        if _is_ajax_request():
+            return jsonify({"status": str(e)}), 200
+        return _handle_web_response(e.message_html, tournament, "sheet_not_found")
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         traceback_details = traceback.extract_tb(exc_traceback)
@@ -430,6 +439,10 @@ def update_players(tournament_id=None):
             return jsonify({"status": message}), 200
         else:
             return _handle_web_response(message, tournament, "success")
+    except SheetNotFoundError as e:
+        if _is_ajax_request():
+            return jsonify({"status": str(e)}), 200
+        return _handle_web_response(e.message_html, tournament, "sheet_not_found")
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         traceback_details = traceback.extract_tb(exc_traceback)
@@ -657,6 +670,8 @@ def update_scores(tournament_id=None):
         try:
             success_msg = _process_scores_update(tournament, send_notifications)
             return _handle_web_response(success_msg, tournament, "success")
+        except SheetNotFoundError as e:
+            return _handle_web_response(e.message_html, tournament, "sheet_not_found")
         except Exception as e:
             error_msg = f"Error updating scores: {str(e)}"
             logging.error(error_msg, exc_info=True)

@@ -37,7 +37,7 @@ from wtforms.validators import DataRequired, Optional, URL, ValidationError
 from config import BASEDIR
 from forms.tournament_forms import EditTournamentForm
 from oauth_setup import db, firestore_client, admin_or_editor_required, logging, Role
-from write_sheet import googlesheet
+from write_sheet import SheetNotFoundError, googlesheet
 
 blueprint = Blueprint("edit", __name__)
 
@@ -93,7 +93,14 @@ def get_dates_from_sheet():
 @login_required
 def edit_tournament():
     firebase_id = current_user.live_tournament.firebase_doc
-    dates = get_dates_from_sheet()
+    try:
+        dates = get_dates_from_sheet()
+    except SheetNotFoundError as e:
+        flash(e.message_html, "sheet_not_found")
+        return redirect(url_for("run.run_tournament"))
+    except Exception as e:
+        flash(f"Failed to load tournament sheet: {e}", "error")
+        return redirect(url_for("run.run_tournament"))
 
     # Parse the dates from the sheet (these are hanchan start times in local timezone)
     first_hanchan = datetime.strptime(dates[1], "%A %d %B %Y, %H:%M")

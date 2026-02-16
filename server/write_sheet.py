@@ -13,14 +13,36 @@ from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 import gspread
-from gspread.exceptions import APIError as GspreadAPIError
+from gspread.exceptions import APIError as GspreadAPIError, SpreadsheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 
-from config import SUPERADMIN, TEMPLATE_ID, OUR_EMAILS
+from config import GOOGLE_CLIENT_EMAIL, SUPERADMIN, TEMPLATE_ID, OUR_EMAILS
 from oauth_setup import KEYFILE, logging
 
 MAX_HANCHAN = 20
+
+
+class SheetNotFoundError(Exception):
+    """Raised when the spreadsheet cannot be opened (404). Use str(e) for plain text, .message_html for styled HTML."""
+
+    def __init__(self, sheet_id: str) -> None:
+        self.sheet_id = sheet_id
+        email = GOOGLE_CLIENT_EMAIL
+        self.message = (
+            "The scoresheet was not found. It may have been deleted or the ID may be wrong. "
+            "Share the sheet in Google Drive with this address as Editor: " + email
+        )
+        self.message_html = (
+            "The scoresheet was not found. It may have been deleted or the ID may be wrong. "
+            '<span class="sheet-not-found-action">'
+            '<span class="sheet-not-found-action-label">Action required:</span> '
+            'Share your Google Sheet with this address as <strong>Editor</strong>: '
+            f'<strong class="sheet-not-found-email">{email}</strong></span>'
+        )
+        super().__init__(self.message)
+
+
 MAX_TABLES = 43
 SCOPE = [
     "https://spreadsheets.google.com/feeds",
@@ -45,10 +67,20 @@ class GSP:
             The opened spreadsheet
 
         Raises:
-            GspreadAPIError: If the sheet cannot be opened
+            SheetNotFoundError: 404 - spreadsheet missing, deleted, or not shared
+                with the service account (user-facing message in str(e)).
+            GspreadAPIError: Other API errors opening the sheet.
         """
         try:
             return self.client.open_by_key(id)
+        except SpreadsheetNotFound:
+            logging.error(
+                "Spreadsheet not found (404) for id=%s: spreadsheet may be deleted, "
+                "wrong id, or not shared with the service account client_email.",
+                id,
+                exc_info=True,
+            )
+            raise SheetNotFoundError(id) from None
         except GspreadAPIError as e:
             logging.error(f"Failed to open sheet {id}: {str(e)}")
             raise
