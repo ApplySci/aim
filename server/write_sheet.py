@@ -876,7 +876,8 @@ class GSP:
         vals = vals[2:]  # throw away the headers
         schedule = {"timezone": timezone_string, "rounds": []}
         for i in range(0, len(vals)):
-            # Handle both formatted strings and Excel serial numbers
+            if len(vals[i]) < 3 or not vals[i][2]:
+                continue
             date_value = vals[i][2]
             if isinstance(date_value, (int, float)):
                 # Convert Excel serial number to datetime

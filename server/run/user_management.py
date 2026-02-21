@@ -20,7 +20,7 @@ from oauth_setup import (
     superadmin_required,
 )
 from forms.userform import AddUserForm
-from write_sheet import googlesheet
+from write_sheet import SheetNotFoundError, googlesheet
 from config import SUPERADMIN
 
 blueprint = Blueprint("user_management", __name__)
@@ -94,10 +94,13 @@ def add_user_get():
     )
 
     # Get users who have access to the Google Sheet
-    sheet_users = googlesheet.get_sheet_users(tournament.google_doc_id)
-
-    if isinstance(sheet_users, str):  # Error occurred
-        flash(f"Error checking Google Sheet access: {sheet_users}", "danger")
+    try:
+        sheet_users = googlesheet.get_sheet_users(tournament.google_doc_id)
+    except SheetNotFoundError as e:
+        flash(e.message_html, "sheet_not_found")
+        sheet_users = []
+    except Exception as e:
+        flash(f"Error checking Google Sheet access: {e}", "danger")
         sheet_users = []
 
     # Check if the current user is an admin for this tournament
@@ -372,6 +375,8 @@ def sync_access_route():
     try:
         sync_access(tournament_id)
         flash("Access synchronized successfully", "success")
+    except SheetNotFoundError as e:
+        flash(e.message_html, "sheet_not_found")
     except Exception as e:
         flash(f"Failed to synchronize access: {str(e)}", "error")
         logging.error(

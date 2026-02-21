@@ -112,7 +112,7 @@
         <span id="google_doc_status"></span>
         <a id="google_doc_link" target="_blank" style="display:none;">View Sheet</a>
         {% for error in form.google_doc_id.errors %}
-          <span class=formError>[{{ error }}]</span>
+          <span class="formError sheet-not-found-wrapper">[{{ error | safe }}]</span>
         {% endfor %}
     </p>
 
