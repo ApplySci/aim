@@ -39,13 +39,13 @@ dependencies:
   flutter_riverpod: ^2.6.1 # TODO v3 introduced breaking changes https://riverpod.dev/docs/3.0_migration
   flutter_sticky_header: ^0.8.0
   flutter_timezone: ^5.0.1
-  flutter_typeahead: ^5.2.0
+  #flutter_typeahead: ^5.2.0
   http: ^1.3.0
   intl: ^0.20.2
   permission_handler: ^12.0.0+1
   restart_app: ^1.3.2
   shared_preferences: ^2.5.2
-  syncfusion_flutter_charts: ^32.1.25
+  syncfusion_flutter_charts: ^33.1.44
   timezone: ^0.11.0
   url_launcher: ^6.3.1
 
@@ -75,6 +75,8 @@ flutter_launcher_icons:
 flutter:
   # needed for the Icons class
   uses-material-design: true
+  config:
+    enable-switft-package-manager: true
 
   assets:
     - assets/audio/notif.mp3
